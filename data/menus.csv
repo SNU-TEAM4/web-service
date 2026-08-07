@@ -1,0 +1,90 @@
+brand,menu,category,calories,protein,fat,carbs,sodium,allergens,source_url,source_date,verified
+맥도날드,에그 맥머핀,단품,306.0,19.0,5.0,3.0,712.0,계란|우유|대두|밀|돼지고기,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,베이컨 토마토 에그 머핀,단품,341.0,17.0,3.6,5.0,666.0,계란|대두|밀|돼지고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디럭스 브렉퍼스트,단품,768.0,29.0,9.0,11.0,1365.0,계란|우유|대두|밀|돼지고기,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,핫케익 3조각,단품,335.0,9.0,1.7,12.0,513.0,계란|우유|대두|밀,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,치킨 치즈 머핀,단품,498.0,23.0,6.0,3.0,1277.0,계란|우유|대두|밀|닭고기,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥스파이시® 상하이버거,버거,528.0,22.0,3.2,9.0,952.0,계란|대두|밀|닭고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥치킨® 모짜렐라,버거,735.0,29.0,7.0,18.0,1807.0,계란|우유|대두|밀|닭고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥치킨®,버거,515.0,19.0,3.6,7.0,1148.0,계란|대두|밀|닭고기,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,불고기버거,버거,408.0,14.0,6.0,14.0,670.0,계란|대두|밀|돼지고기,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,슈비버거,버거,573.0,22.0,6.0,15.0,951.0,계란|우유|대두|밀|새우|쇠고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,토마토 치즈 비프 버거 ,버거,402.0,18.0,7.0,11.0,682.0,계란|우유|대두|밀|쇠고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥크리스피™ 치킨 디럭스,버거,578.0,23.0,4.7,13.0,1297.0,계란|우유|대두|밀|쇠고기|닭고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥크리스피™ 치킨 클래식,버거,567.0,23.0,4.7,11.0,1295.0,계란|우유|대두|밀|쇠고기|닭고기|토마토,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,상하이 치킨 스낵랩,스낵 & 사이드,300.0,11.0,3.9,3.0,823.0,계란|대두|밀|돼지고기|닭고기,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥스파이시® 치킨텐더 2조각,스낵 & 사이드,190.0,14.0,1.2,0.0,763.0,계란|대두|밀|닭고기|토마토|아황산류,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥윙 4조각,스낵 & 사이드,455.0,28.0,6.0,1.0,1204.0,계란|대두|밀|닭고기|토마토|아황산류,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,맥윙 8조각,스낵 & 사이드,910.0,56.0,12.0,1.0,2408.0,계란|대두|밀|닭고기|토마토|아황산류,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,오레오 맥플러리,디저트,334.0,6.0,6.0,36.0,179.0,우유|대두|밀,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,딸기 오레오 맥플러리,디저트,305.0,5.0,4.7,38.0,138.0,우유|대두|밀,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,초코 오레오 맥플러리,디저트,390.0,7.0,8.0,45.0,218.0,우유|대두|밀,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,피치 아이스티 미디엄,음료,162.0,0.0,0.0,34.0,8.0,복숭아,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,피치 아이스티 라지,음료,229.0,1.0,0.0,48.0,11.0,복숭아,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,망고 피치 아이스티 미디엄,음료,216.0,0.0,0.0,46.0,23.0,복숭아,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,망고 피치 아이스티 라지,음료,342.0,1.0,0.0,74.0,43.0,복숭아,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아메리카노 미디움,음료,12.0,1.0,0.0,0.0,0.0,,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아메리카노 라지,음료,12.0,1.0,0.0,0.0,4.0,,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아이스 아메리카노 미디움,음료,8.0,1.0,0.0,0.0,0.0,,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아이스 아메리카노 라지,음료,10.0,1.0,0.0,0.0,0.0,,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 카페 라떼 미디움,음료,150.0,8.0,4.4,10.0,85.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 카페 라떼 라지,음료,190.0,10.0,6.0,13.0,107.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아이스 카페 라떼 미디움,음료,114.0,6.0,3.2,7.0,54.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아이스 카페 라떼 라지,음료,133.0,7.0,3.9,8.0,65.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 카푸치노 미디움,음료,89.0,5.0,2.5,6.0,49.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 카푸치노 라지,음료,120.0,6.0,3.5,7.0,65.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 바닐라 라떼 M,음료,227.0,8.0,4.4,29.0,85.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 바닐라 라떼 L,음료,319.0,10.0,6.0,43.0,107.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아이스 바닐라 라떼 M,음료,191.0,6.0,3.2,26.0,54.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,디카페인 아이스 바닐라 라떼 L,음료,263.0,7.0,3.9,39.0,65.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+맥도날드,그리머스 쉐이크,음료,366.0,9.0,5.0,57.0,180.0,우유,https://www.mcdonalds.co.kr/kor/menu/information/nutrition,2026.08.07,True
+롯데리아,버거세트,버거메뉴,263.0,549.0,11.0,1300.0,18.0,새우,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,리아 불고기 더블 (빅불),버거메뉴,721.0,38.0,24.0,12.0,1480.0,계란|우유|대두|밀|돼지고기|쇠고기|닭고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,리아 새우,버거메뉴,473.0,15.0,3.8,5.0,900.0,계란|우유|대두|밀|새우|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,리아 새우 베이컨,버거메뉴,519.0,18.0,5.0,6.0,960.0,계란|우유|대두|밀|새우|돼지고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,리아 사각새우 더블,버거메뉴,534.0,18.0,4.2,6.0,1050.0,계란|우유|대두|밀|새우|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,모짜렐라 인 더 버거 베이컨,버거메뉴,696.0,30.0,16.0,6.0,1000.0,계란|우유|대두|밀|돼지고기|쇠고기,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,전주비빔라이스버거,버거메뉴,574.0,14.0,7.0,8.0,1290.0,계란|대두|밀|쇠고기,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,더블엑스투버거,버거메뉴,703.0,26.0,23.0,6.0,1040.0,계란|우유|대두|밀|쇠고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,핫크리스피치킨버거,버거메뉴,454.0,22.0,5.0,4.0,900.0,계란|대두|밀|닭고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,미라클버거,버거메뉴,382.0,15.0,4.6,7.0,600.0,대두|밀|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,더블 미라클버거,버거메뉴,551.0,25.0,7.0,10.0,920.0,대두|밀|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,클래식치즈버거,버거메뉴,482.0,16.0,13.0,5.0,710.0,계란|우유|대두|밀|쇠고기,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,더블 클래식치즈버거,버거메뉴,717.0,26.0,23.0,6.0,1030.0,계란|우유|대두|밀|쇠고기,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,치킨버거,버거메뉴,355.0,15.0,3.8,8.0,620.0,계란|우유|대두|밀|땅콩|닭고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,더블 치킨버거,버거메뉴,478.0,24.0,5.0,11.0,950.0,계란|우유|대두|밀|땅콩|닭고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,데리버거,버거메뉴,348.0,12.0,4.9,10.0,590.0,계란|우유|대두|밀|쇠고기|닭고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,더블 데리버거,버거메뉴,446.0,19.0,7.0,10.0,740.0,계란|우유|대두|밀|쇠고기|닭고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,나폴리 모짜렐라버거 토마토바질,버거메뉴,733.0,27.0,18.0,10.0,1080.0,계란|우유|대두|밀|쇠고기|닭고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,나폴리 모짜렐라버거 발사믹바질,버거메뉴,733.0,27.0,18.0,10.0,1040.0,계란|우유|대두|밀|쇠고기|토마토|아황산류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,통다리 크리스피치킨버거(그릭랜치),버거메뉴,618.0,25.0,5.0,8.0,1050.0,계란|우유|대두|밀|쇠고기|닭고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,통다리 크리스피치킨버거(파이어핫),버거메뉴,594.0,25.0,4.4,10.0,1040.0,계란|우유|대두|밀|쇠고기|닭고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,번트비프버거,버거메뉴,602.0,26.0,17.0,17.0,1070.0,계란|우유|대두|밀|돼지고기|쇠고기|아황산류|오징어,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,하와이안 모짜렐라버거,버거메뉴,773.0,26.0,18.0,14.0,1146.0,계란|우유|대두|밀|돼지고기|쇠고기|닭고기|토마토|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,토핑메뉴,버거메뉴,18.0,64.0,0.0,160.0,3.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,치킨메뉴,화이어윙2조각,178.0,9.0,2.5,0.0,270.0,계란|대두|밀|땅콩|닭고기,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,아이스티(R),드링크 메뉴,191.0,0.0,0.0,47.0,0.0,복숭아,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,아이스티(L),드링크 메뉴,263.0,0.0,0.0,64.0,0.0,복숭아,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,제로슈거콜라(R),드링크 메뉴,0.0,0.0,0.0,0.0,55.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,제로슈거콜라(L),드링크 메뉴,0.0,0.0,0.0,0.0,75.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,펩시콜라(R),드링크 메뉴,128.0,0.0,0.0,31.0,15.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,펩시콜라(L),드링크 메뉴,174.0,0.0,0.0,42.0,20.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,사이다(R),드링크 메뉴,133.0,0.0,0.0,31.0,5.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,사이다(L),드링크 메뉴,182.0,0.0,0.0,42.0,10.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,캐모마일 티,드링크 메뉴,2.0,0.0,0.0,0.0,0.0,,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,아이스샷,말차빙수(보냉백 포함),634.0,9.0,3.0,82.0,220.0,우유,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,허니머스타드,소스& 시즈닝,25.0,0.0,0.0,2.0,70.0,계란|대두,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,스위트앤사워,소스& 시즈닝,20.0,0.0,0.0,5.0,60.0,대두|밀|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,크리미양념소스,소스& 시즈닝,99.0,0.0,0.7,9.0,360.0,계란|대두|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,롯데리아 잠발라야소스,소스& 시즈닝,33.0,0.0,0.0,7.0,120.0,토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,어니언 시즈닝,소스& 시즈닝,18.0,0.0,0.0,1.0,125.0,우유|대두,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,치즈시즈닝,소스& 시즈닝,15.0,0.0,0.0,2.0,130.0,우유|대두,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,칠리 시즈닝,소스& 시즈닝,9.0,0.0,0.0,1.0,160.0,우유|대두|밀|쇠고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,양념치킨소스,소스& 시즈닝,92.0,1.0,0.0,14.0,200.0,계란|대두|밀|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,소이허니소스,소스& 시즈닝,85.0,1.0,0.0,16.0,340.0,대두|밀,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,디저트 메뉴,포테이토,284.0,3.0,2.8,2.0,500.0,대두|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,야채라이스 불고기,리아모닝,520.0,18.0,6.0,5.0,900.0,계란|우유|대두|밀|돼지고기|쇠고기|닭고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,야채라이스 새우,리아모닝,434.0,11.0,2.2,3.0,890.0,계란|우유|대두|밀|새우|쇠고기|토마토,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,베이컨에그번,리아모닝,386.0,14.0,8.0,5.0,510.0,계란|우유|대두|밀|돼지고기|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,에그샐러드번,리아모닝,446.0,14.0,9.0,6.0,590.0,계란|우유|대두|밀|토마토|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
+롯데리아,쿠팡이츠 '하나만' 메뉴,새우 + 치킨버거,825.0,30.0,8.0,13.0,1520.0,계란|우유|대두|밀|땅콩|새우|닭고기|토마토|조개류,https://www.lotteeatz.com/upload/etc/ria/items.html,2026-06-08,True
