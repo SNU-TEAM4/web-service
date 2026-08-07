@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 
 OUT = Path(__file__).parents[1] / "data" / "menus.csv"
 MCD_URL = "https://www.mcdonalds.co.kr/api/v1/kor/product/nutrition"
@@ -137,8 +138,75 @@ def starbucks() -> list[dict]:
     return result
 
 
+def kfc() -> list[dict]:
+    """KFC 공식 이미지 표(Ver.20260721)의 단품 메뉴를 구조화한 값."""
+    source = "https://www.kfckorea.com/nas/kfcimg/info/info_nutrition.png"
+    allergy_source = "https://www.kfckorea.com/nas/kfcimg/info/info_allergy.png"
+    # menu, category, kcal, protein, saturated fat, sugar, sodium, allergens
+    rows = [
+        ("오리지널치킨", "치킨", 271, 20, 4.2, 0, 544, "대두, 밀, 계란, 우유, 닭고기"),
+        ("핫크리스피치킨", "치킨", 264, 22, 4.3, 0, 455, "대두, 밀, 닭고기"),
+        ("갓양념치킨", "치킨", 261, 15, 3.5, 6, 504, "대두, 밀, 닭고기, 토마토, 쇠고기"),
+        ("핫윙 2조각", "치킨", 182, 10, 3.9, 0, 445, "대두, 밀, 닭고기"),
+        ("징거", "버거", 553, 33, 7.4, 5, 866, "대두, 밀, 계란, 우유, 닭고기"),
+        ("징거타워", "버거", 720, 36, 11.0, 9, 1343, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
+        ("트위스터", "버거", 360, 18, 4.4, 4, 1334, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
+        ("징거BLT", "버거", 696, 39, 11.2, 6, 1146, "대두, 밀, 계란, 우유, 닭고기, 토마토, 돼지고기"),
+        ("클래식징거통다리", "버거", 604, 24, 9.2, 12, 1010, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
+        ("치즈징거통다리", "버거", 713, 28, 15.1, 9, 1386, "대두, 밀, 계란, 우유, 닭고기"),
+        ("칙플레맵징거통다리", "버거", 695, 24, 10.1, 18, 1125, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
+        ("칙플레맵징거타워", "버거", 803, 37, 11.8, 16, 1386, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
+        ("칙플레맵징거더블다운", "버거", 946, 46, 18.4, 6, 1626, "대두, 밀, 우유, 닭고기, 토마토, 돼지고기"),
+        ("프렌치프라이", "사이드", 144, 2, 1.0, 0, 366, "대두"),
+        ("에그타르트", "사이드", 215, 3, 8.5, 8, 105, "대두, 밀, 계란, 우유, 쇠고기"),
+        ("코울슬로", "사이드", 139, 2, 1.9, 15, 190, ""),
+        ("아메리카노", "음료", 7, 0, 0, 0, 3, ""),
+    ]
+    result = []
+    for menu, category, kcal, protein, fat, sugar, sodium, allergens in rows:
+        result.append({"brand": "KFC", "menu": menu, "category": category, "calories": kcal,
+                       "protein": protein, "fat": fat, "carbs": sugar, "sodium": sodium,
+                       "allergens": normalize_allergens(allergens), "source_url": source,
+                       "source_date": "2026-07-21", "verified": True, "allergen_known": True,
+                       "allergy_source_url": allergy_source})
+    return result
+
+
+def subway() -> list[dict]:
+    list_url = "https://www.subway.co.kr/menuList/sandwich"
+    response = requests.get(list_url, timeout=30)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "lxml")
+    items = {}
+    for link in soup.select("a[data-menuitemidx][data-category='sandwich']"):
+        items[link["data-menuitemidx"]] = link.find_parent("li").select_one("strong.tit").get_text(strip=True)
+    result = []
+    for item_id, fallback_name in items.items():
+        detail_url = f"https://www.subway.co.kr/menuView/sandwich?menuItemIdx={item_id}"
+        try:
+            detail = requests.get(detail_url, timeout=30)
+            detail.raise_for_status()
+        except requests.RequestException:
+            continue
+        page = BeautifulSoup(detail.text, "lxml")
+        name_tag = page.select_one("h2.name")
+        table = page.select_one("div.board_list_wrapper table")
+        if table is None:
+            continue
+        values = [number(cell.get_text(" ", strip=True)) for cell in table.select("tbody tr:first-child td")]
+        if len(values) < 6:
+            continue
+        _, kcal, protein, fat, sugar, sodium = values[:6]
+        result.append({"brand": "써브웨이", "menu": name_tag.get_text(strip=True) if name_tag else fallback_name,
+                       "category": "샌드위치(기본 레시피)", "calories": kcal, "protein": protein,
+                       "fat": fat, "carbs": sugar, "sodium": sodium, "allergens": "",
+                       "source_url": detail_url, "source_date": date.today().isoformat(),
+                       "verified": True, "allergen_known": False})
+    return result
+
+
 if __name__ == "__main__":
-    frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks())
+    frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway())
     frame = frame.dropna(subset=["calories", "protein", "sodium"]).drop_duplicates(["brand", "menu"])
     frame.to_csv(OUT, index=False, encoding="utf-8")
     print(f"saved {len(frame)} verified menu rows -> {OUT}")

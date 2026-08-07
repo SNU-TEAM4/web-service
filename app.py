@@ -55,7 +55,7 @@ def apply_filters(
     return result
 
 
-def calorie_estimate(sex: str, age: int, height: int, weight: float, activity: str, goal: str) -> dict:
+def calorie_estimate(sex: str, age: int, height: int, weight: float, activity: str, goal: str, meal_type: str) -> dict:
     """Mifflin–St Jeor 기반 성인용 참고 추정치."""
     sex_constant = 5 if sex == "남성 기준" else -161
     resting = 10 * weight + 6.25 * height - 5 * age + sex_constant
@@ -64,9 +64,9 @@ def calorie_estimate(sex: str, age: int, height: int, weight: float, activity: s
     maintenance = resting * activity_factor
     goal_factor = {"체중 유지": 1.0, "천천히 감량": 0.9, "감량": 0.8}[goal]
     daily = maintenance * goal_factor
-    # 하루 세 끼 중 점심·저녁 한 끼를 약 35%로 보는 앱 내부 추천 기준이다.
+    meal_factor = {"아침": 0.25, "점심": 0.35, "저녁": 0.35, "간식": 0.15}[meal_type]
     return {"resting": round(resting), "maintenance": round(maintenance),
-            "daily": round(daily), "meal": round(daily * 0.35 / 50) * 50}
+            "daily": round(daily), "meal": round(daily * meal_factor / 50) * 50}
 
 
 def allergen_badges(items: list[str], known: bool = True) -> str:
@@ -231,10 +231,18 @@ with st.sidebar:
         age = p1.number_input("나이", 19, 80, 30, 1)
         height = p2.number_input("키(cm)", 130, 210, 165, 1)
         weight = st.number_input("체중(kg)", 35.0, 200.0, 60.0, 0.5)
+        goal_weight = st.number_input("목표 체중(kg)", 35.0, 200.0, max(35.0, weight - 5), 0.5)
+        target_weeks = st.slider("목표 기간", 4, 52, 12, 1, format="%d주")
         activity = st.selectbox("평소 활동량", ["낮음 (주로 앉아서 생활)", "보통 (주 1~3회 활동)", "활동적 (주 3~5회 운동)", "매우 활동적"])
         goal = st.segmented_control("목표", ["체중 유지", "천천히 감량", "감량"], default="천천히 감량")
-        profile = calorie_estimate(sex, age, height, weight, activity, goal)
+        meal_type = st.segmented_control("지금 찾는 식사", ["아침", "점심", "저녁", "간식"], default="점심")
+        priorities = st.multiselect("중요하게 볼 영양 기준", ["칼로리 적합", "고단백", "저나트륨", "저당", "저포화지방"], default=["칼로리 적합", "고단백"])
+        profile = calorie_estimate(sex, age, height, weight, activity, goal, meal_type)
+        profile.update({"goal_weight": goal_weight, "weeks": target_weeks, "meal_type": meal_type, "priorities": priorities})
+        weekly_change = max(0, weight - goal_weight) / target_weeks
         st.info(f"하루 참고 목표 **{profile['daily']:,} kcal** · 한 끼 추천 기준 **{profile['meal']:,} kcal**")
+        if goal != "체중 유지":
+            st.caption(f"입력한 목표 변화: 주당 약 {weekly_change:.2f}kg · 급격한 감량 목표는 전문가와 상의하세요.")
     st.markdown("#### 4. 영양 조건")
     default_calories = min(1000, max(100, profile["meal"] if profile else 600))
     max_calories = st.slider("최대 칼로리", 100, 1000, default_calories, 50, format="%d kcal", key=f"calories_{default_calories}")
@@ -253,7 +261,19 @@ if profile is not None and not recommended.empty:
     calorie_fit = (1 - (recommended["calories"] - target).abs() / max(target, 1)).clip(lower=0)
     protein_score = (recommended["protein"] / 30).clip(upper=1)
     sodium_score = (1 - recommended["sodium"] / max_sodium).clip(lower=0)
-    recommended["맞춤 점수"] = (calorie_fit * 60 + protein_score * 30 + sodium_score * 10).round()
+    sugar_score = (1 - recommended["carbs"] / max(recommended["carbs"].quantile(.9), 1)).clip(lower=0)
+    fat_score = (1 - recommended["fat"] / max(recommended["fat"].quantile(.9), 1)).clip(lower=0)
+    score_map = {"칼로리 적합": calorie_fit, "고단백": protein_score, "저나트륨": sodium_score,
+                 "저당": sugar_score, "저포화지방": fat_score}
+    chosen_scores = [score_map[name] for name in profile["priorities"] if name in score_map] or [calorie_fit]
+    recommended["맞춤 점수"] = (sum(chosen_scores) / len(chosen_scores) * 100).round()
+    reason_map = {"칼로리 적합": lambda r: f"한 끼 목표 {target}kcal에 가까움",
+                  "고단백": lambda r: f"단백질 {r['protein']:.0f}g",
+                  "저나트륨": lambda r: f"나트륨 {r['sodium']:.0f}mg",
+                  "저당": lambda r: f"당류 {r['carbs']:.0f}g",
+                  "저포화지방": lambda r: f"포화지방 {r['fat']:.1f}g"}
+    recommended["추천 이유"] = recommended.apply(
+        lambda row: " · ".join(reason_map[p](row) for p in profile["priorities"][:2]) or "열량 조건 충족", axis=1)
 
 st.markdown(
     """
@@ -321,6 +341,7 @@ with tab_results:
                   <div class="menu-brand">{row['brand']} · {row['category']}</div>
                   <div class="menu-title">{row['menu']}</div>
                   <div class="menu-meta">{row['calories']:.0f} kcal &nbsp;·&nbsp; 단백질 {row['protein']:.0f}g &nbsp;·&nbsp; 포화지방 {row['fat']:.1f}g &nbsp;·&nbsp; 나트륨 {row['sodium']:.0f}mg{f" &nbsp;·&nbsp; 맞춤 {row['맞춤 점수']:.0f}점" if profile else ""}</div>
+                  {f'<div class="metric-note">추천 이유: {row["추천 이유"]}</div>' if profile else ''}
                   {allergen_badges(row['allergen_list'], row['allergen_known'])}
                 </div>
                 """,
@@ -440,7 +461,7 @@ with tab_about:
         """
         #### 실제 서비스 전환 시 확인할 사항
 
-        - 현재 공식 데이터 제공: 맥도날드, 롯데리아, 버거킹, 스타벅스 (출처 URL·기준일 열 참고)
+        - 현재 공식 데이터 제공: 맥도날드, 롯데리아, 버거킹, 스타벅스, KFC, 써브웨이 (출처 URL·기준일 열 참고)
         - 공식 알레르기 필드가 비어 있는 메뉴는 `정보 미표기`로 처리하고, 알레르기 선택 시 추천에서 제외
         - `함유`, `같은 시설에서 제조`, `정보 없음`을 구분하고 보수적으로 필터링
         - 원재료 변경 감지 및 정기 데이터 검수 절차 마련
