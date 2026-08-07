@@ -15,6 +15,12 @@ MCD_URL = "https://www.mcdonalds.co.kr/api/v1/kor/product/nutrition"
 LOTTE_URL = "https://www.lotteeatz.com/upload/etc/ria/items.html"
 BURGERKING_URL = "https://web-prd.burgerking.co.kr/burgerking/BKR0347.json"
 STARBUCKS_BASE = "https://www.starbucks.co.kr/upload/json/menu/"
+EDIYA_PAGES = {
+    "https://ediya.com/contents/drink.html": "음료",
+    "https://ediya.com/contents/bakery.html": "베이커리",
+}
+BASKIN_LIST = "https://www.baskinrobbins.co.kr/menu/list.php?top=A"
+PARIS_LIST = "https://www.paris.co.kr/products/"
 
 
 def number(value) -> float | None:
@@ -205,8 +211,109 @@ def subway() -> list[dict]:
     return result
 
 
+def ediya() -> list[dict]:
+    """이디야 공식 메뉴 상세 레이어에 공개된 영양·알레르기 정보를 수집한다."""
+    result = []
+    for url, category in EDIYA_PAGES.items():
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "lxml")
+        for detail in soup.select(".pro_detail"):
+            title = detail.select_one("h2")
+            nutrients = {
+                dl.select_one("dt").get_text(strip=True): number(dl.select_one("dd").get_text(strip=True))
+                for dl in detail.select(".pro_nutri dl") if dl.select_one("dt") and dl.select_one("dd")
+            }
+            # new_pro_detail은 실제 상품이 아니라 예시값이 들어간 숨김 템플릿이다.
+            if not title or detail.get("id") == "new_pro_detail" or nutrients.get("칼로리") is None:
+                continue
+            allergy_tag = detail.select_one(".pro_allergy")
+            allergy = allergy_tag.get_text(" ", strip=True) if allergy_tag else ""
+            result.append({
+                "brand": "이디야", "menu": title.contents[0].strip(), "category": category,
+                "calories": nutrients.get("칼로리"), "protein": nutrients.get("단백질"),
+                "fat": nutrients.get("포화지방"), "carbs": nutrients.get("당류"),
+                "sodium": nutrients.get("나트륨"), "allergens": normalize_allergens(allergy),
+                "source_url": url, "source_date": date.today().isoformat(), "verified": True,
+                "allergen_known": bool(allergy_tag),
+            })
+    return result
+
+
+def baskin_robbins() -> list[dict]:
+    """배스킨라빈스 공식 아이스크림 목록과 상세 영양표를 결합한다."""
+    response = requests.get(BASKIN_LIST, timeout=30)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "lxml")
+    result = []
+    for link in soup.select("a.menu-list__link"):
+        detail_url = requests.compat.urljoin(BASKIN_LIST, link.get("href", ""))
+        page_response = requests.get(detail_url, timeout=30)
+        page_response.raise_for_status()
+        page = BeautifulSoup(page_response.text, "lxml")
+        text = page.get_text(" ", strip=True)
+        pattern = (r"영양정보\s+1회 제공량\(g\)\s+[\d.]+\s+열량\(kcal\)\s+([\d.]+)\s+"
+                   r"당류\(g\)\s+([\d.]+)\s+단백질\(g\)\s+([\d.]+)\s+포화지방\(g\)\s+([\d.]+)\s+"
+                   r"나트륨\(mg\)\s+([\d.]+)\s+※\s*알레르기 성분\s+(.*?)\s+SELECT SIZE")
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        kcal, sugar, protein, fat, sodium, allergy = match.groups()
+        image = link.select_one("img[alt]")
+        title = image.get("alt", "").strip() if image else ""
+        if not title:
+            continue
+        result.append({
+            "brand": "배스킨라빈스", "menu": title, "category": "아이스크림",
+            "calories": number(kcal), "protein": number(protein), "fat": number(fat),
+            "carbs": number(sugar), "sodium": number(sodium),
+            "allergens": normalize_allergens(allergy), "source_url": detail_url,
+            "source_date": date.today().isoformat(), "verified": True, "allergen_known": True,
+        })
+    return result
+
+
+def paris_baguette() -> list[dict]:
+    """파리바게뜨 공식 제품 목록에 노출된 상품의 상세 정보를 수집한다."""
+    response = requests.get(PARIS_LIST, timeout=30)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "lxml")
+    links = {}
+    for link in soup.select("a[href*='/product/']"):
+        url = link.get("href", "")
+        name = link.get_text(" ", strip=True)
+        if url.rstrip("/").endswith("/product") or not name:
+            continue
+        links[url] = name
+    result = []
+    for detail_url, fallback_name in links.items():
+        page_response = requests.get(detail_url, timeout=30)
+        page_response.raise_for_status()
+        page = BeautifulSoup(page_response.text, "lxml")
+        text = page.get_text(" ", strip=True)
+        pattern = (r"영양정보\s+총 내용량:.*?총 내용량당 칼로리\(kcal\):\s*([\d,.]+).*?"
+                   r"나트륨\(mg\):\s*([\d,.]+).*?당류\(g\):\s*([\d,.]+).*?"
+                   r"포화지방\(g\):\s*([\d,.]+).*?단백질\(g\):\s*([\d,.]+)\s+"
+                   r"알레르기 정보\s+(.*?)\s+추가정보")
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        kcal, sodium, sugar, fat, protein, allergy = match.groups()
+        heading = page.select_one("h1")
+        menu = heading.get_text(" ", strip=True) if heading else fallback_name
+        result.append({
+            "brand": "파리바게뜨", "menu": menu, "category": "공식 제품",
+            "calories": number(kcal), "protein": number(protein), "fat": number(fat),
+            "carbs": number(sugar), "sodium": number(sodium),
+            "allergens": normalize_allergens(allergy), "source_url": detail_url,
+            "source_date": date.today().isoformat(), "verified": True, "allergen_known": True,
+        })
+    return result
+
+
 if __name__ == "__main__":
-    frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway())
+    frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway()
+                         + ediya() + baskin_robbins() + paris_baguette())
     frame = frame.dropna(subset=["calories", "protein", "sodium"]).drop_duplicates(["brand", "menu"])
     frame.to_csv(OUT, index=False, encoding="utf-8")
     print(f"saved {len(frame)} verified menu rows -> {OUT}")
