@@ -217,12 +217,18 @@ with st.sidebar:
     )
     st.markdown("#### 2. 브랜드")
     brand_options = sorted(data["brand"].unique())
+    # 배포 후 브랜드가 늘어났을 때 기존 브라우저 세션의 선택값에는 자동으로
+    # 추가되지 않으므로 사용자가 한 번에 최신 전체 목록을 선택할 수 있게 한다.
+    if st.button("전체 브랜드 선택", width="stretch"):
+        st.session_state["brand_selector_v2"] = brand_options
     selected_brands = st.multiselect(
         "브랜드",
         brand_options,
         default=brand_options,
+        key="brand_selector_v2",
         label_visibility="collapsed",
     )
+    st.caption(f"공식 데이터 {len(data):,}개 · {len(brand_options)}개 브랜드 · 2026-08-07 갱신")
     st.markdown("#### 3. 맞춤 프로필")
     profile_enabled = st.toggle("신체·다이어트 목표 반영", value=False)
     profile = None
