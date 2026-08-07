@@ -106,7 +106,7 @@ def nearby_stores(lat: float, lon: float, radius_km: int) -> pd.DataFrame:
     radius = radius_km * 1000
     # 자유 텍스트 정규식은 Overpass에서 전체 색인을 훑어 자주 타임아웃된다.
     # 브랜드 Wikidata 식별자는 색인 검색이라 훨씬 빠르고 안정적이다.
-    brand_ids = "Q38076|Q177054|Q37158"  # McDonald's, Burger King, Starbucks
+    brand_ids = "Q38076|Q177054|Q37158|Q524757|Q244457"  # McDonald's, Burger King, Starbucks, KFC, Subway
     query = f'''[out:json][timeout:20];
       nwr["brand:wikidata"~"{brand_ids}"](around:{radius},{lat},{lon});
       out center tags;'''
@@ -132,7 +132,8 @@ def nearby_stores(lat: float, lon: float, radius_km: int) -> pd.DataFrame:
     if response is None:
         raise requests.ConnectionError(f"모든 매장 검색 서버 실패: {last_error}")
     rows = []
-    brand_by_id = {"Q38076": "맥도날드", "Q177054": "버거킹", "Q37158": "스타벅스"}
+    brand_by_id = {"Q38076": "맥도날드", "Q177054": "버거킹", "Q37158": "스타벅스",
+                   "Q524757": "KFC", "Q244457": "써브웨이"}
     for item in response.json().get("elements", []):
         tags = item.get("tags", {})
         item_lat = item.get("lat", item.get("center", {}).get("lat"))
