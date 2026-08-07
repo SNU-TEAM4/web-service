@@ -19,7 +19,7 @@ streamlit run app.py
 
 ## 데이터 주의사항
 
-`data/menus.csv`는 맥도날드와 롯데리아의 공식 공개 자료에서 정제했습니다. 다음 명령으로 갱신할 수 있습니다.
+`data/menus.csv`는 맥도날드, 롯데리아, 버거킹, 스타벅스의 공식 공개 자료에서 정제했습니다. 다음 명령으로 갱신할 수 있습니다.
 
 ```bash
 python scripts/update_official_data.py

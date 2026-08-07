@@ -30,6 +30,7 @@ def load_data() -> pd.DataFrame:
     data["allergen_list"] = data["allergens"].fillna("").apply(
         lambda value: [item.strip() for item in value.split("|") if item.strip()]
     )
+    data["allergen_known"] = data.get("allergen_known", True).fillna(False).astype(bool)
     return data
 
 
@@ -43,7 +44,8 @@ def apply_filters(
 ) -> pd.DataFrame:
     selected = set(selected_allergens)
     result = data[data["brand"].isin(brands)].copy()
-    result["알레르기 안전"] = result["allergen_list"].apply(lambda items: selected.isdisjoint(items))
+    ingredient_safe = result["allergen_list"].apply(lambda items: selected.isdisjoint(items))
+    result["알레르기 안전"] = ingredient_safe & (result["allergen_known"] if selected else True)
     result["영양 조건"] = (
         (result["calories"] <= max_calories)
         & (result["protein"] >= min_protein)
@@ -67,7 +69,9 @@ def calorie_estimate(sex: str, age: int, height: int, weight: float, activity: s
             "daily": round(daily), "meal": round(daily * 0.35 / 50) * 50}
 
 
-def allergen_badges(items: list[str]) -> str:
+def allergen_badges(items: list[str], known: bool = True) -> str:
+    if not known:
+        return '<span class="allergen-badge">알레르기 정보 미표기</span>'
     if not items:
         return '<span class="safe-badge">표시 알레르기 성분 없음</span>'
     return " ".join(f'<span class="allergen-badge">{item}</span>' for item in items)
@@ -317,12 +321,12 @@ with tab_results:
                   <div class="menu-brand">{row['brand']} · {row['category']}</div>
                   <div class="menu-title">{row['menu']}</div>
                   <div class="menu-meta">{row['calories']:.0f} kcal &nbsp;·&nbsp; 단백질 {row['protein']:.0f}g &nbsp;·&nbsp; 포화지방 {row['fat']:.1f}g &nbsp;·&nbsp; 나트륨 {row['sodium']:.0f}mg{f" &nbsp;·&nbsp; 맞춤 {row['맞춤 점수']:.0f}점" if profile else ""}</div>
-                  {allergen_badges(row['allergen_list'])}
+                  {allergen_badges(row['allergen_list'], row['allergen_known'])}
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-        export_cols = ["brand", "menu", "category", "calories", "protein", "fat", "carbs", "sodium", "allergens"]
+        export_cols = ["brand", "menu", "category", "calories", "protein", "fat", "carbs", "sodium", "allergens", "allergen_known", "source_url", "source_date"]
         st.download_button(
             "추천 결과 CSV 다운로드",
             recommended[export_cols].to_csv(index=False).encode("utf-8-sig"),
@@ -436,8 +440,8 @@ with tab_about:
         """
         #### 실제 서비스 전환 시 확인할 사항
 
-        - 현재 공식 데이터 제공: 맥도날드, 롯데리아 (앱 데이터의 출처 URL·기준일 열 참고)
-        - 버거킹·스타벅스는 자동 검증 파이프라인이 완성될 때까지 추천 데이터에서 제외
+        - 현재 공식 데이터 제공: 맥도날드, 롯데리아, 버거킹, 스타벅스 (출처 URL·기준일 열 참고)
+        - 공식 알레르기 필드가 비어 있는 메뉴는 `정보 미표기`로 처리하고, 알레르기 선택 시 추천에서 제외
         - `함유`, `같은 시설에서 제조`, `정보 없음`을 구분하고 보수적으로 필터링
         - 원재료 변경 감지 및 정기 데이터 검수 절차 마련
         - 심각한 알레르기가 있다면 주문 전 브랜드와 매장에 반드시 재확인하도록 안내
@@ -446,7 +450,7 @@ with tab_about:
     )
     st.dataframe(
         data.drop(columns="allergen_list").rename(
-            columns={"brand": "브랜드", "menu": "메뉴", "category": "분류", "calories": "칼로리", "protein": "단백질", "fat": "포화지방", "carbs": "당류", "sodium": "나트륨", "allergens": "알레르기 성분", "source_url": "공식 출처", "source_date": "기준일", "verified": "검증"}
+            columns={"brand": "브랜드", "menu": "메뉴", "category": "분류", "calories": "칼로리", "protein": "단백질", "fat": "포화지방", "carbs": "당류", "sodium": "나트륨", "allergens": "알레르기 성분", "allergen_known": "알레르기 정보 확인", "source_url": "공식 출처", "source_date": "기준일", "verified": "검증"}
         ),
         hide_index=True,
         use_container_width=True,
