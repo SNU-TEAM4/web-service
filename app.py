@@ -203,14 +203,16 @@ st.markdown(
         50% { transform: translateX(-5px); }
     }
     @media (max-width: 768px) {
-        div[data-testid="stSidebarCollapsedControl"] {
+        div[data-testid="stSidebarCollapsedControl"],
+        div:has(> button[data-testid="stExpandSidebarButton"]) {
             position: fixed;
             top: .55rem;
             left: .55rem;
             z-index: 1000000;
             overflow: visible;
         }
-        div[data-testid="stSidebarCollapsedControl"] button {
+        div[data-testid="stSidebarCollapsedControl"] button,
+        button[data-testid="stExpandSidebarButton"] {
             width: 2.85rem;
             height: 2.85rem;
             border-radius: 50%;
@@ -219,7 +221,8 @@ st.markdown(
             border: 3px solid white;
             box-shadow: 0 5px 18px rgba(20, 70, 43, .35);
         }
-        div[data-testid="stSidebarCollapsedControl"]::after {
+        div[data-testid="stSidebarCollapsedControl"]::after,
+        div:has(> button[data-testid="stExpandSidebarButton"])::after {
             content: "👈 CLICK! 내 조건 설정";
             position: absolute;
             top: .25rem;
