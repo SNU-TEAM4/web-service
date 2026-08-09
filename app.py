@@ -197,6 +197,48 @@ st.markdown(
     .notice { background: #fff9e9; border: 1px solid #f1dfac; border-radius: 14px; padding: .85rem 1rem; color: #695824; font-size: .85rem; }
     div[data-testid="stMetric"] { background: white; border: 1px solid #e2e8e0; padding: 1rem; border-radius: 16px; }
     .stButton > button, .stDownloadButton > button { border-radius: 12px; font-weight: 750; }
+    /* 모바일에서는 조건 사이드바가 접히므로 펼치기 버튼과 안내 문구를 강조한다. */
+    @keyframes sidebar-nudge {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(-5px); }
+    }
+    @media (max-width: 768px) {
+        div[data-testid="stSidebarCollapsedControl"] {
+            position: fixed;
+            top: .55rem;
+            left: .55rem;
+            z-index: 1000000;
+            overflow: visible;
+        }
+        div[data-testid="stSidebarCollapsedControl"] button {
+            width: 2.85rem;
+            height: 2.85rem;
+            border-radius: 50%;
+            color: white;
+            background: #24734b;
+            border: 3px solid white;
+            box-shadow: 0 5px 18px rgba(20, 70, 43, .35);
+        }
+        div[data-testid="stSidebarCollapsedControl"]::after {
+            content: "👈 CLICK! 내 조건 설정";
+            position: absolute;
+            top: .25rem;
+            left: 3.45rem;
+            width: max-content;
+            padding: .48rem .72rem;
+            border-radius: 999px;
+            color: white;
+            background: #24734b;
+            font-size: .82rem;
+            font-weight: 850;
+            letter-spacing: -.02em;
+            box-shadow: 0 5px 18px rgba(20, 70, 43, .25);
+            animation: sidebar-nudge 1.2s ease-in-out infinite;
+            pointer-events: none;
+        }
+        .block-container { padding-top: 4.2rem; }
+        .hero h1 { font-size: 2.35rem; }
+    }
     </style>
     """,
     unsafe_allow_html=True,
