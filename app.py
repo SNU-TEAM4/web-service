@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import time
 from pathlib import Path
 from math import asin, cos, radians, sin, sqrt
 
@@ -227,8 +228,11 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
     <style>html,body,#map{{width:100%;height:100%;margin:0}} .pin{{width:52px;cursor:pointer;filter:drop-shadow(0 3px 3px #0004)}}
     #status{{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;
     box-sizing:border-box;text-align:center;color:#536158;background:#f6f8f5;font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif}}
-    .my-location{{width:18px;height:18px;border-radius:50%;background:#2878f0;border:4px solid white;
-    box-shadow:0 1px 5px #0005,0 0 0 9px rgba(40,120,240,.2)}}
+    .my-location{{position:relative;width:18px;height:18px;border-radius:50%;background:#2878f0;border:4px solid white;
+    box-shadow:0 1px 5px #0005}}
+    .my-location::after{{content:'';position:absolute;left:50%;top:50%;width:24px;height:24px;border-radius:50%;
+    background:rgba(40,120,240,.28);transform:translate(-50%,-50%) scale(.55);animation:location-pulse 2s ease-out infinite;z-index:-1}}
+    @keyframes location-pulse{{0%{{opacity:.85;transform:translate(-50%,-50%) scale(.55)}}70%,100%{{opacity:0;transform:translate(-50%,-50%) scale(2.25)}}}}
     .info{{min-width:210px;padding:12px;font:13px/1.55 -apple-system,BlinkMacSystemFont,sans-serif}}
     .info b{{font-size:15px}} .info a{{display:inline-block;margin-top:7px;color:#1668c1;text-decoration:none;font-weight:700}}</style>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={javascript_key}&autoload=false"></script>
@@ -415,6 +419,19 @@ st.markdown(
     .notice { background: #fff9e9; border: 1px solid #f1dfac; border-radius: 14px; padding: .85rem 1rem; color: #695824; font-size: .85rem; }
     div[data-testid="stMetric"] { background: white; border: 1px solid #e2e8e0; padding: 1rem; border-radius: 16px; }
     .stButton > button, .stDownloadButton > button { border-radius: 12px; font-weight: 750; }
+    .cart-added-feedback {
+        color: #24734b;
+        text-align: center;
+        font-size: .84rem;
+        font-weight: 850;
+        margin: .15rem 0 .35rem;
+        animation: cart-added-pop 1.8s ease forwards;
+    }
+    @keyframes cart-added-pop {
+        0% { opacity: 0; transform: translateY(5px) scale(.9); }
+        18%, 65% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-4px) scale(.98); }
+    }
     /* 로고를 버튼 왼쪽에 배치하되 별도 열을 만들지 않아 화면 폭을 넘지 않게 한다. */
     [class*="st-key-brand_header_"] {
         position: relative;
@@ -721,8 +738,18 @@ with tab_results:
                         cart_label = f"{row['brand']} · {row['menu']}"
                         if target.button("🛒 담기", key=f"cart_add_{row.name}", width="stretch"):
                             st.session_state["cart"][cart_label] = st.session_state["cart"].get(cart_label, 0) + 1
+                            st.session_state["last_cart_added"] = cart_label
+                            st.session_state["last_cart_added_at"] = time.time()
                             st.toast(f"{row['menu']}을(를) 담았습니다.")
                             st.rerun()
+                        if (
+                            st.session_state.get("last_cart_added") == cart_label
+                            and time.time() - st.session_state.get("last_cart_added_at", 0) < 3
+                        ):
+                            target.markdown(
+                                '<div class="cart-added-feedback">✓ 담았어요!</div>',
+                                unsafe_allow_html=True,
+                            )
         export_cols = ["brand", "menu", "category", "price", "calories", "protein", "fat", "carbs", "sodium", "allergens", "allergen_known", "source_url", "source_date"]
         st.download_button(
             "추천 결과 CSV 다운로드",
