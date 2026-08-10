@@ -428,18 +428,30 @@ st.markdown(
         }
         .block-container { padding-top: 4.2rem; }
         .hero h1 { font-size: 2.35rem; }
-        /* 브랜드 폴더가 세로로 재배치될 때 로고가 화면 왼쪽에 붙지 않게 한다. */
-        div[data-testid="stImage"],
-        div[data-testid="stImageContainer"] {
-            display: flex;
-            justify-content: center;
-            width: 100%;
+        /* 브랜드 폴더는 모바일에서도 '작은 로고 | 펼치기'를 한 줄로 유지한다. */
+        [class*="st-key-brand_row_"] [data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: .55rem;
         }
-        div[data-testid="stImage"] img,
-        div[data-testid="stImageContainer"] img {
+        [class*="st-key-brand_row_"] [data-testid="column"]:first-child {
+            flex: 0 0 58px;
+            width: 58px;
+            min-width: 58px;
+        }
+        [class*="st-key-brand_row_"] [data-testid="column"]:nth-child(2) {
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+        }
+        [class*="st-key-brand_row_"] div[data-testid="stImage"] img,
+        [class*="st-key-brand_row_"] div[data-testid="stImageContainer"] img {
             display: block;
-            margin-left: auto;
-            margin-right: auto;
+            width: auto !important;
+            max-width: 50px !important;
+            max-height: 50px;
+            object-fit: contain;
+            margin: 0 auto;
         }
     }
     </style>
@@ -603,11 +615,11 @@ with tab_results:
             st.warning("모든 조건을 만족하는 메뉴가 없습니다. 영양 조건을 조금 넓혀보세요.")
     else:
         st.caption("브랜드 폴더를 누르면 해당 브랜드의 추천 메뉴가 펼쳐집니다.")
-        for brand, brand_menus in recommended.groupby("brand", sort=False):
+        for brand_index, (brand, brand_menus) in enumerate(recommended.groupby("brand", sort=False)):
             state_key = f"brand_folder_{brand}"
             if state_key not in st.session_state:
                 st.session_state[state_key] = False
-            with st.container(border=True):
+            with st.container(border=True, key=f"brand_row_{brand_index}"):
                 logo_col, folder_col = st.columns([1, 6], vertical_alignment="center")
                 logo_path = BASE_DIR / "assets" / "brand_logos" / BRAND_LOGOS.get(brand, "")
                 if logo_path.is_file():
