@@ -231,12 +231,11 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
     box-shadow:0 1px 5px #0005,0 0 0 9px rgba(40,120,240,.2)}}
     .info{{min-width:210px;padding:12px;font:13px/1.55 -apple-system,BlinkMacSystemFont,sans-serif}}
     .info b{{font-size:15px}} .info a{{display:inline-block;margin-top:7px;color:#1668c1;text-decoration:none;font-weight:700}}</style>
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={javascript_key}"></script></head>
-    <body><div id="map"></div><div id="status">카카오맵을 불러오는 중입니다…</div><script>
+    </head><body><div id="map"></div><div id="status">카카오맵을 불러오는 중입니다…</div><script>
     const statusBox=document.getElementById('status');
     function mapError(message){{statusBox.style.display='flex';statusBox.innerHTML='카카오맵을 표시하지 못했습니다.<br>'+message+'<br>페이지를 새로고침한 뒤 다시 검색해 주세요.';}}
     window.addEventListener('error',function(e){{mapError(e.message||'브라우저에서 지도 스크립트가 차단됐습니다.')}});
-    if(typeof kakao==='undefined'||!kakao.maps){{mapError('카카오 지도 SDK를 불러오지 못했습니다.')}} else try {{
+    function initMap() {{ try {{
       const center = new kakao.maps.LatLng({lat}, {lon});
       const map = new kakao.maps.Map(document.getElementById('map'), {{center:center, level:{map_level}}});
       statusBox.style.display='none';
@@ -259,7 +258,18 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
           opened=new kakao.maps.CustomOverlay({{map:map,position:new kakao.maps.LatLng(s.lat,s.lon),content:box,yAnchor:1.35,zIndex:10}});
         }});
       }});
-    }} catch(error) {{ mapError(error.message||'지도 초기화 오류'); }}
+    }} catch(error) {{ mapError(error.message||'지도 초기화 오류'); }} }}
+    const sdk=document.createElement('script');
+    sdk.src='https://dapi.kakao.com/v2/maps/sdk.js?appkey={javascript_key}&autoload=false';
+    sdk.onload=function(){{
+      if(typeof kakao==='undefined'||!kakao.maps||typeof kakao.maps.load!=='function'){{
+        mapError('카카오 지도 SDK를 초기화하지 못했습니다.'); return;
+      }}
+      kakao.maps.load(initMap);
+    }};
+    sdk.onerror=function(){{mapError('카카오 지도 SDK 다운로드가 차단됐습니다.')}};
+    document.head.appendChild(sdk);
+    setTimeout(function(){{if(statusBox.style.display!=='none') mapError('지도 로딩 시간이 초과됐습니다.');}},12000);
     </script></body></html>"""
     components.html(html, height=570, scrolling=False)
 
