@@ -428,6 +428,19 @@ st.markdown(
         }
         .block-container { padding-top: 4.2rem; }
         .hero h1 { font-size: 2.35rem; }
+        /* 브랜드 폴더가 세로로 재배치될 때 로고가 화면 왼쪽에 붙지 않게 한다. */
+        div[data-testid="stImage"],
+        div[data-testid="stImageContainer"] {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        div[data-testid="stImage"] img,
+        div[data-testid="stImageContainer"] img {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
     }
     </style>
     """,
