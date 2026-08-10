@@ -442,6 +442,8 @@ st.markdown(
         text-align: center;
         font-size: .84rem;
         font-weight: 850;
+        position: relative;
+        top: -4px;
         max-height: 28px;
         margin: .1rem 0 .25rem;
         overflow: hidden;
