@@ -111,6 +111,12 @@ def sync_cart_quantity(label: str, quantity_key: str) -> None:
     """수량 위젯이 바뀌면 다음 화면을 그리기 전에 장바구니 합계부터 갱신한다."""
     if label in st.session_state.get("cart", {}):
         st.session_state["cart"][label] = int(st.session_state[quantity_key])
+    st.session_state["next_default_tab"] = "cart"
+
+
+def keep_cart_tab() -> None:
+    """장바구니 위젯을 조작한 직후 한 번의 재실행에서 장바구니 탭을 기본으로 연다."""
+    st.session_state["next_default_tab"] = "cart"
 
 
 def app_secret(name: str) -> str:
@@ -668,8 +674,11 @@ for col, (label, value, note) in zip(cols, metrics):
 
 st.markdown("<br>", unsafe_allow_html=True)
 cart_count = sum(st.session_state["cart"].values())
+cart_tab_label = f"장바구니 ({cart_count})"
+next_default_tab = st.session_state.pop("next_default_tab", None)
 tab_results, tab_cart, tab_map, tab_compare, tab_detail, tab_about = st.tabs(
-    ["추천 메뉴", f"장바구니 ({cart_count})", "주변 매장", "브랜드 비교", "메뉴 상세 비교", "데이터 안내"]
+    ["추천 메뉴", cart_tab_label, "주변 매장", "브랜드 비교", "메뉴 상세 비교", "데이터 안내"],
+    default=cart_tab_label if next_default_tab == "cart" else "추천 메뉴",
 )
 
 with tab_results:
@@ -793,6 +802,7 @@ with tab_cart:
                 entered_price = price_col.number_input(
                     "가격(원)", 0, 100000, default_price, 100,
                     key=f"cart_price_{cart_index}_{label}",
+                    on_change=keep_cart_tab,
                 )
                 st.session_state["cart_prices"][label] = entered_price
                 quantity_key = cart_quantity_key(label)
@@ -807,6 +817,7 @@ with tab_cart:
                     del st.session_state["cart"][label]
                     st.session_state["cart_prices"].pop(label, None)
                     st.session_state.pop(quantity_key, None)
+                    keep_cart_tab()
                     st.rerun()
                 cart_rows.append((row, quantity))
 
@@ -867,6 +878,7 @@ with tab_cart:
                     st.session_state.pop(cart_quantity_key(label), None)
                 st.session_state["cart"] = {}
                 st.session_state["cart_prices"] = {}
+                keep_cart_tab()
                 st.rerun()
 
 with tab_map:
