@@ -225,15 +225,21 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
         })
     html = f"""<!doctype html><html><head><meta charset="utf-8">
     <style>html,body,#map{{width:100%;height:100%;margin:0}} .pin{{width:52px;cursor:pointer;filter:drop-shadow(0 3px 3px #0004)}}
+    #status{{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;
+    box-sizing:border-box;text-align:center;color:#536158;background:#f6f8f5;font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif}}
     .my-location{{width:18px;height:18px;border-radius:50%;background:#2878f0;border:4px solid white;
     box-shadow:0 1px 5px #0005,0 0 0 9px rgba(40,120,240,.2)}}
     .info{{min-width:210px;padding:12px;font:13px/1.55 -apple-system,BlinkMacSystemFont,sans-serif}}
     .info b{{font-size:15px}} .info a{{display:inline-block;margin-top:7px;color:#1668c1;text-decoration:none;font-weight:700}}</style>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={javascript_key}&autoload=false"></script></head>
-    <body><div id="map"></div><script>
-    kakao.maps.load(function() {{
+    <body><div id="map"></div><div id="status">카카오맵을 불러오는 중입니다…</div><script>
+    const statusBox=document.getElementById('status');
+    function mapError(message){{statusBox.style.display='flex';statusBox.innerHTML='카카오맵을 표시하지 못했습니다.<br>'+message+'<br>위의 지도 방식에서 ‘호환 지도’를 선택해 주세요.';}}
+    window.addEventListener('error',function(e){{mapError(e.message||'브라우저에서 지도 스크립트가 차단됐습니다.')}});
+    if(typeof kakao==='undefined'||!kakao.maps){{mapError('카카오 지도 SDK를 불러오지 못했습니다.')}} else kakao.maps.load(function() {{ try {{
       const center = new kakao.maps.LatLng({lat}, {lon});
       const map = new kakao.maps.Map(document.getElementById('map'), {{center:center, level:{map_level}}});
+      statusBox.style.display='none';
       map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
       new kakao.maps.Circle({{center:center, radius:{radius_km * 1000}, strokeWeight:2, strokeColor:'#24734b', strokeOpacity:.7, fillColor:'#24734b', fillOpacity:.07}}).setMap(map);
@@ -253,7 +259,7 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
           opened=new kakao.maps.CustomOverlay({{map:map,position:new kakao.maps.LatLng(s.lat,s.lon),content:box,yAnchor:1.35,zIndex:10}});
         }});
       }});
-    }});
+    }} catch(error) {{ mapError(error.message||'지도 초기화 오류'); }} }});
     </script></body></html>"""
     components.html(html, height=570, scrolling=False)
 
@@ -814,6 +820,11 @@ with tab_map:
         "검색 방식", ["주소·장소 검색", "현재 위치 사용"], horizontal=True
     )
     radius_km = st.select_slider("검색 반경", [1, 2, 3, 5, 10], value=3, format_func=lambda x: f"{x} km")
+    map_provider = (
+        st.radio("지도 방식", ["카카오맵", "호환 지도"], horizontal=True,
+                 help="카카오맵이 빈 화면으로 보이면 호환 지도를 선택하세요.")
+        if use_kakao else "호환 지도"
+    )
     selected_location = None
     auto_search_location = False
     if search_mode == "현재 위치 사용":
@@ -960,7 +971,7 @@ with tab_map:
                                 "<span style='color:#647067'>{address}</span>"
                             ), "style": {"backgroundColor": "#17211b", "color": "white"}},
                         )
-                        if active_kakao:
+                        if active_kakao and map_provider == "카카오맵":
                             render_kakao_map(lat, lon, radius_km, stores)
                         else:
                             st.pydeck_chart(deck, width="stretch")
