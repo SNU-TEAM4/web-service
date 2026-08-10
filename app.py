@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -99,6 +100,17 @@ def allergen_badges(items: list[str], known: bool = True) -> str:
     if not items:
         return '<span class="safe-badge">표시 알레르기 성분 없음</span>'
     return " ".join(f'<span class="allergen-badge">{item}</span>' for item in items)
+
+
+def cart_quantity_key(label: str) -> str:
+    """장바구니 순서가 바뀌어도 같은 메뉴가 같은 수량 위젯을 사용하게 한다."""
+    return f"cart_qty_{hashlib.sha1(label.encode('utf-8')).hexdigest()[:12]}"
+
+
+def sync_cart_quantity(label: str, quantity_key: str) -> None:
+    """수량 위젯이 바뀌면 다음 화면을 그리기 전에 장바구니 합계부터 갱신한다."""
+    if label in st.session_state.get("cart", {}):
+        st.session_state["cart"][label] = int(st.session_state[quantity_key])
 
 
 def app_secret(name: str) -> str:
@@ -737,13 +749,15 @@ with tab_results:
                         )
                         cart_label = f"{row['brand']} · {row['menu']}"
                         if target.button("🛒 담기", key=f"cart_add_{row.name}", width="stretch"):
-                            st.session_state["cart"][cart_label] = st.session_state["cart"].get(cart_label, 0) + 1
-                            st.session_state["last_cart_added"] = cart_label
+                            new_quantity = st.session_state["cart"].get(cart_label, 0) + 1
+                            st.session_state["cart"][cart_label] = new_quantity
+                            st.session_state[cart_quantity_key(cart_label)] = new_quantity
+                            st.session_state["last_cart_added_row"] = str(row.name)
                             st.session_state["last_cart_added_at"] = time.time()
                             st.toast(f"{row['menu']}을(를) 담았습니다.")
                             st.rerun()
                         if (
-                            st.session_state.get("last_cart_added") == cart_label
+                            st.session_state.get("last_cart_added_row") == str(row.name)
                             and time.time() - st.session_state.get("last_cart_added_at", 0) < 3
                         ):
                             target.markdown(
@@ -781,13 +795,18 @@ with tab_cart:
                     key=f"cart_price_{cart_index}_{label}",
                 )
                 st.session_state["cart_prices"][label] = entered_price
+                quantity_key = cart_quantity_key(label)
+                if quantity_key not in st.session_state:
+                    st.session_state[quantity_key] = int(saved_qty)
                 quantity = qty_col.number_input(
-                    "수량", 1, 10, int(saved_qty), key=f"cart_qty_{cart_index}_{label}",
+                    "수량", 1, 10, key=quantity_key,
+                    on_change=sync_cart_quantity, args=(label, quantity_key),
                 )
                 st.session_state["cart"][label] = quantity
                 if remove_col.button("삭제", key=f"cart_remove_{cart_index}_{label}", width="stretch"):
                     del st.session_state["cart"][label]
                     st.session_state["cart_prices"].pop(label, None)
+                    st.session_state.pop(quantity_key, None)
                     st.rerun()
                 cart_rows.append((row, quantity))
 
@@ -844,6 +863,8 @@ with tab_cart:
             else:
                 st.info("공식 가격이 없는 메뉴는 장바구니의 가격 입력란에 현재 매장 가격을 입력하면 합계를 계산합니다.")
             if st.button("장바구니 전체 비우기"):
+                for label in list(st.session_state["cart"]):
+                    st.session_state.pop(cart_quantity_key(label), None)
                 st.session_state["cart"] = {}
                 st.session_state["cart_prices"] = {}
                 st.rerun()
