@@ -442,7 +442,13 @@ st.markdown(
         text-align: center;
         font-size: .84rem;
         font-weight: 850;
-        margin: .15rem 0 .35rem;
+        position: relative;
+        z-index: 5;
+        height: 0;
+        margin: 0;
+        top: -.1rem;
+        overflow: visible;
+        pointer-events: none;
     }
     .cart-feedback-a { animation: cart-added-pop-a 1.8s ease forwards; }
     .cart-feedback-b { animation: cart-added-pop-b 1.8s ease forwards; }
