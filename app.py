@@ -249,7 +249,7 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
     .my-location{{position:relative;width:18px;height:18px;border-radius:50%;background:#2878f0;border:4px solid white;
     box-shadow:0 1px 5px #0005}}
     .my-location::after{{content:'';position:absolute;left:50%;top:50%;width:24px;height:24px;border-radius:50%;
-    background:rgba(40,120,240,.28);transform:translate(-50%,-50%) scale(.55);animation:location-pulse 2s ease-out infinite;z-index:-1}}
+    background:rgba(40,120,240,.28);transform:translate(-50%,-50%) scale(.55);animation:location-pulse 1.2s ease-out infinite;z-index:-1}}
     @keyframes location-pulse{{0%{{opacity:.85;transform:translate(-50%,-50%) scale(.55)}}70%,100%{{opacity:0;transform:translate(-50%,-50%) scale(2.25)}}}}
     .info{{min-width:210px;padding:12px;font:13px/1.55 -apple-system,BlinkMacSystemFont,sans-serif}}
     .info b{{font-size:15px}} .info a{{display:inline-block;margin-top:7px;color:#1668c1;text-decoration:none;font-weight:700}}</style>
