@@ -1064,4 +1064,7 @@ with tab_about:
     )
 
 st.divider()
-st.caption("한입안심 MVP · 영양/알레르기: 브랜드 공식 자료 · 매장 위치: OpenStreetMap 기여자 데이터")
+st.caption(
+    "한입안심 MVP · 영양/알레르기: 브랜드 공식 자료 · "
+    "매장 위치·검색: 카카오맵·카카오 로컬 API(연결 실패 시 OpenStreetMap 활용)"
+)

@@ -29,7 +29,7 @@ streamlit run app.py
 python scripts/update_official_data.py
 ```
 
-매장 지도는 주소 검색에 Nominatim, 주변 매장 검색에 OpenStreetMap/Overpass API를 사용합니다. 공개 지도 데이터 특성상 누락되거나 오래된 매장이 있을 수 있습니다.
+매장 위치와 검색은 카카오맵·카카오 로컬 API를 우선 사용하고, 카카오 연결이 없거나 실패하면 Nominatim·OpenStreetMap/Overpass API를 예비 데이터로 사용합니다. 공개 지도 데이터는 누락되거나 오래된 매장을 포함할 수 있습니다.
 
 ## Streamlit Community Cloud 배포
 
