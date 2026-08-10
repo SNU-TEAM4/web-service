@@ -384,6 +384,47 @@ st.markdown(
     .notice { background: #fff9e9; border: 1px solid #f1dfac; border-radius: 14px; padding: .85rem 1rem; color: #695824; font-size: .85rem; }
     div[data-testid="stMetric"] { background: white; border: 1px solid #e2e8e0; padding: 1rem; border-radius: 16px; }
     .stButton > button, .stDownloadButton > button { border-radius: 12px; font-weight: 750; }
+    /* 로고를 버튼 왼쪽에 배치하되 별도 열을 만들지 않아 화면 폭을 넘지 않게 한다. */
+    [class*="st-key-brand_header_"] {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+    [class*="st-key-brand_header_"] div[data-testid="stElementContainer"]:has(div[data-testid="stImage"]) {
+        position: absolute;
+        z-index: 2;
+        left: 16px;
+        top: 50%;
+        width: 70px;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+    [class*="st-key-brand_header_"] div[data-testid="stImage"] img,
+    [class*="st-key-brand_header_"] div[data-testid="stImageContainer"] img {
+        display: block;
+        width: auto !important;
+        max-width: 64px !important;
+        max-height: 64px;
+        object-fit: contain;
+        margin: 0 auto;
+    }
+    [class*="st-key-brand_header_"] .stButton,
+    [class*="st-key-brand_header_"] .stButton > button {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    [class*="st-key-brand_header_"] .stButton > button {
+        min-height: 76px;
+        padding-left: 98px;
+        padding-right: 12px;
+    }
+    [class*="st-key-brand_header_"] .stButton > button p {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
     /* 모바일에서는 조건 사이드바가 접히므로 펼치기 버튼과 안내 문구를 강조한다. */
     @keyframes sidebar-nudge {
         0%, 100% { transform: translateX(0); }
@@ -428,45 +469,23 @@ st.markdown(
         }
         .block-container { padding-top: 4.2rem; }
         .hero h1 { font-size: 2.35rem; }
-        /* 브랜드 폴더는 모바일에서도 '작은 로고 | 펼치기'를 한 줄로 유지한다. */
-        [class*="st-key-brand_header_"] [data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap;
-            align-items: center;
-            gap: .55rem;
-        }
-        [class*="st-key-brand_header_"] [data-testid="column"]:first-child {
-            flex: 0 0 52px !important;
-            width: 52px !important;
-            min-width: 52px !important;
-            max-width: 52px !important;
-        }
-        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) {
-            flex: 1 1 0 !important;
-            width: calc(100% - 60px) !important;
-            min-width: 0 !important;
-            max-width: calc(100% - 60px) !important;
-            overflow: hidden;
-        }
-        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) .stButton,
-        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) .stButton > button {
-            width: 100% !important;
-            min-width: 0 !important;
-            max-width: 100% !important;
-        }
-        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) .stButton > button p {
-            white-space: normal;
-            overflow-wrap: anywhere;
-            line-height: 1.25;
-            font-size: .82rem;
+        /* 모바일에서는 로고와 버튼을 더 작게 유지한다. */
+        [class*="st-key-brand_header_"] div[data-testid="stElementContainer"]:has(div[data-testid="stImage"]) {
+            left: 8px;
+            width: 48px;
         }
         [class*="st-key-brand_header_"] div[data-testid="stImage"] img,
         [class*="st-key-brand_header_"] div[data-testid="stImageContainer"] img {
-            display: block;
-            width: auto !important;
-            max-width: 50px !important;
-            max-height: 50px;
-            object-fit: contain;
-            margin: 0 auto;
+            max-width: 44px !important;
+            max-height: 44px;
+        }
+        [class*="st-key-brand_header_"] .stButton > button {
+            min-height: 58px;
+            padding-left: 62px;
+            padding-right: 8px;
+        }
+        [class*="st-key-brand_header_"] .stButton > button p {
+            font-size: .8rem;
         }
     }
     </style>
@@ -636,12 +655,11 @@ with tab_results:
                 st.session_state[state_key] = False
             with st.container(border=True):
                 with st.container(key=f"brand_header_{brand_index}"):
-                    logo_col, folder_col = st.columns([1, 6], vertical_alignment="center")
                     logo_path = BASE_DIR / "assets" / "brand_logos" / BRAND_LOGOS.get(brand, "")
                     if logo_path.is_file():
-                        logo_col.image(str(logo_path), width=BRAND_LOGO_WIDTHS.get(brand, 84))
+                        st.image(str(logo_path), width=BRAND_LOGO_WIDTHS.get(brand, 84))
                     arrow = "▲" if st.session_state[state_key] else "▼"
-                    if folder_col.button(
+                    if st.button(
                         f"{brand}  ·  추천 가능 {len(brand_menus)}개  {arrow}",
                         key=f"toggle_{brand}", width="stretch",
                     ):
