@@ -214,6 +214,8 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
         })
     html = f"""<!doctype html><html><head><meta charset="utf-8">
     <style>html,body,#map{{width:100%;height:100%;margin:0}} .pin{{width:52px;cursor:pointer;filter:drop-shadow(0 3px 3px #0004)}}
+    .my-location{{width:18px;height:18px;border-radius:50%;background:#2878f0;border:4px solid white;
+    box-shadow:0 1px 5px #0005,0 0 0 9px rgba(40,120,240,.2)}}
     .info{{min-width:210px;padding:12px;font:13px/1.55 -apple-system,BlinkMacSystemFont,sans-serif}}
     .info b{{font-size:15px}} .info a{{display:inline-block;margin-top:7px;color:#1668c1;text-decoration:none;font-weight:700}}</style>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={javascript_key}&autoload=false"></script></head>
@@ -224,7 +226,7 @@ def render_kakao_map(lat: float, lon: float, radius_km: int, stores: pd.DataFram
       map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
       new kakao.maps.Circle({{center:center, radius:{radius_km * 1000}, strokeWeight:2, strokeColor:'#24734b', strokeOpacity:.7, fillColor:'#24734b', fillOpacity:.07}}).setMap(map);
-      const here = document.createElement('div'); here.textContent='★'; here.style.cssText='font-size:30px;color:#1e4bd2;text-shadow:0 2px 3px white';
+      const here = document.createElement('div'); here.className='my-location'; here.setAttribute('aria-label','내 위치');
       new kakao.maps.CustomOverlay({{map:map,position:center,content:here,yAnchor:.5}});
       const stores = {json.dumps(records, ensure_ascii=False)};
       let opened = null;
@@ -925,9 +927,17 @@ with tab_map:
                                     pickable=True,
                                 ),
                                 pdk.Layer(
-                                    "TextLayer", [{"lat": lat, "lon": lon, "icon": "★"}],
-                                    get_position="[lon, lat]", get_text="icon", get_color=[30, 75, 210],
-                                    get_size=28, get_alignment_baseline="center",
+                                    "ScatterplotLayer", [{"lat": lat, "lon": lon}],
+                                    get_position="[lon, lat]", get_radius=18,
+                                    radius_units="pixels", get_fill_color=[40, 120, 240, 45],
+                                    stroked=False,
+                                ),
+                                pdk.Layer(
+                                    "ScatterplotLayer", [{"lat": lat, "lon": lon}],
+                                    get_position="[lon, lat]", get_radius=8,
+                                    radius_units="pixels", get_fill_color=[40, 120, 240, 255],
+                                    get_line_color=[255, 255, 255, 255], line_width_min_pixels=3,
+                                    stroked=True,
                                 ),
                             ],
                             tooltip={"html": (
@@ -946,7 +956,7 @@ with tab_map:
                         )
                         st.markdown(
                             f'<div style="font-size:.8rem;color:#647067;margin:-.4rem 0 .8rem">'
-                            f'<b style="color:#1e4bd2">★</b> 내 위치 &nbsp; {legend_items}</div>',
+                            f'<b style="color:#2878f0">●</b> 내 위치 &nbsp; {legend_items}</div>',
                             unsafe_allow_html=True,
                         )
                         st.caption("지도에서 매장 아이콘을 누르면 매장명과 이동시간을 확인할 수 있습니다.")
