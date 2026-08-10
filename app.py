@@ -443,9 +443,15 @@ st.markdown(
         font-size: .84rem;
         font-weight: 850;
         margin: .15rem 0 .35rem;
-        animation: cart-added-pop 1.8s ease forwards;
     }
-    @keyframes cart-added-pop {
+    .cart-feedback-a { animation: cart-added-pop-a 1.8s ease forwards; }
+    .cart-feedback-b { animation: cart-added-pop-b 1.8s ease forwards; }
+    @keyframes cart-added-pop-a {
+        0% { opacity: 0; transform: translateY(5px) scale(.9); }
+        18%, 65% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-4px) scale(.98); }
+    }
+    @keyframes cart-added-pop-b {
         0% { opacity: 0; transform: translateY(5px) scale(.9); }
         18%, 65% { opacity: 1; transform: translateY(0) scale(1); }
         100% { opacity: 0; transform: translateY(-4px) scale(.98); }
@@ -763,14 +769,16 @@ with tab_results:
                             st.session_state[cart_quantity_key(cart_label)] = new_quantity
                             st.session_state["last_cart_added_row"] = str(row.name)
                             st.session_state["last_cart_added_at"] = time.time()
+                            st.session_state["cart_feedback_count"] = st.session_state.get("cart_feedback_count", 0) + 1
                             st.toast(f"{row['menu']}을(를) 담았습니다.")
                             st.rerun()
                         if (
                             st.session_state.get("last_cart_added_row") == str(row.name)
                             and time.time() - st.session_state.get("last_cart_added_at", 0) < 3
                         ):
+                            feedback_variant = "a" if st.session_state.get("cart_feedback_count", 0) % 2 else "b"
                             target.markdown(
-                                '<div class="cart-added-feedback">✓ 담았어요!</div>',
+                                f'<div class="cart-added-feedback cart-feedback-{feedback_variant}">✓ 담았어요!</div>',
                                 unsafe_allow_html=True,
                             )
         export_cols = ["brand", "menu", "category", "price", "calories", "protein", "fat", "carbs", "sodium", "allergens", "allergen_known", "source_url", "source_date"]
