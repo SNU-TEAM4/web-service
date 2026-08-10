@@ -13,6 +13,7 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_geolocation import streamlit_geolocation
+from streamlit_searchbox import st_searchbox
 
 
 BASE_DIR = Path(__file__).parent
@@ -160,6 +161,16 @@ def kakao_location_candidates(query: str) -> list[dict]:
             if not any(abs(row["lat"] - lat) < 1e-7 and abs(row["lon"] - lon) < 1e-7 for row in candidates):
                 candidates.append({"lat": lat, "lon": lon, "label": label})
     return candidates[:5]
+
+
+def location_autocomplete(searchterm: str) -> list[tuple[str, dict]]:
+    """카카오 위치 후보를 자동완성 컴포넌용 표시문구·좌표 쌍으로 반환한다."""
+    if len(searchterm.strip()) < 2:
+        return []
+    try:
+        return [(candidate["label"], candidate) for candidate in kakao_location_candidates(searchterm)]
+    except requests.RequestException:
+        return []
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -829,37 +840,40 @@ with tab_map:
                 "Chrome·Safari로 링크를 열어야 할 수 있습니다."
             )
     else:
-        address_col, candidate_col = st.columns([3, 1])
-        address = address_col.text_input("주소 또는 장소", "서울시청", placeholder="예: 서울 성수역")
-        if candidate_col.button("위치 후보 찾기", width="stretch"):
-            try:
-                if use_kakao:
-                    st.session_state["location_candidates"] = kakao_location_candidates(address)
-                else:
-                    one_location = geocode(address)
-                    st.session_state["location_candidates"] = (
-                        [{"lat": one_location[0], "lon": one_location[1], "label": one_location[2]}]
-                        if one_location else []
-                    )
-                st.session_state["candidate_query"] = address
-            except requests.RequestException:
-                st.session_state["location_candidates"] = []
-                st.error("위치 후보 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.")
-        candidates = (
-            st.session_state.get("location_candidates", [])
-            if st.session_state.get("candidate_query") == address else []
-        )
-        if candidates:
-            candidate_index = st.selectbox(
-                "검색 결과에서 위치를 선택하세요",
-                range(len(candidates)), format_func=lambda index: candidates[index]["label"],
+        if use_kakao:
+            chosen_location = st_searchbox(
+                location_autocomplete,
+                key="location_autocomplete",
+                label="주소 또는 장소",
+                placeholder="예: 성수역, 서울시청 (두 글자 이상)",
+                debounce=400,
+                clear_on_submit=False,
+                edit_after_submit="option",
             )
-            chosen_location = candidates[candidate_index]
-            selected_location = (
-                chosen_location["lat"], chosen_location["lon"], chosen_location["label"]
-            )
+            if isinstance(chosen_location, dict):
+                selected_location = (
+                    float(chosen_location["lat"]), float(chosen_location["lon"]), chosen_location["label"]
+                )
+                st.success(f"선택한 위치: {chosen_location['label']}")
+            else:
+                st.caption("두 글자 이상 입력하면 카카오 위치 후보가 최대 5개까지 자동으로 표시됩니다.")
         else:
-            st.caption("`위치 후보 찾기`를 누르면 최대 5개의 검색 결과가 표시됩니다.")
+            address = st.text_input("주소 또는 장소", "서울시청", placeholder="예: 서울 성수역")
+            if st.button("위치 찾기", width="stretch"):
+                try:
+                    one_location = geocode(address)
+                    st.session_state["fallback_location"] = (
+                        {"lat": one_location[0], "lon": one_location[1], "label": one_location[2]}
+                        if one_location else None
+                    )
+                except requests.RequestException:
+                    st.session_state["fallback_location"] = None
+                    st.error("위치 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.")
+            chosen_location = st.session_state.get("fallback_location")
+            if chosen_location:
+                selected_location = (
+                    chosen_location["lat"], chosen_location["lon"], chosen_location["label"]
+                )
 
     search_triggered = st.button(
         "선택 위치 주변 매장 찾기", type="primary", disabled=selected_location is None
