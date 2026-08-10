@@ -437,29 +437,15 @@ st.markdown(
     .notice { background: #fff9e9; border: 1px solid #f1dfac; border-radius: 14px; padding: .85rem 1rem; color: #695824; font-size: .85rem; }
     div[data-testid="stMetric"] { background: white; border: 1px solid #e2e8e0; padding: 1rem; border-radius: 16px; }
     .stButton > button, .stDownloadButton > button { border-radius: 12px; font-weight: 750; }
-    .cart-added-feedback {
-        color: #24734b;
-        text-align: center;
-        font-size: .84rem;
-        font-weight: 850;
-        position: relative;
-        top: -4px;
-        max-height: 28px;
-        margin: .1rem 0 .25rem;
-        overflow: hidden;
-        pointer-events: none;
+    @keyframes cart-button-confirm-a {
+        0% { opacity: 0; transform: scale(.88); }
+        15%, 62% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(.96); }
     }
-    .cart-feedback-a { animation: cart-added-pop-a .95s ease forwards; }
-    .cart-feedback-b { animation: cart-added-pop-b .95s ease forwards; }
-    @keyframes cart-added-pop-a {
-        0% { opacity: 0; max-height: 0; margin: 0; transform: translateY(3px) scale(.94); }
-        16%, 52% { opacity: 1; max-height: 28px; margin: .1rem 0 .25rem; transform: translateY(0) scale(1); }
-        100% { opacity: 0; max-height: 0; margin: 0; transform: translateY(-2px) scale(.98); }
-    }
-    @keyframes cart-added-pop-b {
-        0% { opacity: 0; max-height: 0; margin: 0; transform: translateY(3px) scale(.94); }
-        16%, 52% { opacity: 1; max-height: 28px; margin: .1rem 0 .25rem; transform: translateY(0) scale(1); }
-        100% { opacity: 0; max-height: 0; margin: 0; transform: translateY(-2px) scale(.98); }
+    @keyframes cart-button-confirm-b {
+        0% { opacity: 0; transform: scale(.88); }
+        15%, 62% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0; transform: scale(.96); }
     }
     /* 로고를 버튼 왼쪽에 배치하되 별도 열을 만들지 않아 화면 폭을 넘지 않게 한다. */
     [class*="st-key-brand_header_"] {
@@ -684,6 +670,33 @@ for col, (label, value, note) in zip(cols, metrics):
     )
 
 st.markdown("<br>", unsafe_allow_html=True)
+if (
+    st.session_state.get("last_cart_added_row") is not None
+    and time.time() - st.session_state.get("last_cart_added_at", 0) < 3
+):
+    feedback_row = st.session_state["last_cart_added_row"]
+    feedback_variant = "a" if st.session_state.get("cart_feedback_count", 0) % 2 else "b"
+    st.markdown(
+        f"""
+        <style>
+        .st-key-cart_add_{feedback_row} button {{ position: relative; overflow: hidden; }}
+        .st-key-cart_add_{feedback_row} button::after {{
+            content: "✓ 담았어요!";
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            background: #24734b;
+            font-weight: 850;
+            pointer-events: none;
+            animation: cart-button-confirm-{feedback_variant} .95s ease forwards;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 cart_count = sum(st.session_state["cart"].values())
 cart_tab_label = f"장바구니 ({cart_count})"
 next_default_tab = st.session_state.pop("next_default_tab", None)
@@ -777,15 +790,6 @@ with tab_results:
                             st.session_state["cart_feedback_count"] = st.session_state.get("cart_feedback_count", 0) + 1
                             st.toast(f"{row['menu']}을(를) 담았습니다.")
                             st.rerun()
-                        if (
-                            st.session_state.get("last_cart_added_row") == str(row.name)
-                            and time.time() - st.session_state.get("last_cart_added_at", 0) < 3
-                        ):
-                            feedback_variant = "a" if st.session_state.get("cart_feedback_count", 0) % 2 else "b"
-                            target.markdown(
-                                f'<div class="cart-added-feedback cart-feedback-{feedback_variant}">✓ 담았어요!</div>',
-                                unsafe_allow_html=True,
-                            )
         export_cols = ["brand", "menu", "category", "price", "calories", "protein", "fat", "carbs", "sodium", "allergens", "allergen_known", "source_url", "source_date"]
         st.download_button(
             "추천 결과 CSV 다운로드",
