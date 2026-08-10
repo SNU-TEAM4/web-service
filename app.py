@@ -429,23 +429,38 @@ st.markdown(
         .block-container { padding-top: 4.2rem; }
         .hero h1 { font-size: 2.35rem; }
         /* 브랜드 폴더는 모바일에서도 '작은 로고 | 펼치기'를 한 줄로 유지한다. */
-        [class*="st-key-brand_row_"] [data-testid="stHorizontalBlock"] {
+        [class*="st-key-brand_header_"] [data-testid="stHorizontalBlock"] {
             flex-wrap: nowrap;
             align-items: center;
             gap: .55rem;
         }
-        [class*="st-key-brand_row_"] [data-testid="column"]:first-child {
-            flex: 0 0 58px;
-            width: 58px;
-            min-width: 58px;
+        [class*="st-key-brand_header_"] [data-testid="column"]:first-child {
+            flex: 0 0 52px !important;
+            width: 52px !important;
+            min-width: 52px !important;
+            max-width: 52px !important;
         }
-        [class*="st-key-brand_row_"] [data-testid="column"]:nth-child(2) {
-            flex: 1 1 auto;
-            width: auto;
-            min-width: 0;
+        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) {
+            flex: 1 1 0 !important;
+            width: calc(100% - 60px) !important;
+            min-width: 0 !important;
+            max-width: calc(100% - 60px) !important;
+            overflow: hidden;
         }
-        [class*="st-key-brand_row_"] div[data-testid="stImage"] img,
-        [class*="st-key-brand_row_"] div[data-testid="stImageContainer"] img {
+        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) .stButton,
+        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) .stButton > button {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+        [class*="st-key-brand_header_"] [data-testid="column"]:nth-child(2) .stButton > button p {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            line-height: 1.25;
+            font-size: .82rem;
+        }
+        [class*="st-key-brand_header_"] div[data-testid="stImage"] img,
+        [class*="st-key-brand_header_"] div[data-testid="stImageContainer"] img {
             display: block;
             width: auto !important;
             max-width: 50px !important;
@@ -619,18 +634,19 @@ with tab_results:
             state_key = f"brand_folder_{brand}"
             if state_key not in st.session_state:
                 st.session_state[state_key] = False
-            with st.container(border=True, key=f"brand_row_{brand_index}"):
-                logo_col, folder_col = st.columns([1, 6], vertical_alignment="center")
-                logo_path = BASE_DIR / "assets" / "brand_logos" / BRAND_LOGOS.get(brand, "")
-                if logo_path.is_file():
-                    logo_col.image(str(logo_path), width=BRAND_LOGO_WIDTHS.get(brand, 84))
-                arrow = "▲" if st.session_state[state_key] else "▼"
-                if folder_col.button(
-                    f"{brand}  ·  추천 가능 {len(brand_menus)}개  {arrow}",
-                    key=f"toggle_{brand}", width="stretch",
-                ):
-                    st.session_state[state_key] = not st.session_state[state_key]
-                    st.rerun()
+            with st.container(border=True):
+                with st.container(key=f"brand_header_{brand_index}"):
+                    logo_col, folder_col = st.columns([1, 6], vertical_alignment="center")
+                    logo_path = BASE_DIR / "assets" / "brand_logos" / BRAND_LOGOS.get(brand, "")
+                    if logo_path.is_file():
+                        logo_col.image(str(logo_path), width=BRAND_LOGO_WIDTHS.get(brand, 84))
+                    arrow = "▲" if st.session_state[state_key] else "▼"
+                    if folder_col.button(
+                        f"{brand}  ·  추천 가능 {len(brand_menus)}개  {arrow}",
+                        key=f"toggle_{brand}", width="stretch",
+                    ):
+                        st.session_state[state_key] = not st.session_state[state_key]
+                        st.rerun()
                 if st.session_state[state_key]:
                     st.caption(
                         f"평균 {brand_menus['calories'].mean():.0f} kcal · "
