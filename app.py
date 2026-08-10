@@ -442,25 +442,22 @@ st.markdown(
         text-align: center;
         font-size: .84rem;
         font-weight: 850;
-        position: relative;
-        z-index: 5;
-        height: 0;
-        margin: 0;
-        top: -.1rem;
-        overflow: visible;
+        max-height: 28px;
+        margin: .1rem 0 .25rem;
+        overflow: hidden;
         pointer-events: none;
     }
-    .cart-feedback-a { animation: cart-added-pop-a 1.8s ease forwards; }
-    .cart-feedback-b { animation: cart-added-pop-b 1.8s ease forwards; }
+    .cart-feedback-a { animation: cart-added-pop-a .95s ease forwards; }
+    .cart-feedback-b { animation: cart-added-pop-b .95s ease forwards; }
     @keyframes cart-added-pop-a {
-        0% { opacity: 0; transform: translateY(5px) scale(.9); }
-        18%, 65% { opacity: 1; transform: translateY(0) scale(1); }
-        100% { opacity: 0; transform: translateY(-4px) scale(.98); }
+        0% { opacity: 0; max-height: 0; margin: 0; transform: translateY(3px) scale(.94); }
+        16%, 52% { opacity: 1; max-height: 28px; margin: .1rem 0 .25rem; transform: translateY(0) scale(1); }
+        100% { opacity: 0; max-height: 0; margin: 0; transform: translateY(-2px) scale(.98); }
     }
     @keyframes cart-added-pop-b {
-        0% { opacity: 0; transform: translateY(5px) scale(.9); }
-        18%, 65% { opacity: 1; transform: translateY(0) scale(1); }
-        100% { opacity: 0; transform: translateY(-4px) scale(.98); }
+        0% { opacity: 0; max-height: 0; margin: 0; transform: translateY(3px) scale(.94); }
+        16%, 52% { opacity: 1; max-height: 28px; margin: .1rem 0 .25rem; transform: translateY(0) scale(1); }
+        100% { opacity: 0; max-height: 0; margin: 0; transform: translateY(-2px) scale(.98); }
     }
     /* 로고를 버튼 왼쪽에 배치하되 별도 열을 만들지 않아 화면 폭을 넘지 않게 한다. */
     [class*="st-key-brand_header_"] {
