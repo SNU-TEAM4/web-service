@@ -174,11 +174,21 @@ export default function HanipApp() {
       {filtersOpen && <button className="backdrop" aria-label="닫기" onClick={() => setFiltersOpen(false)} />}
 
       <section className="content" id="top">
-        <header className="hero"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><h1>안심하고 고르는<br />오늘의 한 끼.</h1><p>알레르기, 영양 목표, 주변 매장까지. 흩어진 공식 정보를 한곳에서 비교하고 내 조건에 맞는 메뉴를 빠르게 찾으세요.</p>{loadStatus === "ready" && <div className="data-status"><Check size={15} /> 공식 출처 {menus.length}개 메뉴 · {brandOptions.length}개 브랜드 · 최신 기준일 {latestSourceDate}</div>}</header>
+        <header className="hero">
+          <div className="eyebrow">FRANCHISE FOOD GUIDE</div>
+          <h1>안심하고 고르는<br />오늘의 한 끼.</h1>
+          <p>알레르기, 영양 목표, 주변 매장까지. 흩어진 공식 정보를 한곳에서 비교하고 내 조건에 맞는 메뉴를 빠르게 찾으세요.</p>
+          <div className="hero-actions"><button className="hero-primary" onClick={() => setFiltersOpen(true)}>내 조건 설정</button><a className="hero-secondary" href="#workspace" onClick={() => setTab("menus")}>메뉴 둘러보기 <span aria-hidden="true">›</span></a></div>
+          {loadStatus === "ready" && <div className="data-status"><Check size={15} /> 공식 출처 {menus.length}개 메뉴 · {brandOptions.length}개 브랜드 · 최신 기준일 {latestSourceDate}</div>}
+        </header>
         {loadStatus === "loading" && <div className="status-panel" role="status"><RefreshCw className="spin" /> 공식 메뉴 데이터를 불러오는 중입니다…</div>}
         {loadStatus === "error" && <div className="status-panel error" role="alert"><AlertCircle /><div><b>메뉴 데이터를 불러오지 못했습니다.</b><span>{loadError}</span></div><button onClick={() => window.location.reload()}>다시 시도</button></div>}
+        {loadStatus === "ready" && <section className="source-stage" aria-label="공식 데이터 원칙">
+          <div><span className="source-stage-eyebrow">OFFICIAL SOURCE FIRST</span><h2>숫자보다 먼저,<br />출처를 확인합니다.</h2><p>메뉴별 공식 페이지와 공개 자료를 연결하고, 알레르기 표기가 확인된 정보만 구분해 보여줍니다.</p></div>
+          <div className="source-stage-stats"><div><b>{brandOptions.length}</b><span>공식 브랜드</span></div><div><b>{menus.filter((menu) => menu.allergenKnown).length}</b><span>알레르기 확인 메뉴</span></div><div><b>2</b><span>동일 CSV 검증본</span></div></div>
+        </section>}
         <div className="metrics"><Metric label="추천 가능한 메뉴" value={`${filtered.length}개`} note={`전체 ${menus.length}개 메뉴`} /><Metric label="선택 브랜드" value={`${brands.length}개`} note={`총 ${brandOptions.length}개 브랜드`} /><Metric label="선택 알레르기" value={`${allergens.length}개`} note={allergens.length ? "조건 적용 중" : "선택 없음"} /><Metric label="장바구니" value={`${cartCount}개`} note={`${totals.calories.toFixed(0)} kcal`} /></div>
-        <nav className="tabs" role="tablist" aria-label="한입안심 기능">
+        <nav className="tabs" id="workspace" role="tablist" aria-label="한입안심 기능">
           <TabButton active={tab === "menus"} onClick={() => setTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
           <TabButton active={tab === "cart"} onClick={() => setTab("cart")} icon={<ShoppingCart size={17} />} label={`장바구니 (${cartCount})`} />
           <TabButton active={tab === "map"} onClick={() => setTab("map")} icon={<MapPin size={17} />} label="주변 매장" />
@@ -188,9 +198,13 @@ export default function HanipApp() {
 
         {loadStatus === "ready" && tab === "menus" && <section className="panel" role="tabpanel" aria-label="추천 메뉴">
           <div className="panel-head"><div><h2>조건에 맞는 메뉴</h2><p>브랜드를 누르면 메뉴를 펼칠 수 있어요.</p></div><label className="search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="브랜드 또는 메뉴 검색" /></label></div>
-          <div className="brand-folders">{grouped.map(([brand, items]) => items && <div className="brand-folder" key={brand}>
-            <button className="brand-folder-head" onClick={() => setOpenBrands((current) => ({ ...current, [brand]: !current[brand] }))}>
-              <Image src={BRAND_LOGOS[brand]} alt={brand} width={86} height={86} /><span><b>{brand}</b><small>추천 가능 {items.length}개</small></span>{openBrands[brand] ? <ChevronUp /> : <ChevronDown />}
+          <div className="brand-folders">{grouped.map(([brand, items]) => {
+            const logo = BRAND_LOGOS[brand];
+            return <div className="brand-folder" key={brand}>
+            <button className="brand-folder-head" aria-expanded={Boolean(openBrands[brand])} onClick={() => setOpenBrands((current) => ({ ...current, [brand]: !current[brand] }))}>
+              <span className="brand-logo-frame">{logo ? <Image src={logo} alt={`${brand} 로고`} width={72} height={72} /> : <span className="brand-logo-fallback" aria-hidden="true">{brand.slice(0, 1)}</span>}</span>
+              <span className="brand-copy"><b>{brand}</b><small>추천 가능 {items.length}개</small></span>
+              <span className="brand-chevron" aria-hidden="true">{openBrands[brand] ? <ChevronUp /> : <ChevronDown />}</span>
             </button>
             {openBrands[brand] && <div className="menu-grid">{items.map((menu) => <article className="menu-card" key={menu.id}>
               <span className="category">{menu.category}</span><h3>{menu.menu}</h3>
@@ -199,7 +213,7 @@ export default function HanipApp() {
               <a className="source-link" href={menu.allergySourceUrl || menu.sourceUrl}><ExternalLink size={13} /> 공식 출처 · {menu.sourceDate}</a>
               <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={() => addToCart(menu.id)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><ShoppingCart size={18} /> 담기</>}</button>
             </article>)}</div>}
-          </div>)}</div>
+          </div>})}</div>
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section>}
 

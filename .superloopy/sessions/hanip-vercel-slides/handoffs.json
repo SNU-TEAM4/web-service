@@ -67,6 +67,39 @@
       "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/usopp-qa-report.md",
       "recordedAt": "2026-08-11T05:32:45.433Z",
       "updatedAt": "2026-08-11T05:32:45.433Z"
+    },
+    {
+      "id": "H007",
+      "agent": "nami",
+      "assignment": "Map codebase integration points for new franchise allergen data and diagnose logo/text overlap read-only.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/research/H007-code-integration.md",
+      "recordedAt": "2026-08-11T06:10:07.644Z",
+      "updatedAt": "2026-08-11T06:23:40.568Z"
+    },
+    {
+      "id": "H008",
+      "agent": "franky",
+      "assignment": "Research official burger and chicken franchise menu-level nutrition and allergen sources read-only.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/research/H008-burger-chicken.md",
+      "recordedAt": "2026-08-11T06:10:07.767Z",
+      "updatedAt": "2026-08-11T06:23:49.691Z"
+    },
+    {
+      "id": "H009",
+      "agent": "usopp",
+      "assignment": "Research official pizza, cafe, and bakery menu-level allergen sources and counter-brief candidates read-only.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/research/H009-pizza-cafe-counter.md",
+      "recordedAt": "2026-08-11T06:10:07.883Z",
+      "updatedAt": "2026-08-11T06:23:49.848Z"
     }
   ]
 }

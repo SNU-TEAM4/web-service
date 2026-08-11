@@ -2,7 +2,7 @@
   "version": 2,
   "mode": "light",
   "createdAt": "2026-08-11T05:13:27.049Z",
-  "updatedAt": "2026-08-11T05:13:27.052Z",
+  "updatedAt": "2026-08-11T06:47:06.152Z",
   "briefPath": ".superloopy/sessions/hanip-vercel-slides/brief.md",
   "evidencePath": ".superloopy/sessions/hanip-vercel-slides/evidence",
   "goalsPath": ".superloopy/sessions/hanip-vercel-slides/goals.json",
@@ -18,25 +18,27 @@
       "status": "in_progress",
       "attempt": 1,
       "createdAt": "2026-08-11T05:13:27.049Z",
-      "updatedAt": "2026-08-11T05:13:27.052Z",
+      "updatedAt": "2026-08-11T06:47:06.152Z",
       "criteria": [
         {
           "id": "C001",
           "kind": "happy",
           "scenario": "Happy path works from the real user-facing surface.",
           "essential": true,
-          "status": "pending",
-          "artifact": null,
-          "capturedAt": null
+          "status": "pass",
+          "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/G001-C001.txt",
+          "capturedAt": "2026-08-11T06:47:06.038Z",
+          "notes": "Chrome에서 640개 메뉴·10개 브랜드 로드, 교촌 폴더와 알레르기 필터·장바구니를 확인했고 린트·빌드·데이터 검증을 통과함"
         },
         {
           "id": "C002",
           "kind": "risk",
           "scenario": "Riskiest edge or failure path is handled.",
           "essential": true,
-          "status": "pending",
-          "artifact": null,
-          "capturedAt": null
+          "status": "pass",
+          "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/G001-C002.txt",
+          "capturedAt": "2026-08-11T06:47:06.152Z",
+          "notes": "로고 겹침 원인과 안전한 폴백을 검증하고, 알레르기 매핑이 모호한 교촌 행을 누락시키는 보수적 실패 경로를 확인함"
         }
       ],
       "startedAt": "2026-08-11T05:13:27.052Z"

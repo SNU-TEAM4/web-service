@@ -1,4 +1,4 @@
-"""9개 브랜드의 공식 공개 자료를 수집·정제하고 두 웹 앱의 CSV를 함께 갱신한다."""
+"""10개 브랜드의 공식 공개 자료를 수집·정제하고 두 웹 앱의 CSV를 함께 갱신한다."""
 from __future__ import annotations
 
 import re
@@ -24,6 +24,7 @@ EDIYA_PAGES = {
 }
 BASKIN_LIST = "https://www.baskinrobbins.co.kr/menu/list.php?top=A"
 PARIS_LIST = "https://www.paris.co.kr/products/"
+KYOCHON_LIST = "https://www.kyochon.com/menu/chicken.asp"
 HTML_PARSER = "lxml" if find_spec("lxml") else "html.parser"
 
 
@@ -48,6 +49,13 @@ def normalize_source_date(value: object) -> str:
         raise ValueError(f"source_date를 해석할 수 없습니다: {value!r}")
     year, month, day = map(int, match.groups())
     return date(year, month, day).isoformat()
+
+
+def normalize_menu_key(value: object) -> str:
+    """공식 표와 상세 페이지 사이의 안전한 표기 차이만 제거한다."""
+    text = re.sub(r"\[(?:R|S)\]", "", str(value), flags=re.IGNORECASE)
+    text = re.sub(r"^교촌", "", text.strip())
+    return re.sub(r"[\s·]", "", text)
 
 
 def source_page_date(text: str, fallback: date | None = None) -> str:
@@ -333,9 +341,76 @@ def paris_baguette() -> list[dict]:
     return result
 
 
+def kyochon() -> list[dict]:
+    """교촌 공식 치킨 목록과 상세 HTML의 100g 영양·알레르기 표를 결합한다."""
+    session = requests.Session()
+    session.headers.update({"User-Agent": "HanipAnsimOfficialData/1.0 (+class project)"})
+    response = session.get(KYOCHON_LIST, timeout=30)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, HTML_PARSER)
+    detail_urls = {
+        requests.compat.urljoin(KYOCHON_LIST, link.get("href", ""))
+        for link in soup.select("ul.menuProduct a[href*='view.asp']")
+        if link.get("href")
+    }
+
+    result = []
+    for detail_url in sorted(detail_urls):
+        try:
+            detail_response = session.get(detail_url, timeout=30)
+            detail_response.raise_for_status()
+        except requests.RequestException:
+            continue
+        page = BeautifulSoup(detail_response.text, HTML_PARSER)
+        title = page.select_one(".viewRight dl.tit dt")
+        menu = title.get_text(" ", strip=True) if title else ""
+        if not menu:
+            continue
+
+        nutrition: dict[str, float | None] = {}
+        basis = ""
+        allergy_by_menu: dict[str, str] = {}
+        for table in page.select("table"):
+            caption = table.select_one("caption")
+            caption_text = caption.get_text(" ", strip=True) if caption else ""
+            if caption_text.startswith("영양정보"):
+                basis_tag = table.select_one(".gram")
+                basis = basis_tag.get_text(" ", strip=True) if basis_tag else ""
+                for table_row in table.select("tbody tr"):
+                    cells = [cell.get_text(" ", strip=True) for cell in table_row.select("th, td")]
+                    if len(cells) >= 2:
+                        nutrition[re.sub(r"\s", "", cells[0])] = number(cells[1])
+            elif caption_text.startswith("알레르기 정보"):
+                for table_row in table.select("tbody tr"):
+                    cells = [cell.get_text(" ", strip=True) for cell in table_row.select("th, td")]
+                    if len(cells) >= 2:
+                        allergy_by_menu[normalize_menu_key(cells[-2])] = cells[-1]
+
+        menu_key = normalize_menu_key(menu)
+        allergy = allergy_by_menu.get(menu_key)
+        values = {
+            "calories": nutrition.get("열량(Kcal)"),
+            "carbs": nutrition.get("당류(g)"),
+            "protein": nutrition.get("단백질(g)"),
+            "fat": nutrition.get("포화지방(g)"),
+            "sodium": nutrition.get("나트륨(mg)"),
+        }
+        # 표의 명칭이 현재 메뉴명과 정확히 연결되고 필수 값이 모두 있을 때만 채택한다.
+        if allergy is None or not basis or any(value is None for value in values.values()):
+            continue
+        result.append({
+            "brand": "교촌치킨", "menu": menu, "category": f"치킨 · 공식 {basis} 기준",
+            **values, "allergens": normalize_allergens(allergy),
+            "source_url": detail_url, "source_date": date.today().isoformat(),
+            "verified": True, "allergen_known": True,
+            "allergy_source_url": detail_url,
+        })
+    return result
+
+
 if __name__ == "__main__":
     frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway()
-                         + ediya() + baskin_robbins() + paris_baguette())
+                         + ediya() + baskin_robbins() + paris_baguette() + kyochon())
     frame = frame.dropna(subset=["calories", "protein", "fat", "carbs", "sodium"]).drop_duplicates(["brand", "menu"])
     frame["source_date"] = frame["source_date"].map(normalize_source_date)
     frame["source_date_type"] = frame["brand"].map({
