@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import re
+import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from io import StringIO
 from pathlib import Path
@@ -124,24 +126,40 @@ def starbucks() -> list[dict]:
         "W0000004": "프라푸치노", "W0000005": "블렌디드", "W0000422": "리프레셔",
         "W0000061": "피지오", "W0000075": "티", "W0000053": "기타 음료", "W0000062": "병음료",
     }
-    result = []
+    result, raw_rows = [], []
     for code, category in categories.items():
         response = requests.get(f"{STARBUCKS_BASE}{code}.js", timeout=30)
         response.raise_for_status()
         for row in response.json()["list"]:
             if row.get("sold_OUT") == "Y":
                 continue
-            allergy = str(row.get("allergy") or "").strip()
+            raw_rows.append(row)
+    def fetch_allergy(row: dict) -> tuple[str, str, str, bool]:
+        product_cd = str(row.get("product_CD") or "")
+        detail_url = f"https://www.starbucks.co.kr/menu/drink_view.do?product_cd={product_cd}"
+        html = requests.get(detail_url, timeout=30).text
+        match = re.search(r'"ALLERGY"\s*:\s*"((?:\\.|[^"\\])*)"', html)
+        allergy = json.loads(f'"{match.group(1)}"') if match else ""
+        return row["product_NM"].strip(), allergy, detail_url, match is not None
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        allergies = {name: (allergy, url, known) for name, allergy, url, known in pool.map(fetch_allergy, raw_rows)}
+    for code, category in categories.items():
+        response = requests.get(f"{STARBUCKS_BASE}{code}.js", timeout=30)
+        response.raise_for_status()
+        for row in response.json()["list"]:
+            if row.get("sold_OUT") == "Y":
+                continue
+            allergy, detail_url, known = allergies.get(row["product_NM"].strip(), ("", "", False))
             result.append({
                 "brand": "스타벅스", "menu": row["product_NM"].strip(),
                 "category": row.get("cate_NAME") or category,
                 "calories": number(row["kcal"]), "protein": number(row["protein"]),
                 "fat": number(row["sat_FAT"]), "carbs": number(row["sugars"]),
                 "sodium": number(row["sodium"]), "allergens": normalize_allergens(allergy),
-                "source_url": "https://www.starbucks.co.kr/menu/drink_list.do",
+                "source_url": detail_url or "https://www.starbucks.co.kr/menu/drink_list.do",
                 "source_date": date.today().isoformat(), "verified": True,
-                # 빈 필드는 '없음'이 아니라 미표기로 취급한다.
-                "allergen_known": bool(allergy),
+                # 상세 페이지에 ALLERGY 필드가 존재하면 빈 값도 공식 '표시 없음'으로 구분한다.
+                "allergen_known": known,
             })
     return result
 
@@ -188,6 +206,19 @@ def subway() -> list[dict]:
     items = {}
     for link in soup.select("a[data-menuitemidx][data-category='sandwich']"):
         items[link["data-menuitemidx"]] = link.find_parent("li").select_one("strong.tit").get_text(strip=True)
+    # 써브웨이 공식 알레르기 표: ●(함유)와 ★(혼입 가능)를 모두 위험 성분으로 반영한다.
+    labels = ["계란", "우유", "메밀", "땅콩", "대두", "밀", "고등어", "게", "새우", "돼지고기", "복숭아", "토마토", "아황산류", "호두", "닭고기", "쇠고기", "오징어", "조개류", "잣"]
+    patterns = {
+        "비엘티": "XX..XX...X.X.......", "치킨데리야끼": "XX..XX.....X..X....", "에그마요": "XX..XX.....X.....X.",
+        "이탈리안비엠티": "XX..XX...X.X.......", "풀드포크바비큐": "XX..XX...X.X.......", "로스트치킨": "XX..XX.....X..XX...",
+        "로티세리바비큐치킨": "XX..XX.....X..X....", "쉬림프": "XX..XX..X..X.......", "스파이시이탈리안": "XX..XX...X.X.......",
+        "스테이크치즈": "XX..XX.....X...X...", "써브웨이클럽": "XX..XX...X.XX......", "베지": "XX..XX.....X.......",
+        "참치": "XX..XX.....X.......", "치킨슬라이스": "XX..XX.....X..X....", "치킨베이컨아보카도": "XX..XX...X.X..X....",
+        "스파이시쉬림프": "XX..XX..X..X.......", "에그슬라이스": "XX..XX.....X.......", "안창비프": "XX..XX.....X...X...",
+        "안창비프머쉬룸": "XX..XX.....X...X...", "머쉬룸": "X.XXXXXXXXXXXXXXXXX", "피자썹": "X.XXXXXXXXXXXXX.XXX",
+        "잠봉": "XXXXXXXXXXXXXXXXXXX", "잠봉플러스": "XXXXXXXXXXXXXXXXXXX", "로스트치킨아보카도": "....XX.....X..XX...",
+    }
+    allergy_source = "https://www.subway.co.kr/sandwichAllergy"
     result = []
     for item_id, fallback_name in items.items():
         detail_url = f"https://www.subway.co.kr/menuView/sandwich?menuItemIdx={item_id}"
@@ -205,11 +236,16 @@ def subway() -> list[dict]:
         if len(values) < 6:
             continue
         _, kcal, protein, fat, sugar, sodium = values[:6]
-        result.append({"brand": "써브웨이", "menu": name_tag.get_text(strip=True) if name_tag else fallback_name,
+        menu_name = name_tag.get_text(strip=True) if name_tag else fallback_name
+        menu_key = re.sub(r"[^0-9A-Za-z가-힣]", "", menu_name).lower()
+        pattern = patterns.get(menu_key)
+        allergens = "|".join(label for label, mark in zip(labels, pattern or "") if mark == "X")
+        result.append({"brand": "써브웨이", "menu": menu_name,
                        "category": "샌드위치(기본 레시피)", "calories": kcal, "protein": protein,
-                       "fat": fat, "carbs": sugar, "sodium": sodium, "allergens": "",
+                       "fat": fat, "carbs": sugar, "sodium": sodium, "allergens": allergens,
                        "source_url": detail_url, "source_date": date.today().isoformat(),
-                       "verified": True, "allergen_known": False})
+                       "verified": True, "allergen_known": pattern is not None,
+                       "allergy_source_url": allergy_source if pattern else ""})
     return result
 
 
