@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Papa from "papaparse";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Check, ChevronDown, ChevronRight, ChevronUp, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { ArrowDown, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_LOGOS } from "@/lib/brands";
 import type { Menu, Place, Store } from "@/lib/types";
@@ -25,6 +25,7 @@ export default function HanipApp() {
   const [safetyMode, setSafetyMode] = useState<SafetyMode>("all");
   const [showQuickFilters, setShowQuickFilters] = useState(false);
   const [quickFiltersOpen, setQuickFiltersOpen] = useState(false);
+  const [quickFiltersMinimized, setQuickFiltersMinimized] = useState(false);
   const filtersAnchorRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [maxCalories, setMaxCalories] = useState(600);
@@ -115,9 +116,10 @@ export default function HanipApp() {
 
   return (
     <main>
-      <button className={`quick-filter-trigger ${showQuickFilters ? "visible" : ""}`} onClick={() => setQuickFiltersOpen(true)}><SlidersHorizontal size={17} /> 조건 바꾸기</button>
-      <aside className={`quick-filter-panel ${showQuickFilters ? "visible" : ""} ${quickFiltersOpen ? "open" : ""}`}>
+      <button className={`quick-filter-trigger ${showQuickFilters ? "visible" : ""} ${quickFiltersMinimized ? "minimized" : ""}`} onClick={() => { setQuickFiltersOpen(true); setQuickFiltersMinimized(false); }}><SlidersHorizontal size={17} /> 조건 열기</button>
+      <aside className={`quick-filter-panel ${showQuickFilters && !quickFiltersMinimized ? "visible" : ""} ${quickFiltersOpen ? "open" : ""}`}>
         <button className="quick-filter-close" onClick={() => setQuickFiltersOpen(false)} aria-label="조건 패널 닫기"><X size={20} /></button>
+        <button className="quick-filter-minimize" onClick={() => setQuickFiltersMinimized(true)} aria-label="조건 패널 접기"><ChevronLeft size={18} /><span>접기</span></button>
         <div className="quick-filter-title"><span>QUICK FILTER</span><b>조건 바로 바꾸기</b></div>
         <div className="quick-group"><h3>알레르기</h3><div className="chips">{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div></div>
         <div className="quick-group"><h3>안전 상태</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>모두</button><button className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>위험</button><button className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>안전</button></div></div>
@@ -171,7 +173,7 @@ export default function HanipApp() {
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}
 
-        {tab === "cart" && <div className="meal-workspace"><CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} /><DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartItems.map(({ menu }) => menu.id)} /></div>}
+        {tab === "cart" && <div className="meal-workspace"><CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} allergens={allergens} /><DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartItems.map(({ menu }) => menu.id)} /></div>}
         {tab === "map" && <MapPanel brands={brands} />}
         {tab === "compare" && <ComparePanel menus={filtered} brands={brandOptions} />}
         {tab === "about" && <section className="panel prose"><h2>알레르기 표시 기준과 데이터 안내</h2><div className="law-card"><b>대한민국 · 의무표시</b><p><strong>근거법령</strong> 식품 등의 표시·광고에 관한 법률 시행규칙</p><p><strong>소관기관</strong> 식품의약품안전처</p><p><strong>표시 대상</strong> 알류(가금류), 우유, 메밀, 땅콩, 대두, 밀, 고등어, 게, 새우, 돼지고기, 복숭아, 토마토, 아황산류(최종제품 이산화황 10mg/kg 이상), 호두, 닭고기, 쇠고기, 오징어, 조개류(굴·전복·홍합 포함), 잣 및 이들 식품에서 추출한 성분을 원재료로 사용한 식품(젤라틴·새우엑기스 등)</p><p><strong>혼입 우려 표시 예시</strong> “○○ 혼입 가능”</p></div><p>영양·알레르기 정보는 각 브랜드 공식 자료를 기반으로 정리했습니다. ‘표시 알레르기 없음’은 알레르기 위험이 절대 없다는 뜻이 아닙니다. 교차오염 가능성과 원재료 변경이 있으므로 심한 알레르기가 있다면 반드시 주문 전 매장에 확인하세요.</p><p>매장 위치·검색은 카카오맵과 카카오 로컬 API를 사용합니다. 가격은 매장·배달 채널별로 달라질 수 있어 실시간 가격으로 제공하지 않습니다.</p></section>}
@@ -185,11 +187,11 @@ function TabButton({ active, onClick, label, icon, mealTarget = false, receiving
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) { return <label><span>{label}</span><input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { return <label className="range"><span>{label}<b>{value} {unit}</b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 
-function CartPanel({ items, cart, setCart, totals, targetCalories }: { items: Array<{ menu: Menu; quantity: number }>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number }) {
+function CartPanel({ items, cart, setCart, totals, targetCalories, allergens }: { items: Array<{ menu: Menu; quantity: number }>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number; allergens: string[] }) {
   if (!items.length) return <section className="panel empty"><UtensilsCrossed size={36} /><h2>나의 한 끼가 비어 있어요</h2><p>추천 메뉴에서 버거, 음료, 사이드를 조합해보세요.</p></section>;
   const standards = [{ name: "칼로리", value: totals.calories, max: targetCalories, unit: "kcal" }, { name: "단백질", value: totals.protein, max: 55, unit: "g" }, { name: "포화지방", value: totals.fat, max: 15, unit: "g" }, { name: "당류", value: totals.carbs, max: 100, unit: "g" }, { name: "나트륨", value: totals.sodium, max: 2000, unit: "mg" }];
   return <section className="panel"><div className="panel-head"><div><h2>나의 한 끼 영양 분석</h2><p>수량을 바꾸면 한 끼의 영양 합계가 즉시 계산돼요.</p></div><button className="danger" onClick={() => setCart({})}>전체 비우기</button></div>
-    <div className="cart-list">{items.map(({ menu, quantity }) => <div className="cart-item" key={menu.id}><div><b>{menu.menu}</b><span>{menu.brand} · {menu.calories} kcal</span></div><div className="quantity"><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.max(1, quantity - 1) }))}>−</button><b>{quantity}</b><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.min(10, quantity + 1) }))}>+</button></div><button className="icon-button" onClick={() => setCart((current) => { const next = { ...current }; delete next[menu.id]; return next; })}><Trash2 size={18} /></button></div>)}</div>
+    <div className="cart-list">{items.map(({ menu, quantity }) => { const matched = allergens.filter((item) => menu.allergens.includes(item)); return <div className={`cart-item ${matched.length ? "allergy-warning" : ""}`} key={menu.id}><div><b>{menu.menu}</b><span>{menu.brand} · {menu.calories} kcal</span>{matched.length > 0 && <em>주의 · 선택 알레르기: {matched.join(", ")}</em>}</div><div className="quantity"><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.max(1, quantity - 1) }))}>−</button><b>{quantity}</b><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.min(10, quantity + 1) }))}>+</button></div><button className="icon-button" onClick={() => setCart((current) => { const next = { ...current }; delete next[menu.id]; return next; })}><Trash2 size={18} /></button></div>; })}</div>
     <div className="nutrition-summary">{standards.map((item) => <div key={item.name}><span>{item.name}<b>{item.value.toFixed(item.unit === "mg" || item.unit === "kcal" ? 0 : 1)}{item.unit}</b></span><div className="progress"><i className={item.value > item.max ? "over" : ""} style={{ width: `${Math.min(100, item.value / item.max * 100)}%` }} /></div><small>{item.max}{item.unit} 기준 · {(item.value / item.max * 100).toFixed(0)}%</small></div>)}</div>
   </section>;
 }
