@@ -9,7 +9,7 @@ import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_LOGOS } from "
 import type { Menu, Place, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
 
-type Tab = "menus" | "cart" | "map" | "compare" | "detail" | "about";
+type Tab = "menus" | "cart" | "map" | "compare" | "about";
 type Cart = Record<number, number>;
 type SafetyMode = "all" | "danger" | "safe";
 
@@ -36,6 +36,7 @@ export default function HanipApp() {
   const [cart, setCart] = useState<Cart>({});
   const [added, setAdded] = useState<{ id: number; nonce: number } | null>(null);
   const [detailSelection, setDetailSelection] = useState<number[]>([]);
+  const [mealFlight, setMealFlight] = useState<{ x: number; y: number; dx: number; dy: number; nonce: number } | null>(null);
 
   useEffect(() => {
     fetch("/data/menus.csv").then((response) => response.text()).then((csv) => {
@@ -99,9 +100,16 @@ export default function HanipApp() {
     fat: sum.fat + menu.fat * quantity, carbs: sum.carbs + menu.carbs * quantity, sodium: sum.sodium + menu.sodium * quantity
   }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
 
-  const addToCart = (id: number) => {
+  const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setAdded({ id, nonce: Date.now() });
+    const start = event.currentTarget.getBoundingClientRect();
+    const target = document.querySelector<HTMLElement>("[data-meal-tab]")?.getBoundingClientRect();
+    if (target) {
+      const x = start.left + start.width / 2; const y = start.top + start.height / 2;
+      setMealFlight({ x, y, dx: target.left + target.width / 2 - x, dy: target.top + target.height / 2 - y, nonce: Date.now() });
+      window.setTimeout(() => setMealFlight(null), 820);
+    }
     window.setTimeout(() => setAdded((current) => current?.id === id ? null : current), 950);
   };
 
@@ -117,6 +125,7 @@ export default function HanipApp() {
         <div className="quick-group quick-ranges"><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label="닫기" onClick={() => setQuickFiltersOpen(false)} />}
+      {mealFlight && <div key={mealFlight.nonce} className="meal-flight" style={{ left: mealFlight.x, top: mealFlight.y, "--flight-x": `${mealFlight.dx}px`, "--flight-y": `${mealFlight.dy}px` } as React.CSSProperties}><UtensilsCrossed size={16} /><span>+1</span></div>}
       <header className="landing">
         <div className="landing-orb orb-one" /><div className="landing-orb orb-two" />
         <div className="landing-copy"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><p className="landing-brand">🍽️ 한입안심</p><h1>오늘의 한 끼,<br />안심하고 고르세요.</h1><p>알레르기와 영양 목표를 한 번 설정하면<br />여러 프랜차이즈 메뉴를 한곳에서 찾아드려요.</p><a href="#explorer">내 메뉴 찾아보기 <ArrowDown size={18} /></a></div>
@@ -140,10 +149,9 @@ export default function HanipApp() {
 
         <nav className="tabs">
           <TabButton active={tab === "menus"} onClick={() => setTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
-          <TabButton active={tab === "cart"} onClick={() => setTab("cart")} icon={<UtensilsCrossed size={17} />} label={`나의 한 끼 (${cartCount})`} />
+          <TabButton mealTarget receiving={Boolean(mealFlight)} active={tab === "cart"} onClick={() => setTab("cart")} icon={<UtensilsCrossed size={17} />} label={`나의 한 끼 (${cartCount})`} />
           <TabButton active={tab === "map"} onClick={() => setTab("map")} icon={<MapPin size={17} />} label="주변 매장" />
           <TabButton active={tab === "compare"} onClick={() => setTab("compare")} label="브랜드 비교" />
-          <TabButton active={tab === "detail"} onClick={() => setTab("detail")} label="메뉴 상세 비교" />
           <TabButton active={tab === "about"} onClick={() => setTab("about")} label="데이터 안내" />
         </nav>
 
@@ -157,16 +165,15 @@ export default function HanipApp() {
               <span className="category">{menu.category}</span><h3>{menu.menu}</h3>
               <p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p>
               <div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div>
-              <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={() => addToCart(menu.id)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
+              <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
             </article>; })}</div>}
           </div>)}</div>
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}
 
-        {tab === "cart" && <CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} />}
+        {tab === "cart" && <div className="meal-workspace"><CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} /><DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartItems.map(({ menu }) => menu.id)} /></div>}
         {tab === "map" && <MapPanel brands={brands} />}
         {tab === "compare" && <ComparePanel menus={filtered} brands={brandOptions} />}
-        {tab === "detail" && <DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartItems.map(({ menu }) => menu.id)} />}
         {tab === "about" && <section className="panel prose"><h2>알레르기 표시 기준과 데이터 안내</h2><div className="law-card"><b>대한민국 · 의무표시</b><p><strong>근거법령</strong> 식품 등의 표시·광고에 관한 법률 시행규칙</p><p><strong>소관기관</strong> 식품의약품안전처</p><p><strong>표시 대상</strong> 알류(가금류), 우유, 메밀, 땅콩, 대두, 밀, 고등어, 게, 새우, 돼지고기, 복숭아, 토마토, 아황산류(최종제품 이산화황 10mg/kg 이상), 호두, 닭고기, 쇠고기, 오징어, 조개류(굴·전복·홍합 포함), 잣 및 이들 식품에서 추출한 성분을 원재료로 사용한 식품(젤라틴·새우엑기스 등)</p><p><strong>혼입 우려 표시 예시</strong> “○○ 혼입 가능”</p></div><p>영양·알레르기 정보는 각 브랜드 공식 자료를 기반으로 정리했습니다. ‘표시 알레르기 없음’은 알레르기 위험이 절대 없다는 뜻이 아닙니다. 교차오염 가능성과 원재료 변경이 있으므로 심한 알레르기가 있다면 반드시 주문 전 매장에 확인하세요.</p><p>매장 위치·검색은 카카오맵과 카카오 로컬 API를 사용합니다. 가격은 매장·배달 채널별로 달라질 수 있어 실시간 가격으로 제공하지 않습니다.</p></section>}
       </section>
     </main>
@@ -174,7 +181,7 @@ export default function HanipApp() {
 }
 
 function Reveal({ children }: { children: React.ReactNode }) { const ref = useRef<HTMLDivElement>(null); useEffect(() => { const node = ref.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && node.classList.add("visible"), { threshold: .12 }); observer.observe(node); return () => observer.disconnect(); }, []); return <div ref={ref} className="reveal">{children}</div>; }
-function TabButton({ active, onClick, label, icon }: { active: boolean; onClick: () => void; label: string; icon?: React.ReactNode }) { return <button className={active ? "active" : ""} onClick={onClick}>{icon}{label}</button>; }
+function TabButton({ active, onClick, label, icon, mealTarget = false, receiving = false }: { active: boolean; onClick: () => void; label: string; icon?: React.ReactNode; mealTarget?: boolean; receiving?: boolean }) { return <button data-meal-tab={mealTarget ? "true" : undefined} className={`${active ? "active" : ""} ${receiving ? "meal-tab-receiving" : ""}`} onClick={onClick}>{icon}{label}</button>; }
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) { return <label><span>{label}</span><input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { return <label className="range"><span>{label}<b>{value} {unit}</b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 
