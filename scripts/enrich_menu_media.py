@@ -114,8 +114,7 @@ def starbucks() -> dict[str, dict]:
 
 
 def subway() -> dict[str, dict]:
-    url = "https://www.subway.co.kr/menuList/sandwich"
-    soup = BeautifulSoup(requests.get(url, timeout=30).text, "lxml")
+    routes = ["sandwich", "grain_salad", "salad", "morning", "sidedrink", "unit"]
     # 공식 표의 ●(함유)와 ★(혼입 가능)를 모두 안전 필터의 위험 성분으로 취급한다.
     labels = ["계란", "우유", "메밀", "땅콩", "대두", "밀", "고등어", "게", "새우", "돼지고기", "복숭아", "토마토", "아황산류", "호두", "닭고기", "쇠고기", "오징어", "조개류", "잣"]
     patterns = {
@@ -134,27 +133,31 @@ def subway() -> dict[str, dict]:
     }
     allergy_url = "https://www.subway.co.kr/sandwichAllergy"
     result = {}
-    for card in soup.select(".pd_list_wrapper li, .menu_list li"):
-        name_node = card.select_one(".tit, .title, strong")
-        image = card.select_one("img")
-        if not name_node or not image:
-            continue
-        name = clean(name_node.get_text())
-        desc = card.select_one(".summary p, .summary, .eng")
-        menu_key = key(name)
-        pattern = patterns.get(menu_key)
-        result[menu_key] = {
-            "image_url": urljoin(url, image.get("src") or image.get("data-src") or ""),
-            "description": clean(desc.get_text(" ", strip=True)) if desc else "",
-            "price_note": "매장별 확인",
-            "media_source_url": url,
-        }
-        if pattern:
-            result[menu_key].update({
-                "allergens": "|".join(label for label, mark in zip(labels, pattern) if mark == "X"),
-                "allergen_known": True,
-                "allergy_source_url": allergy_url,
-            })
+    for route in routes:
+        url = f"https://www.subway.co.kr/menuList/{route}"
+        soup = BeautifulSoup(requests.get(url, timeout=30).text, "lxml")
+        for card in soup.select(".pd_list_wrapper li, .menu_list li"):
+            name_node = card.select_one(".tit, .title, strong")
+            image = card.select_one("img")
+            if not name_node or not image:
+                continue
+            name = clean(name_node.get_text())
+            # 공식 목록의 한국어 제품 설명을 사용한다. 영문 제품명(.eng)은 설명으로 쓰지 않는다.
+            desc = card.select_one(".summary")
+            menu_key = key(name)
+            pattern = patterns.get(menu_key) if route == "sandwich" else None
+            result[menu_key] = {
+                "image_url": urljoin(url, image.get("src") or image.get("data-src") or ""),
+                "description": clean(desc.get_text(" ", strip=True)) if desc else "",
+                "price_note": "매장별 확인",
+                "media_source_url": url,
+            }
+            if pattern:
+                result[menu_key].update({
+                    "allergens": "|".join(label for label, mark in zip(labels, pattern) if mark == "X"),
+                    "allergen_known": True,
+                    "allergy_source_url": allergy_url,
+                })
     return result
 
 

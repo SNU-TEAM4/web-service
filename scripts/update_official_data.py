@@ -200,13 +200,22 @@ def kfc() -> list[dict]:
 
 
 def subway() -> list[dict]:
-    list_url = "https://www.subway.co.kr/menuList/sandwich"
-    response = requests.get(list_url, timeout=30)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "lxml")
+    sections = {
+        "sandwich": "샌드위치(기본 레시피)", "grain_salad": "그레인 샐러드",
+        "salad": "샐러드", "morning": "아침메뉴", "sidedrink": "사이드·음료",
+        "unit": "랩·기타",
+    }
     items = {}
-    for link in soup.select("a[data-menuitemidx][data-category='sandwich']"):
-        items[link["data-menuitemidx"]] = link.find_parent("li").select_one("strong.tit").get_text(strip=True)
+    for route, category_name in sections.items():
+        list_url = f"https://www.subway.co.kr/menuList/{route}"
+        response = requests.get(list_url, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "lxml")
+        for link in soup.select("a[data-menuitemidx]"):
+            card = link.find_parent("li")
+            name = card.select_one("strong.tit") if card else None
+            if name:
+                items[(link.get("data-category") or route, link["data-menuitemidx"])] = (name.get_text(strip=True), category_name)
     # 써브웨이 공식 알레르기 표: ●(함유)와 ★(혼입 가능)를 모두 위험 성분으로 반영한다.
     labels = ["계란", "우유", "메밀", "땅콩", "대두", "밀", "고등어", "게", "새우", "돼지고기", "복숭아", "토마토", "아황산류", "호두", "닭고기", "쇠고기", "오징어", "조개류", "잣"]
     patterns = {
@@ -221,8 +230,8 @@ def subway() -> list[dict]:
     }
     allergy_source = "https://www.subway.co.kr/sandwichAllergy"
     result = []
-    for item_id, fallback_name in items.items():
-        detail_url = f"https://www.subway.co.kr/menuView/sandwich?menuItemIdx={item_id}"
+    for (route, item_id), (fallback_name, category_name) in items.items():
+        detail_url = f"https://www.subway.co.kr/menuView/{route}?menuItemIdx={item_id}"
         try:
             detail = requests.get(detail_url, timeout=30)
             detail.raise_for_status()
@@ -242,7 +251,7 @@ def subway() -> list[dict]:
         pattern = patterns.get(menu_key)
         allergens = "|".join(label for label, mark in zip(labels, pattern or "") if mark == "X")
         result.append({"brand": "써브웨이", "menu": menu_name,
-                       "category": "샌드위치(기본 레시피)", "calories": kcal, "protein": protein,
+                       "category": category_name, "calories": kcal, "protein": protein,
                        "fat": fat, "carbs": sugar, "sodium": sodium, "allergens": allergens,
                        "source_url": detail_url, "source_date": date.today().isoformat(),
                        "verified": True, "allergen_known": pattern is not None,
