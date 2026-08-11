@@ -61,7 +61,24 @@ function menuSection(menu: Menu) {
   return category || "기타";
 }
 
-const MENU_SECTION_ORDER = ["빵", "케이크", "샌드위치·샐러드", "샌드위치", "버거", "맥모닝", "치킨", "샐러드", "랩", "사이드", "사이드·디저트", "선물", "디저트·스낵", "간편식", "베이커리·푸드", "아이스크림", "콜드 브루", "브루드 커피", "에스프레소", "프라푸치노", "블렌디드", "리프레셔", "피지오", "티", "기타 음료", "병음료", "음료", "소스·추가", "기타"];
+const DEFAULT_MENU_SECTION_ORDER = ["버거", "치킨", "샌드위치", "샐러드", "랩", "맥모닝", "빵", "케이크", "사이드", "사이드·디저트", "디저트·스낵", "베이커리·푸드", "음료", "소스·추가", "기타"];
+const BRAND_MENU_SECTION_ORDER: Record<string, string[]> = {
+  "써브웨이": ["샌드위치", "샐러드", "랩", "사이드"],
+  "맥도날드": ["버거", "맥모닝", "사이드·디저트", "음료"],
+  "롯데리아": ["버거", "사이드·디저트", "음료", "소스·추가"],
+  "버거킹": ["버거", "사이드·디저트", "음료", "소스·추가"],
+  "KFC": ["치킨", "버거", "사이드", "음료", "소스", "소스·추가", "기타"],
+  "이디야": ["음료", "베이커리·푸드"],
+  "스타벅스": ["에스프레소", "콜드 브루", "브루드 커피", "프라푸치노", "블렌디드", "리프레셔", "피지오", "티", "기타 음료", "병음료"],
+  "배스킨라빈스": ["아이스크림"],
+  "파리바게뜨": ["빵", "케이크", "샌드위치·샐러드", "디저트·스낵", "간편식", "커피·음료", "선물", "기타"]
+};
+
+function menuSectionRank(brand: string, section: string) {
+  const order = BRAND_MENU_SECTION_ORDER[brand] || DEFAULT_MENU_SECTION_ORDER;
+  const rank = order.indexOf(section);
+  return rank < 0 ? 999 : rank;
+}
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
@@ -166,11 +183,13 @@ export default function HanipApp() {
   const activeBrand = Object.keys(openBrands).find((brand) => openBrands[brand]) || "";
   const activeItems = grouped.find(([brand]) => brand === activeBrand)?.[1] || [];
   const menuSections = useMemo(() => ["전체", ...Array.from(new Set(activeItems.map(menuSection))).sort((a, b) => {
-    const aRank = MENU_SECTION_ORDER.indexOf(a);
-    const bRank = MENU_SECTION_ORDER.indexOf(b);
-    return (aRank < 0 ? 999 : aRank) - (bRank < 0 ? 999 : bRank) || a.localeCompare(b, "ko");
-  })], [activeItems]);
-  const visibleActiveItems = useMemo(() => activeItems.filter((menu) => menuSectionFilter === "전체" || menuSection(menu) === menuSectionFilter).sort(compareMenus), [activeItems, menuSectionFilter, sortMode, profileOn, targetCalories]);
+    return menuSectionRank(activeBrand, a) - menuSectionRank(activeBrand, b) || a.localeCompare(b, "ko");
+  })], [activeBrand, activeItems]);
+  const visibleActiveItems = useMemo(() => activeItems
+    .filter((menu) => menuSectionFilter === "전체" || menuSection(menu) === menuSectionFilter)
+    .sort((a, b) => menuSectionFilter === "전체"
+      ? menuSectionRank(activeBrand, menuSection(a)) - menuSectionRank(activeBrand, menuSection(b)) || compareMenus(a, b)
+      : compareMenus(a, b)), [activeBrand, activeItems, menuSectionFilter, sortMode, profileOn, targetCalories]);
   const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
     const menu = menus[Number(id)]; return menu ? [{ menu, quantity }] : [];
   }), [cart, menus]);
