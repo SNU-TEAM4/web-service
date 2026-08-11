@@ -110,6 +110,9 @@ export default function HanipApp() {
   const [quickFiltersOpen, setQuickFiltersOpen] = useState(false);
   const [quickFiltersMinimized, setQuickFiltersMinimized] = useState(false);
   const filtersAnchorRef = useRef<HTMLDivElement>(null);
+  const tabContentRef = useRef<HTMLDivElement>(null);
+  const brandMenuRef = useRef<HTMLDivElement>(null);
+  const menuGridRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [menuSectionFilter, setMenuSectionFilter] = useState("전체");
@@ -224,6 +227,17 @@ export default function HanipApp() {
     window.setTimeout(() => setAdded((current) => current?.id === id ? null : current), 950);
   };
 
+  const changeTab = (nextTab: Tab) => {
+    setTab(nextTab);
+    window.requestAnimationFrame(() => tabContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  const changeMenuSection = (section: string) => {
+    setMenuSectionFilter(section);
+    menuGridRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    window.requestAnimationFrame(() => brandMenuRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
   return (
     <main>
       <button className={`quick-filter-trigger ${showQuickFilters ? "visible" : ""} ${quickFiltersMinimized ? "minimized" : ""}`} onClick={() => { setQuickFiltersOpen(true); setQuickFiltersMinimized(false); }}><SlidersHorizontal size={17} /> 조건 열기</button>
@@ -260,19 +274,20 @@ export default function HanipApp() {
         <Reveal><section className="category-section"><div className="section-intro compact"><span>02 · 카테고리</span><h2>어떤 종류를 찾고 있나요?</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{category}</b><small>{category === "전체" ? "모든 브랜드" : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length}개 브랜드`}</small></button>)}</div><div className="brand-picker">{brandOptions.filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory)).map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><Image src={BRAND_LOGOS[brand]} alt="" width={44} height={44} /><span>{brand}</span></button>)}</div></section></Reveal>
 
         <nav className="tabs">
-          <TabButton active={tab === "menus"} onClick={() => setTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
-          <TabButton mealTarget receiving={Boolean(mealFlight)} active={tab === "cart"} onClick={() => setTab("cart")} icon={<UtensilsCrossed size={17} />} label={`나의 한 끼 (${cartCount})`} />
-          <TabButton active={tab === "map"} onClick={() => setTab("map")} icon={<MapPin size={17} />} label="주변 매장" />
-          <TabButton active={tab === "compare"} onClick={() => setTab("compare")} label="브랜드 비교" />
-          <TabButton active={tab === "about"} onClick={() => setTab("about")} label="데이터 안내" />
+          <TabButton active={tab === "menus"} onClick={() => changeTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
+          <TabButton mealTarget receiving={Boolean(mealFlight)} active={tab === "cart"} onClick={() => changeTab("cart")} icon={<UtensilsCrossed size={17} />} label={`나의 한 끼 (${cartCount})`} />
+          <TabButton active={tab === "map"} onClick={() => changeTab("map")} icon={<MapPin size={17} />} label="주변 매장" />
+          <TabButton active={tab === "compare"} onClick={() => changeTab("compare")} label="브랜드 비교" />
+          <TabButton active={tab === "about"} onClick={() => changeTab("about")} label="데이터 안내" />
         </nav>
+        <div ref={tabContentRef} className="tab-content-anchor" />
 
         {tab === "menus" && <Reveal><section className="panel">
           <div className="panel-head"><div><h2>조건에 맞는 메뉴</h2><p>브랜드와 메뉴 종류를 고르면 오늘의 한 끼를 빠르게 찾을 수 있어요.</p></div><div className="menu-tools"><label className="sort-select"><span>정렬</span><select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}><option value="recommended">맞춤 추천순</option><option value="protein">단백질 높은 순</option><option value="calories">열량 낮은 순</option><option value="sodium">나트륨 낮은 순</option></select></label><label className="search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="브랜드 또는 메뉴 검색" /></label></div></div>
           <div className="brand-browser"><div className="brand-folders">{grouped.map(([brand, items]) => { if (!items) return null; const safeCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length : items.length; const dangerCount = allergens.length ? items.filter((menu) => allergens.some((item) => menu.allergens.includes(item))).length : 0; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""}`} key={brand} onClick={() => { setOpenBrands(activeBrand === brand ? {} : { [brand]: true }); setMenuSectionFilter("전체"); }}>
             <Image src={BRAND_LOGOS[brand]} alt={brand} width={78} height={78} /><span><b>{brand}</b><small><strong>안전 추천 {safeCount}개</strong>{allergens.length > 0 && dangerCount > 0 && <em>위험 {dangerCount}개</em>}</small></span>{activeBrand === brand ? <Check /> : <ChevronRight />}
           </button>; })}</div>
-          {activeBrand ? <div className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 종류별로 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => setMenuSectionFilter(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
+          {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 종류별로 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
             <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || BRAND_LOGOS[menu.brand]} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = BRAND_LOGOS[menu.brand]; event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)} · {menu.category}</span><h3>{menu.menu}</h3>{servingLabel(menu) && <span className="serving-label">{servingLabel(menu)}</span>}<MenuDescription menu={menu} /><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} 확인` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">가격 출처 보기</a>}</div><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
           </article>; })}</div></div> : <div className="brand-menu-placeholder"><MenuIcon size={34} /><h3>브랜드를 선택해 주세요</h3><p>왼쪽 카드를 누르면 이곳에서 메뉴를 바로 비교할 수 있어요.</p></div>}</div>
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
