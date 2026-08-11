@@ -234,7 +234,21 @@ function DetailComparePanel({ menus, selection, setSelection, cartIds }: { menus
 function MapPanel({ brands }: { brands: string[] }) {
   const [mode, setMode] = useState<"search" | "gps">("search"); const [term, setTerm] = useState(""); const [places, setPlaces] = useState<Place[]>([]); const [center, setCenter] = useState<Place | null>(null); const [stores, setStores] = useState<Store[]>([]); const [radius, setRadius] = useState(3); const [loading, setLoading] = useState(false);
   useEffect(() => { if (term.trim().length < 2) { setPlaces([]); return; } const controller = new AbortController(); const timer = window.setTimeout(() => fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((r) => r.json()).then((data) => Array.isArray(data) && setPlaces(data)).catch(() => {}), 400); return () => { window.clearTimeout(timer); controller.abort(); }; }, [term]);
-  const findStores = async (place: Place) => { setCenter(place); setLoading(true); const response = await fetch(`/api/stores?lat=${place.lat}&lon=${place.lon}&radius=${radius * 1000}&brands=${encodeURIComponent(brands.join(","))}`); const data = await response.json(); setStores(Array.isArray(data) ? data : []); setLoading(false); };
+  useEffect(() => {
+    if (!center) return;
+    const controller = new AbortController();
+    setLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/stores?lat=${center.lat}&lon=${center.lon}&radius=${radius * 1000}&brands=${encodeURIComponent(brands.join(","))}`, { signal: controller.signal });
+        const data = await response.json();
+        setStores(Array.isArray(data) ? data : []);
+      } catch (error) { if (!(error instanceof DOMException && error.name === "AbortError")) setStores([]); }
+      finally { if (!controller.signal.aborted) setLoading(false); }
+    }, 280);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [center, radius, brands]);
+  const findStores = (place: Place) => setCenter(place);
   const locate = () => navigator.geolocation.getCurrentPosition((position) => findStores({ id: "gps", name: "현재 위치", address: `정확도 약 ${Math.round(position.coords.accuracy)}m`, lat: position.coords.latitude, lon: position.coords.longitude }), () => alert("브라우저 위치 권한을 허용해 주세요."), { enableHighAccuracy: true });
   return <section className="panel"><div className="panel-head map-panel-head"><div><h2>내 주변 매장</h2><p>카카오맵에서 선택한 브랜드의 매장을 찾아요.</p></div><label className="radius-slider"><span>검색 반경 <b>{radius} km</b></span><input type="range" min="1" max="10" step="1" value={radius} onChange={(e) => setRadius(Number(e.target.value))} /><small><i>1km</i><i>10km</i></small></label></div>
     <div className="mode-switch"><button className={mode === "search" ? "active" : ""} onClick={() => setMode("search")}><Search size={17} />장소 검색</button><button className={mode === "gps" ? "active" : ""} onClick={() => { setMode("gps"); locate(); }}><LocateFixed size={17} />현재 위치</button></div>

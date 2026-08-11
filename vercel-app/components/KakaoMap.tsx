@@ -20,7 +20,8 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
       if (!mapRef.current) return;
       const kakao = window.kakao;
       const position = new kakao.maps.LatLng(center.lat, center.lon);
-      const map = new kakao.maps.Map(mapRef.current, { center: position, level: ({ 1: 4, 2: 5, 3: 6, 5: 7, 10: 8 } as Record<number, number>)[radiusKm] || 6 });
+      const level = radiusKm <= 1 ? 4 : radiusKm <= 2 ? 5 : radiusKm <= 4 ? 6 : radiusKm <= 7 ? 7 : 8;
+      const map = new kakao.maps.Map(mapRef.current, { center: position, level });
       new kakao.maps.Circle({ center: position, radius: radiusKm * 1000, strokeWeight: 2, strokeColor: "#24734b", strokeOpacity: .65, fillColor: "#24734b", fillOpacity: .06 }).setMap(map);
 
       const here = document.createElement("div");
