@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from io import StringIO
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import requests
@@ -166,8 +167,8 @@ def starbucks() -> list[dict]:
 
 
 def kfc() -> list[dict]:
-    """KFC 공식 이미지 표(Ver.20260721)의 단품 메뉴를 구조화한 값."""
-    source = "https://www.kfckorea.com/nas/kfcimg/info/info_nutrition.png"
+    """KFC 공식 영양정보 API의 현재 공개 행 전체를 수집한다."""
+    source = "https://www.kfckorea.com/menu/nutrition"
     allergy_source = "https://www.kfckorea.com/nas/kfcimg/info/info_allergy.png"
     # menu, category, kcal, protein, saturated fat, sugar, sodium, allergens
     rows = [
@@ -208,7 +209,38 @@ def kfc() -> list[dict]:
         ("토마토 추가", "추가 메뉴", 10, 0, 0, 0, 9, None),
         ("아메리카노", "음료", 7, 0, 0, 0, 3, ""),
     ]
+    known_allergens = {menu: allergens for menu, _category, _kcal, _protein, _fat, _sugar, _sodium, allergens in rows}
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0", "Referer": source})
+    csrf = session.get("https://www.kfckorea.com/kfc/interface/session", timeout=30).json()["csrf"]
+    session.headers[csrf["headerName"]] = csrf["token"]
+    response = session.post(
+        "https://www.kfckorea.com/admin/interface/selectnutritionList",
+        data={"search_nutrition_show_yn": "Y", "device": "WEB", "search_order": "nutrition_show"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    official_rows = response.json().get("rows", [])
     result = []
+    for row in official_rows:
+        menu = str(row.get("nutrition_nm", "")).strip()
+        calorie_text = str(row.get("nutrition_calory", "")).strip()
+        # 조합에 따라 값이 달라지는 범위형 세트는 단일 영양값으로 오해될 수 있어 제외한다.
+        if not menu or not re.fullmatch(r"[\d,.]+", calorie_text):
+            continue
+        allergens = known_allergens.get(menu)
+        result.append({
+            "brand": "KFC", "menu": menu,
+            "category": str(row.get("nutrition_type_nm") or "기타").strip(),
+            "calories": number(calorie_text), "protein": number(row.get("nutrition_protein")),
+            "fat": number(row.get("nutrition_saturated_fat")), "carbs": number(row.get("nutrition_sugars")),
+            "sodium": number(row.get("nutrition_salt")), "allergens": normalize_allergens(allergens or ""),
+            "source_url": source, "source_date": date.today().isoformat(), "verified": True,
+            "allergen_known": allergens is not None, "allergy_source_url": allergy_source,
+        })
+    if result:
+        return result
+    # 공식 API 장애 시 마지막으로 확인한 표의 최소 데이터로 폴백한다.
     for menu, category, kcal, protein, fat, sugar, sodium, allergens in rows:
         result.append({"brand": "KFC", "menu": menu, "category": category, "calories": kcal,
                        "protein": protein, "fat": fat, "carbs": sugar, "sodium": sodium,
@@ -357,21 +389,20 @@ def baskin_robbins() -> list[dict]:
 
 
 def paris_baguette() -> list[dict]:
-    """파리바게뜨 공식 제품 목록에 노출된 상품의 상세 정보를 수집한다."""
-    response = requests.get(PARIS_LIST, timeout=30)
+    """파리바게뜨 공식 상품 사이트맵의 상세 영양정보를 수집한다."""
+    sitemap_url = "https://www.paris.co.kr/product-sitemap.xml"
+    response = requests.get(sitemap_url, timeout=30)
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "lxml")
-    links = {}
-    for link in soup.select("a[href*='/product/']"):
-        url = link.get("href", "")
-        name = link.get_text(" ", strip=True)
-        if url.rstrip("/").endswith("/product") or not name:
-            continue
-        links[requests.compat.urljoin(PARIS_LIST, url)] = name
-    result = []
-    for detail_url, fallback_name in links.items():
-        page_response = requests.get(detail_url, timeout=30)
-        page_response.raise_for_status()
+    sitemap = BeautifulSoup(response.text, "xml")
+    links = sorted({loc.get_text(strip=True) for loc in sitemap.select("url > loc")
+                    if "/product/" in loc.get_text(strip=True)})
+
+    def fetch_detail(detail_url: str) -> dict | None:
+        try:
+            page_response = requests.get(detail_url, timeout=30)
+            page_response.raise_for_status()
+        except requests.RequestException:
+            return None
         page = BeautifulSoup(page_response.text, "lxml")
         text = page.get_text(" ", strip=True)
         pattern = (r"영양정보\s+총 내용량:.*?총 내용량당 칼로리\(kcal\):\s*([\d,.]+).*?"
@@ -380,19 +411,36 @@ def paris_baguette() -> list[dict]:
                    r"알레르기 정보\s+(.*?)\s+추가정보")
         match = re.search(pattern, text)
         if not match:
-            continue
+            return None
         kcal, sodium, sugar, fat, protein, allergy = match.groups()
         # 첫 h1은 공통 브랜드명이므로 상세 영역의 첫 product-name을 사용한다.
         heading = page.select_one(".product-name")
-        menu = heading.get_text(" ", strip=True) if heading else fallback_name
-        result.append({
-            "brand": "파리바게뜨", "menu": menu, "category": "공식 제품",
+        if not heading:
+            return None
+        menu = heading.get_text(" ", strip=True)
+        category_links = page.select('a[href*="/products/?cat1="]')
+        raw_category = "기타"
+        if category_links:
+            category_url = requests.compat.urljoin(detail_url, category_links[-1].get("href", ""))
+            raw_category = parse_qs(urlparse(category_url).query).get("cat1", ["기타"])[0]
+        category = {"브레드": "빵", "샌드위치-샐러드": "샌드위치·샐러드",
+                    "디저트-스낵": "디저트·스낵", "커피-음료": "음료",
+                    "퍼스트클래스키친": "간편식"}.get(raw_category, raw_category)
+        image_tag = page.select_one('meta[property="og:image"]')
+        excerpt = page.select_one(".excerpt")
+        return {
+            "brand": "파리바게뜨", "menu": menu, "category": category,
             "calories": number(kcal), "protein": number(protein), "fat": number(fat),
             "carbs": number(sugar), "sodium": number(sodium),
             "allergens": normalize_allergens(allergy), "source_url": detail_url,
             "source_date": date.today().isoformat(), "verified": True, "allergen_known": True,
-        })
-    return result
+            "image_url": image_tag.get("content", "") if image_tag else "",
+            "description": excerpt.get_text(" ", strip=True) if excerpt else "",
+            "media_source_url": detail_url, "media_checked_at": date.today().isoformat(),
+        }
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        return [row for row in pool.map(fetch_detail, links) if row is not None]
 
 
 if __name__ == "__main__":
