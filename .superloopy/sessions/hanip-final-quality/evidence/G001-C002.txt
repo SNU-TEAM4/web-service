@@ -1,0 +1,8 @@
+G001/C002 riskiest edge evidence
+
+- Root risk: cart previously used CSV row numbers; data refresh/reorder could silently point saved quantities to another menu.
+- Fix: Menu.id and Cart keys now use stable brand::menu strings; legacy hanip-cart is discarded and v2 storage waits for hydration before writing.
+- Chrome proof: add one item -> 장바구니 (1); navigate/reload -> 장바구니 (1).
+- Accessibility edge: filter dialog focuses close button and Escape restores the initiating 내 조건 button; tabs support ArrowLeft/Right/Home/End; chips expose aria-pressed.
+- Missing logo edge: menu folders, store list, and Kakao map pins render bounded brand initials when a logo mapping is absent.
+- Data risk: missing allergen information is not interpreted as absence and is excluded whenever an allergen filter is active.

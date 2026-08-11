@@ -16,8 +16,9 @@
 
 - 10개 브랜드, 공식 자료 기반 640개 메뉴(교촌치킨 9개 엄격 매핑 행 포함)
 - 알레르기 15종 필터와 정보 미표기 행의 보수적 제외
-- 칼로리·단백질·나트륨 조건, 장바구니 영양 합계, 브랜드 비교
-- 메뉴별 공식 출처·기준일과 브랜드별 알레르기 확인율 표시
+- 칼로리·단백질·나트륨 조건, 데이터 순서가 바뀌어도 유지되는 장바구니 영양 합계
+- 메뉴 수·알레르기 확인률·평균 단백질·평균 나트륨의 인터랙티브 브랜드 비교와 정확값 표
+- 메뉴별 공식 출처·기준일, 브랜드별 알레르기 확인율, CI 품질 요약 표시
 - 카카오맵 기반 장소·주변 매장 탐색(환경변수 필요)
 - Apple Korea의 타이포·여백·표면 대비를 참고한 Vercel UI(Apple 자산·카피 미사용)
 
@@ -50,7 +51,7 @@ python scripts/update_official_data.py
 python scripts/validate_menu_data.py
 ```
 
-갱신기는 공식 API·HTML·공식 이미지 표를 수집한 뒤 스키마, 중복, 수치 범위, 날짜, HTTPS 출처를 검사합니다. 검사를 통과한 경우에만 `data/menus.csv`와 `vercel-app/public/data/menus.csv`를 같은 내용으로 저장합니다. 상세 결과는 `reports/data-quality.json`에 생성됩니다.
+갱신기는 공식 API·HTML·공식 이미지 표를 수집한 뒤 스키마, 중복, 수치 범위, 날짜, HTTPS 출처를 검사합니다. 검사를 통과한 경우에만 `data/menus.csv`와 `vercel-app/public/data/menus.csv`를 같은 내용으로 저장합니다. 상세 결과는 `reports/data-quality.json`, 브라우저용 요약은 `vercel-app/public/data/quality.json`에 생성됩니다.
 
 ## 품질 게이트
 

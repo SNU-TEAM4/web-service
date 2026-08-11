@@ -1,0 +1,4 @@
+{"at":"2026-08-11T07:06:29.172Z","kind":"plan_created","mode":"light","goals":1}
+{"at":"2026-08-11T07:06:29.177Z","kind":"goal_started","goalId":"G001","attempt":1}
+{"at":"2026-08-11T07:30:47.070Z","kind":"evidence_passed","goalId":"G001","criterionId":"C001","status":"pass","artifact":".superloopy/sessions/hanip-final-quality/evidence/G001-C001.txt","before":"pending","notes":"640행 데이터 검증, production build, Chrome 핵심 사용자 여정과 데스크톱·390px 모바일 증거"}
+{"at":"2026-08-11T07:30:47.142Z","kind":"evidence_passed","goalId":"G001","criterionId":"C002","status":"pass","artifact":".superloopy/sessions/hanip-final-quality/evidence/G001-C002.txt","before":"pending","notes":"안정 장바구니 키·새로고침 유지, 포커스 복원, 키보드 탭, 로고·알레르기 미확인 fallback 증거"}

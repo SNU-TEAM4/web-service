@@ -1,0 +1,7 @@
+G001/C001 happy path evidence
+
+- Data validator: 640 rows, 10 brands, verified 640/640, allergen-known 415, errors 0, duplicates 0, warning 1, source/deploy CSV identical.
+- Build: Python unit tests pass; ESLint pass; Next.js 16.3 production build pass; npm audit high reports 0 vulnerabilities.
+- Chrome production path: filter drawer opens with focus, allergen chip toggles, menu can be added, cart survives reload, comparison metric changes, exact-value table and data evidence panel render.
+- Visual artifacts: production-desktop.png, production-compare.png, production-about.png, mobile-cdp-390x844.png.
+- Mobile metrics: 390px inner width equals 390px document scroll width, so no horizontal overflow.

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from validate_menu_data import REQUIRED_COLUMNS, validate_rows  # noqa: E402
+from validate_menu_data import REQUIRED_COLUMNS, public_report, validate_rows  # noqa: E402
 
 
 def valid_row(**overrides: object) -> dict[str, object]:
@@ -31,6 +31,17 @@ class ValidateMenuDataTests(unittest.TestCase):
         report = validate_rows(rows, REQUIRED_COLUMNS)
         self.assertEqual(report["status"], "pass")
         self.assertEqual(report["summary"]["errors"], 0)
+        self.assertEqual(report["summary"]["verified_rows"], 5)
+        self.assertEqual(report["summary"]["allergen_known_rows"], 5)
+        self.assertEqual(report["summary"]["allergen_known_rate"], 1)
+
+    def test_public_report_excludes_row_level_errors(self) -> None:
+        report = validate_rows([valid_row(menu=f"메뉴 {index}") for index in range(5)], REQUIRED_COLUMNS)
+        report["mirror"] = {"identical": True, "primary_sha256": "abc"}
+        published = public_report(report)
+        self.assertEqual(published["status"], "pass")
+        self.assertTrue(published["mirror"]["identical"])
+        self.assertNotIn("errors", published)
 
     def test_duplicate_and_outlier_fail(self) -> None:
         rows = [valid_row(), valid_row(protein=549, source_date="2026.08.01")]

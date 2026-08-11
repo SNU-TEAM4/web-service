@@ -23,7 +23,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
       const kakao = window.kakao;
       const position = new kakao.maps.LatLng(center.lat, center.lon);
       const map = new kakao.maps.Map(mapRef.current, { center: position, level: ({ 1: 4, 2: 5, 3: 6, 5: 7, 10: 8 } as Record<number, number>)[radiusKm] || 6 });
-      new kakao.maps.Circle({ center: position, radius: radiusKm * 1000, strokeWeight: 2, strokeColor: "#24734b", strokeOpacity: .65, fillColor: "#24734b", fillOpacity: .06 }).setMap(map);
+      new kakao.maps.Circle({ center: position, radius: radiusKm * 1000, strokeWeight: 2, strokeColor: "#0071e3", strokeOpacity: .65, fillColor: "#0071e3", fillOpacity: .06 }).setMap(map);
 
       const here = document.createElement("div");
       here.className = "current-location-dot";
@@ -33,10 +33,18 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
       stores.forEach((store) => {
         const pin = document.createElement("button");
         pin.className = "store-pin";
-        const logo = document.createElement("img");
-        logo.src = BRAND_LOGOS[store.brand] || "";
-        logo.alt = "";
-        pin.appendChild(logo);
+        const logoPath = BRAND_LOGOS[store.brand];
+        if (logoPath) {
+          const logo = document.createElement("img");
+          logo.src = logoPath;
+          logo.alt = "";
+          pin.appendChild(logo);
+        } else {
+          const fallback = document.createElement("span");
+          fallback.className = "store-pin-fallback";
+          fallback.textContent = store.brand.slice(0, 1);
+          pin.appendChild(fallback);
+        }
         pin.setAttribute("aria-label", `${store.brand} ${store.name}`);
         const storePosition = new kakao.maps.LatLng(store.lat, store.lon);
         new kakao.maps.CustomOverlay({ map, position: storePosition, content: pin, yAnchor: 1 }).setMap(map);
@@ -51,7 +59,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
             const line = document.createElement("div"); line.textContent = text; card.appendChild(line);
           });
           if (store.placeUrl) {
-            const link = document.createElement("a"); link.href = store.placeUrl; link.target = "_blank"; link.rel = "noopener"; link.textContent = "카카오맵에서 보기 →"; card.appendChild(link);
+            const link = document.createElement("a"); link.href = store.placeUrl; link.textContent = "카카오맵에서 보기 →"; card.appendChild(link);
           }
           opened = new kakao.maps.CustomOverlay({ map, position: storePosition, content: card, yAnchor: 1.25, zIndex: 10 });
         };
@@ -73,5 +81,5 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
   }, [center, radiusKm, stores]);
 
   if (!process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY) return <div className="map-empty">Vercel 환경변수에 카카오 JavaScript 키를 등록해 주세요.</div>;
-  return <div ref={mapRef} className="kakao-map" />;
+  return <div ref={mapRef} className="kakao-map" role="img" aria-label="선택 위치와 주변 프랜차이즈 매장 지도" />;
 }

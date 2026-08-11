@@ -59,6 +59,8 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
     seen: dict[tuple[str, str], int] = {}
     brand_counts: Counter[str] = Counter()
     known_counts: Counter[str] = Counter()
+    verified_rows = 0
+    allergen_known_rows = 0
     source_dates: Counter[str] = Counter()
     numeric_ranges: dict[str, list[float]] = {field: [] for field in NUMERIC_LIMITS}
     source_hosts: Counter[str] = Counter()
@@ -125,7 +127,10 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
             value = row.get(field, "").lower()
             if value not in BOOLEAN_VALUES:
                 errors.append({"code": "invalid_boolean", "field": field, "value": value, **label})
+        if row.get("verified", "").lower() == "true":
+            verified_rows += 1
         if row.get("allergen_known", "").lower() == "true":
+            allergen_known_rows += 1
             known_counts[brand] += 1
             if not row.get("allergy_source_url", ""):
                 warnings.append({"code": "known_allergen_without_dedicated_url", **label})
@@ -149,6 +154,9 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
             "errors": len(errors),
             "warnings": len(warnings),
             "duplicate_brand_menu": sum(item["code"] == "duplicate_brand_menu" for item in errors),
+            "verified_rows": verified_rows,
+            "allergen_known_rows": allergen_known_rows,
+            "allergen_known_rate": round(allergen_known_rows / len(records), 4) if records else 0,
         },
         "coverage": {
             brand: {
@@ -170,6 +178,20 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
     return report
 
 
+def public_report(report: Mapping[str, Any]) -> dict[str, Any]:
+    """브라우저가 표시할 수 있는 작고 안정적인 품질 요약을 만든다."""
+    return {
+        "generated_at": report.get("generated_at"),
+        "status": report.get("status"),
+        "summary": report.get("summary", {}),
+        "coverage": report.get("coverage", {}),
+        "source_dates": report.get("source_dates", {}),
+        "source_hosts": report.get("source_hosts", {}),
+        "warnings": report.get("warnings", []),
+        "mirror": report.get("mirror", {}),
+    }
+
+
 def read_csv(path: Path) -> tuple[list[dict[str, str]], list[str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -185,6 +207,7 @@ def main() -> int:
     parser.add_argument("--primary", type=Path, default=Path("data/menus.csv"))
     parser.add_argument("--mirror", type=Path, default=Path("vercel-app/public/data/menus.csv"))
     parser.add_argument("--report", type=Path, default=Path("reports/data-quality.json"))
+    parser.add_argument("--public-report", type=Path, default=Path("vercel-app/public/data/quality.json"))
     args = parser.parse_args()
 
     rows, columns = read_csv(args.primary)
@@ -205,6 +228,8 @@ def main() -> int:
     report["status"] = "pass" if not report["errors"] else "fail"
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.public_report.parent.mkdir(parents=True, exist_ok=True)
+    args.public_report.write_text(json.dumps(public_report(report), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"status": report["status"], **report["summary"], "report": str(args.report)}, ensure_ascii=False))
     return 0 if report["status"] == "pass" else 1
 

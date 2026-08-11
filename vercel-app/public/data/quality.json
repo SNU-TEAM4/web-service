@@ -63,28 +63,6 @@
       "allergen_known_rate": 1.0
     }
   },
-  "numeric_ranges": {
-    "calories": {
-      "min": 0.0,
-      "max": 1812.0
-    },
-    "protein": {
-      "min": 0.0,
-      "max": 197.0
-    },
-    "fat": {
-      "min": 0.0,
-      "max": 58.0
-    },
-    "carbs": {
-      "min": 0.0,
-      "max": 99.0
-    },
-    "sodium": {
-      "min": 0.0,
-      "max": 3351.0
-    }
-  },
   "source_dates": {
     "2026-07-16": 100,
     "2026-07-21": 17,
@@ -102,7 +80,6 @@
     "www.starbucks.co.kr": 192,
     "www.subway.co.kr": 25
   },
-  "errors": [],
   "warnings": [
     {
       "code": "low_brand_coverage",
