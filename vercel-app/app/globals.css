@@ -49,3 +49,12 @@ html{scroll-behavior:smooth}.landing{position:relative;display:flex;min-height:1
 @media(min-width:901px) and (max-width:1280px){.content{padding-left:clamp(20px,5vw,76px)}.quick-filter-panel.visible~.content{max-width:1500px;margin:0 auto}.quick-filter-panel{box-shadow:0 18px 50px #102c1b4a}}
 @media(max-width:620px){.safety-options button{min-height:44px}}
 .meal-price-total{display:grid;grid-template-columns:1fr auto;gap:5px 16px;margin:0 0 14px;padding:16px 18px;border:1px solid #c9ddce;border-radius:14px;background:linear-gradient(135deg,#eef7ef,#f8fbf7)}.meal-price-total span{font-size:12px;font-weight:800}.meal-price-total b{color:var(--green);font-size:22px}.meal-price-total small{grid-column:1/-1;color:var(--muted);font-size:10px}
+
+/* 긴 설명은 말줄임표 바로 뒤의 '더보기'로 자연스럽게 펼친다. */
+.menu-description .description-more{display:inline;margin:0 0 0 5px;color:#2b7f55;font-size:inherit}
+.menu-description .description-more summary{display:inline;cursor:pointer;font-weight:850;text-decoration:underline;text-underline-offset:3px}
+.menu-description .description-more summary::marker{content:""}
+.menu-description .description-more[open]{display:block;margin:7px 0 0}
+.menu-description .description-more[open] summary{display:block;margin:0 0 6px;font-size:0}
+.menu-description .description-more[open] summary::after{content:"접기";font-size:11px}
+.menu-description .description-more[open] p{margin:0;padding:10px 11px;border-radius:9px;background:#f4f7f3;color:#526158!important;line-height:1.55}
