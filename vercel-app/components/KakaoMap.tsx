@@ -48,10 +48,23 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
           pin.style.left = `${Math.cos(angle) * offset}px`;
           pin.style.top = `${Math.sin(angle) * offset}px`;
         }
-        const logo = document.createElement("img");
-        logo.src = BRAND_LOGOS[store.brand] || "";
-        logo.alt = "";
-        pin.appendChild(logo);
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 60 72");
+        svg.setAttribute("aria-hidden", "true");
+        const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        shape.setAttribute("d", "M30 2C14.5 2 3 13.8 3 29.5C3 46.5 18.8 59.4 30 70C41.2 59.4 57 46.5 57 29.5C57 13.8 45.5 2 30 2Z");
+        shape.setAttribute("fill", "white");
+        shape.setAttribute("stroke", PIN_COLORS[store.brand] || "#287653");
+        shape.setAttribute("stroke-width", "3");
+        const logo = document.createElementNS("http://www.w3.org/2000/svg", "image");
+        logo.setAttribute("href", BRAND_LOGOS[store.brand] || "");
+        logo.setAttribute("x", "11");
+        logo.setAttribute("y", "9");
+        logo.setAttribute("width", "38");
+        logo.setAttribute("height", "38");
+        logo.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        svg.append(shape, logo);
+        pin.appendChild(svg);
         pin.setAttribute("aria-label", `${store.brand} ${store.name}`);
         const storePosition = new kakao.maps.LatLng(store.lat, store.lon);
         const baseZIndex = Math.max(1, 50 - Math.round(store.distance * 2));
