@@ -64,6 +64,6 @@ Pull request와 `main` push에서 다음 항목을 자동 확인합니다.
 | 표면 | 상태 | 검증 범위 |
 |---|---|---|
 | Streamlit | 실제 공개 배포 확인 | Chrome에서 화면 로드와 631개 메뉴 표시 확인 |
-| Next.js | Vercel Git 연결 준비 완료 | 로컬 프로덕션 빌드·390px/데스크톱 Chrome 상호작용 확인, 공개 Vercel URL은 미확인 |
+| Next.js | Vercel Git 연결·배포 완료 | [Production](https://web-service-snu.vercel.app)과 PR Preview Ready, 데스크톱·390px Chrome 상호작용 확인 |
 
-Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 GitHub 저장소를 Import한 뒤 Root Directory를 `vercel-app`으로 지정하고 `.env.example`의 카카오 키를 등록합니다. 배포 후 `/api/health`에서 앱과 키 설정 여부를 확인합니다.
+Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 GitHub 저장소를 Import하고 Root Directory를 `vercel-app`으로 지정해 배포했습니다. PR Preview는 Vercel 로그인 보호가 적용되어 있으며, 카카오 기능을 활성화하려면 `.env.example`의 두 키와 배포 도메인을 등록해야 합니다. 배포 후 `/api/health`에서 앱과 키 설정 여부를 확인합니다.

@@ -14,7 +14,7 @@
 | 시각화 완성도 | 15/25 | 22/25 | 상대 최대값 레이더의 해석 위험 → 1일 참고치 기반 막대, 가로 브랜드 차트, 정확한 값 표 |
 | 웹 구현·배포 | 17/25 | 23/25 | Streamlit 실배포 존재, Next 오류 처리·보안 부채 → 로딩/실패/빈 상태, 접근성, Next 16, 취약점 0 |
 | AI 활용·발표 | 9/25 | 20/25 | 구현 근거·AI 역할·발표 자료 부재 → 4단계 기록, 재현 노트북·HTML 보고서·발표 대본 |
-| 합계 | **55/100** | **87/100** | 공개 Vercel URL과 실제 발표 평가는 아직 미확인 |
+| 합계 | **55/100** | **87/100** | Vercel Git 배포는 확인, 카카오 키·익명 Preview·실제 발표 평가는 미확인 |
 
 ## 1) 구조·내용 파악
 
@@ -22,7 +22,7 @@
 - `vercel-app`: 반응형 Next.js 앱. CSV를 클라이언트에서 읽고 Recharts와 카카오 API를 사용합니다.
 - `scripts/update_official_data.py`: 9개 브랜드 공식 API·HTML·이미지 표 수집기입니다.
 - `data/menus.csv`, `vercel-app/public/data/menus.csv`: 두 앱이 소비하는 동일 데이터 복사본입니다.
-- 실제 배포 `https://hanip-ansim.streamlit.app/`는 Chrome에서 정상 로드됐습니다. 공개 Vercel URL은 저장소에서 확인되지 않았습니다.
+- 실제 배포 `https://hanip-ansim.streamlit.app/`와 Vercel Production `https://web-service-snu.vercel.app/`를 Chrome에서 확인했습니다. 개선 브랜치는 Vercel Preview `Ready`이며 로그인된 Chrome에서 정상 로드됐습니다.
 
 ## 2) 평가
 
@@ -59,11 +59,11 @@ AI를 어디에 사용했고 어떤 결과를 사람이 검증했는지 기록�
 - 15종 알레르기 필터, CSV·지도 오류 상태, 손상 장바구니 복구, 탭 ARIA, 버튼 이름을 적용했습니다.
 - 브랜드 비교를 가로 막대와 정확한 값 표로, 상세 비교를 성인 1일 참고치 대비 막대로 변경했습니다.
 - Next.js 16.3.0·React 19.2.8·Recharts 3.10.1로 갱신했습니다. ESLint·프로덕션 빌드 통과, npm 배포 취약점 0건입니다.
-- 실제 Streamlit 공개 배포는 현행 main 기준으로 확인했습니다. 이 변경 브랜치의 재배포와 공개 Vercel URL은 PR 병합·호스팅 설정 후 별도 확인이 필요합니다.
+- 실제 Streamlit과 Vercel Production을 확인했고 변경 브랜치의 Vercel Preview도 배포됐습니다. 다만 Preview는 로그인 보호가 적용되어 익명 공개 상태가 아니며, 카카오 키가 없어 지도·매장 검색의 실제 외부 API 성공 여정은 남았습니다.
 
 ## 남은 과제
 
 1. 파리바게뜨의 기계 판독 가능한 공식 범위를 넓히고 수동 표본 대조를 추가합니다.
-2. Vercel 프로젝트를 연결해 Next.js 공개 URL과 카카오 키가 있는 지도 여정을 검증합니다.
+2. 카카오 키와 배포 도메인을 Vercel·카카오 콘솔에 등록하고 지도 전체 여정을 검증한 뒤, PR 병합 또는 Production 승격으로 개선 화면을 익명 공개합니다.
 3. 메뉴별 제공량 단위를 명시하고 `carbs` 열을 의미에 맞는 `sugars`로 단계적으로 이관합니다.
 4. 사용자 테스트로 필터 이해도와 발표 전달력을 실제 측정합니다.
