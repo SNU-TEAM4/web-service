@@ -10,7 +10,8 @@ import type { Menu, Place, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
 
 type Tab = "menus" | "cart" | "map" | "compare" | "about";
-type Cart = Record<number, number>;
+type CartValue = { quantity: number; label?: string; unitPrice?: number; calories?: number; protein?: number; fat?: number; carbs?: number; sodium?: number; optionNote?: string; snapshotNote?: string };
+type Cart = Record<number, CartValue>;
 type SafetyMode = "all" | "danger" | "safe";
 type SortMode = "recommended" | "protein" | "calories" | "sodium";
 
@@ -126,6 +127,9 @@ export default function HanipApp() {
   const [added, setAdded] = useState<{ id: number; nonce: number } | null>(null);
   const [detailSelection, setDetailSelection] = useState<number[]>([]);
   const [mealFlight, setMealFlight] = useState<{ x: number; y: number; dx: number; dy: number; nonce: number } | null>(null);
+  const [configuringMenu, setConfiguringMenu] = useState<Menu | null>(null);
+  const [mealSize, setMealSize] = useState<"단품" | "세트" | "라지세트">("단품");
+  const [drinkChoice, setDrinkChoice] = useState("코카 콜라® 미디엄");
 
   useEffect(() => {
     fetch("/data/menus.csv").then((response) => response.text()).then((csv) => {
@@ -145,7 +149,10 @@ export default function HanipApp() {
       setBrands(Array.from(new Set(data.map((menu) => menu.brand))));
     });
     const saved = localStorage.getItem("hanip-cart");
-    if (saved) setCart(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved) as Record<string, number | CartValue>;
+      setCart(Object.fromEntries(Object.entries(parsed).map(([id, value]) => [id, typeof value === "number" ? { quantity: value } : value])));
+    }
   }, []);
 
   useEffect(() => { localStorage.setItem("hanip-cart", JSON.stringify(cart)); }, [cart]);
@@ -201,21 +208,21 @@ export default function HanipApp() {
     .sort((a, b) => menuSectionFilter === "전체"
       ? menuSectionRank(activeBrand, menuSection(a)) - menuSectionRank(activeBrand, menuSection(b)) || compareMenus(a, b)
       : compareMenus(a, b)), [activeBrand, activeItems, menuSectionFilter, sortMode, profileOn, targetCalories]);
-  const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
-    const menu = menus[Number(id)]; return menu ? [{ menu, quantity }] : [];
+  const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, value]) => {
+    const menu = menus[Number(id)]; return menu ? [{ menu, ...value }] : [];
   }), [cart, menus]);
   const cartMenuIds = useMemo(() => cartItems.map(({ menu }) => menu.id), [cartItems]);
   useEffect(() => {
     setDetailSelection(cartMenuIds.slice(0, 4));
   }, [cartMenuIds]);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totals = cartItems.reduce((sum, { menu, quantity }) => ({
-    calories: sum.calories + menu.calories * quantity, protein: sum.protein + menu.protein * quantity,
-    fat: sum.fat + menu.fat * quantity, carbs: sum.carbs + menu.carbs * quantity, sodium: sum.sodium + menu.sodium * quantity
+  const totals = cartItems.reduce((sum, item) => ({
+    calories: sum.calories + (item.calories ?? item.menu.calories) * item.quantity, protein: sum.protein + (item.protein ?? item.menu.protein) * item.quantity,
+    fat: sum.fat + (item.fat ?? item.menu.fat) * item.quantity, carbs: sum.carbs + (item.carbs ?? item.menu.carbs) * item.quantity, sodium: sum.sodium + (item.sodium ?? item.menu.sodium) * item.quantity
   }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
 
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
-    setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
+    setCart((current) => ({ ...current, [id]: { ...(current[id] || {}), quantity: (current[id]?.quantity || 0) + 1 } }));
     setAdded({ id, nonce: Date.now() });
     const start = event.currentTarget.getBoundingClientRect();
     const target = document.querySelector<HTMLElement>("[data-meal-tab]")?.getBoundingClientRect();
@@ -225,6 +232,30 @@ export default function HanipApp() {
       window.setTimeout(() => setMealFlight(null), 820);
     }
     window.setTimeout(() => setAdded((current) => current?.id === id ? null : current), 950);
+  };
+
+  const startAdd = (menu: Menu, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (menu.brand === "맥도날드" && menuSection(menu) === "버거") {
+      setConfiguringMenu(menu); setMealSize("단품"); setDrinkChoice("코카 콜라® 미디엄"); return;
+    }
+    addToCart(menu.id, event);
+  };
+
+  const configuredNutrition = useMemo(() => {
+    if (!configuringMenu) return null;
+    const large = mealSize === "라지세트";
+    const side = menus.find((menu) => menu.brand === "맥도날드" && menu.menu === `후렌치 후라이 ${large ? "라지" : "미디엄"}`);
+    const drinkName = drinkChoice.replace("미디엄", large ? "라지" : "미디엄");
+    const drink = menus.find((menu) => menu.brand === "맥도날드" && menu.menu === drinkName);
+    const parts = mealSize === "단품" ? [configuringMenu] : [configuringMenu, side, drink].filter(Boolean) as Menu[];
+    return parts.reduce((sum, menu) => ({ calories: sum.calories + menu.calories, protein: sum.protein + menu.protein, fat: sum.fat + menu.fat, carbs: sum.carbs + menu.carbs, sodium: sum.sodium + menu.sodium }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
+  }, [configuringMenu, drinkChoice, mealSize, menus]);
+
+  const confirmConfiguredMeal = () => {
+    if (!configuringMenu || !configuredNutrition) return;
+    const examplePrices = { "단품": 5500, "세트": 7400, "라지세트": 8100 } as const;
+    setCart((current) => ({ ...current, [configuringMenu.id]: { quantity: (current[configuringMenu.id]?.quantity || 0) + 1, label: `${configuringMenu.menu} ${mealSize}`, unitPrice: examplePrices[mealSize], ...configuredNutrition, optionNote: mealSize === "단품" ? "단품" : `후렌치 후라이 ${mealSize === "라지세트" ? "L" : "M"} · ${drinkChoice.replace("미디엄", mealSize === "라지세트" ? "라지" : "미디엄")}`, snapshotNote: "시연용 예시 가격 · 실제 대표 매장 수집 전" } }));
+    setAdded({ id: configuringMenu.id, nonce: Date.now() }); setConfiguringMenu(null);
   };
 
   const changeTab = (nextTab: Tab) => {
@@ -252,6 +283,7 @@ export default function HanipApp() {
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label="닫기" onClick={() => setQuickFiltersOpen(false)} />}
       {mealFlight && <div key={mealFlight.nonce} className="meal-flight" style={{ left: mealFlight.x, top: mealFlight.y, "--flight-x": `${mealFlight.dx}px`, "--flight-y": `${mealFlight.dy}px` } as React.CSSProperties}><UtensilsCrossed size={16} /><span>+1</span></div>}
+      {configuringMenu && configuredNutrition && <div className="meal-config-backdrop" onMouseDown={() => setConfiguringMenu(null)}><section className="meal-config-modal" onMouseDown={(event) => event.stopPropagation()}><header><div><span>EXPERIMENTAL · 대표 매장 스냅샷</span><h2>{configuringMenu.menu} 구성 선택</h2><p>단품·세트 구성을 고르면 영양과 예시 가격을 함께 계산해요.</p></div><button onClick={() => setConfiguringMenu(null)} aria-label="닫기"><X /></button></header><div className="meal-config-group"><b>구성</b><div className="meal-config-options">{(["단품", "세트", "라지세트"] as const).map((item) => <button key={item} className={mealSize === item ? "active" : ""} onClick={() => setMealSize(item)}>{item}<small>{({ 단품: "5,500원", 세트: "7,400원", 라지세트: "8,100원" } as const)[item]}</small></button>)}</div></div>{mealSize !== "단품" && <div className="meal-config-group"><b>음료</b><select value={drinkChoice} onChange={(event) => setDrinkChoice(event.target.value)}><option>코카 콜라® 미디엄</option><option>코카 콜라® 제로 미디엄</option></select><small>사이드는 후렌치 후라이 {mealSize === "라지세트" ? "L" : "M"} 기준입니다.</small></div>}<div className="meal-config-summary"><span>{configuredNutrition.calories.toFixed(0)} kcal</span><span>단백질 {configuredNutrition.protein.toFixed(0)}g</span><span>나트륨 {configuredNutrition.sodium.toFixed(0)}mg</span></div><div className="snapshot-disclosure"><b>현재는 기능 검증용 예시 가격입니다.</b><span>실제 적용 시: 대표 매장·공식 주문 화면·확인일을 함께 저장하고 주 1회 갱신합니다.</span></div><button className="meal-config-confirm" onClick={confirmConfiguredMeal}><UtensilsCrossed size={18} /> 선택한 구성으로 담기</button></section></div>}
       <header className="landing">
         <div className="landing-orb orb-one" /><div className="landing-orb orb-two" />
         <div className="landing-copy"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><p className="landing-brand">🍽️ 한입안심</p><h1>오늘의 한 끼,<br />안심하고 고르세요.</h1><p>알레르기와 영양 목표를 한 번 설정하면<br />여러 프랜차이즈 메뉴를 한곳에서 찾아드려요.</p><a href="#explorer">내 메뉴 찾아보기 <ArrowDown size={18} /></a></div>
@@ -288,7 +320,7 @@ export default function HanipApp() {
             <Image src={BRAND_LOGOS[brand]} alt={brand} width={78} height={78} /><span><b>{brand}</b><small><strong>안전 추천 {safeCount}개</strong>{allergens.length > 0 && dangerCount > 0 && <em>위험 {dangerCount}개</em>}</small></span>{activeBrand === brand ? <Check /> : <ChevronRight />}
           </button>; })}</div>
           {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 종류별로 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
-            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || BRAND_LOGOS[menu.brand]} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = BRAND_LOGOS[menu.brand]; event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)} · {menu.category}</span><h3>{menu.menu}</h3>{servingLabel(menu) && <span className="serving-label">{servingLabel(menu)}</span>}<MenuDescription menu={menu} /><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} 확인` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">가격 출처 보기</a>}</div><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
+            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || BRAND_LOGOS[menu.brand]} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = BRAND_LOGOS[menu.brand]; event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)} · {menu.category}</span><h3>{menu.menu}</h3>{servingLabel(menu) && <span className="serving-label">{servingLabel(menu)}</span>}<MenuDescription menu={menu} /><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} 확인` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">가격 출처 보기</a>}</div><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => startAdd(menu, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> {menu.brand === "맥도날드" && menuSection(menu) === "버거" ? "구성 선택하고 담기" : "한 끼에 담기"}</>}</button>
           </article>; })}</div></div> : <div className="brand-menu-placeholder"><MenuIcon size={34} /><h3>브랜드를 선택해 주세요</h3><p>왼쪽 카드를 누르면 이곳에서 메뉴를 바로 비교할 수 있어요.</p></div>}</div>
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}
@@ -307,14 +339,14 @@ function TabButton({ active, onClick, label, icon, mealTarget = false, receiving
 function NumberField({ label, value, onChange, disabled = false }: { label: string; value: number; onChange: (value: number) => void; disabled?: boolean }) { return <label><span>{label}</span><input disabled={disabled} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { return <label className="range"><span>{label}<b>{value} {unit}</b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 
-function CartPanel({ items, cart, setCart, totals, targetCalories, allergens }: { items: Array<{ menu: Menu; quantity: number }>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number; allergens: string[] }) {
+function CartPanel({ items, cart, setCart, totals, targetCalories, allergens }: { items: Array<{ menu: Menu } & CartValue>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number; allergens: string[] }) {
   if (!items.length) return <section className="panel empty"><UtensilsCrossed size={36} /><h2>나의 한 끼가 비어 있어요</h2><p>추천 메뉴에서 버거, 음료, 사이드를 조합해보세요.</p></section>;
   const standards = [{ name: "칼로리", value: totals.calories, max: targetCalories, unit: "kcal" }, { name: "단백질", value: totals.protein, max: 55, unit: "g" }, { name: "포화지방", value: totals.fat, max: 15, unit: "g" }, { name: "당류", value: totals.carbs, max: 100, unit: "g" }, { name: "나트륨", value: totals.sodium, max: 2000, unit: "mg" }];
-  const knownPrice = items.reduce((sum, { menu, quantity }) => sum + (menu.price || 0) * quantity, 0);
-  const unknownPriceCount = items.reduce((sum, { menu, quantity }) => sum + (menu.price ? 0 : quantity), 0);
+  const knownPrice = items.reduce((sum, item) => sum + (item.unitPrice ?? item.menu.price ?? 0) * item.quantity, 0);
+  const unknownPriceCount = items.reduce((sum, item) => sum + ((item.unitPrice ?? item.menu.price) ? 0 : item.quantity), 0);
   return <section className="panel"><div className="panel-head"><div><h2>나의 한 끼 영양 분석</h2><p>수량을 바꾸면 한 끼의 영양과 확인된 가격 합계가 즉시 계산돼요.</p></div><button className="danger clear-cart" onClick={() => setCart({})}>전체 비우기</button></div>
     <div className="meal-price-total"><span>확인된 메뉴 가격 합계</span><b>{knownPrice.toLocaleString()}원</b><small>{unknownPriceCount ? `가격 미확인 메뉴 ${unknownPriceCount}개는 합계에서 제외됐어요.` : "모든 메뉴 가격이 합계에 포함됐어요."}</small></div>
-    <div className="cart-list">{items.map(({ menu, quantity }) => { const matched = allergens.filter((item) => menu.allergens.includes(item)); return <div className={`cart-item ${matched.length ? "allergy-warning" : ""}`} key={menu.id}><div><b>{menu.menu}</b><span>{menu.brand} · {menu.calories} kcal · {menu.price ? `${(menu.price * quantity).toLocaleString()}원` : "가격 미확인"}</span>{matched.length > 0 && <em>주의 · 선택 알레르기: {matched.join(", ")}</em>}</div><div className="quantity"><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.max(1, quantity - 1) }))}>−</button><b>{quantity}</b><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.min(10, quantity + 1) }))}>+</button></div><button className="icon-button" onClick={() => setCart((current) => { const next = { ...current }; delete next[menu.id]; return next; })}><Trash2 size={18} /></button></div>; })}</div>
+    <div className="cart-list">{items.map((item) => { const { menu, quantity } = item; const matched = allergens.filter((allergen) => menu.allergens.includes(allergen)); const calories = item.calories ?? menu.calories; const price = item.unitPrice ?? menu.price; return <div className={`cart-item ${matched.length ? "allergy-warning" : ""}`} key={menu.id}><div><b>{item.label || menu.menu}</b><span>{menu.brand} · {calories.toFixed(0)} kcal · {price ? `${(price * quantity).toLocaleString()}원` : "가격 미확인"}</span>{item.optionNote && <small className="cart-option-note">{item.optionNote}</small>}{item.snapshotNote && <small className="cart-snapshot-note">{item.snapshotNote}</small>}{matched.length > 0 && <em>주의 · 선택 알레르기: {matched.join(", ")}</em>}</div><div className="quantity"><button onClick={() => setCart((current) => ({ ...current, [menu.id]: { ...current[menu.id], quantity: Math.max(1, quantity - 1) } }))}>−</button><b>{quantity}</b><button onClick={() => setCart((current) => ({ ...current, [menu.id]: { ...current[menu.id], quantity: Math.min(10, quantity + 1) } }))}>+</button></div><button className="icon-button" onClick={() => setCart((current) => { const next = { ...current }; delete next[menu.id]; return next; })}><Trash2 size={18} /></button></div>; })}</div>
     <div className="nutrition-summary">{standards.map((item) => <div key={item.name}><span>{item.name}<b>{item.value.toFixed(item.unit === "mg" || item.unit === "kcal" ? 0 : 1)}{item.unit}</b></span><div className="progress"><i className={item.value > item.max ? "over" : ""} style={{ width: `${Math.min(100, item.value / item.max * 100)}%` }} /></div><small>{item.max}{item.unit} 기준 · {(item.value / item.max * 100).toFixed(0)}%</small></div>)}</div>
   </section>;
 }
