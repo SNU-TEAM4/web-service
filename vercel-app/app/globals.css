@@ -5,7 +5,7 @@
 .store-pin img{display:block;width:68%;height:68%;object-fit:contain;transform:translateX(4px) rotate(45deg)}
 .store-pin[data-brand="롯데리아"] img{width:78%;height:78%}
 .store-pin.hovered,.store-pin.selected{transform:rotate(-45deg) scale(1.16);filter:drop-shadow(0 5px 5px #0004)}
-.store-pin.selected{box-shadow:0 5px 13px #0005,0 0 0 4px #fff,0 0 0 7px var(--pin-color,#287653)}
+.store-pin.selected{box-shadow:0 5px 13px #0005,0 0 0 2px #fff}
 .radius-slider{display:block;width:min(280px,100%);padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:#f7faf7}.radius-slider>span,.radius-slider>small{display:flex;justify-content:space-between;align-items:center}.radius-slider>span{font-size:13px}.radius-slider>span b{color:var(--green);font-size:15px}.radius-slider input{width:100%;margin:10px 0 4px;accent-color:var(--green);cursor:pointer}.radius-slider small{color:var(--muted);font-size:10px}.radius-slider i{font-style:normal}
 @media(max-width:900px){.map-panel-head .radius-slider{width:100%}}
 

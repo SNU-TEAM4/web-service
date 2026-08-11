@@ -31,18 +31,20 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
 
       let opened: any = null;
       let selectedPin: HTMLButtonElement | null = null;
+      let selectedOverlay: any = null;
+      let selectedBaseZIndex = 1;
       const nearbyPositions = new Map<string, number>();
       stores.forEach((store) => {
         const pin = document.createElement("button");
         pin.className = "store-pin";
         pin.dataset.brand = store.brand;
         pin.style.setProperty("--pin-color", PIN_COLORS[store.brand] || "#287653");
-        const positionKey = `${store.lat.toFixed(4)}:${store.lon.toFixed(4)}`;
+        const positionKey = `${store.lat.toFixed(3)}:${store.lon.toFixed(3)}`;
         const positionOrder = nearbyPositions.get(positionKey) || 0;
         nearbyPositions.set(positionKey, positionOrder + 1);
         if (positionOrder > 0) {
           const angle = positionOrder * 2.4;
-          const offset = Math.min(18, 7 + positionOrder * 3);
+          const offset = Math.min(28, 9 + positionOrder * 4);
           pin.style.left = `${Math.cos(angle) * offset}px`;
           pin.style.top = `${Math.sin(angle) * offset}px`;
         }
@@ -59,7 +61,10 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         pin.onclick = () => {
           if (opened) opened.setMap(null);
           if (selectedPin) selectedPin.classList.remove("selected");
+          if (selectedOverlay) selectedOverlay.setZIndex(selectedBaseZIndex);
           selectedPin = pin;
+          selectedOverlay = overlay;
+          selectedBaseZIndex = baseZIndex;
           pin.classList.add("selected");
           overlay.setZIndex(110);
           const card = document.createElement("div");
@@ -73,7 +78,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
           if (store.placeUrl) {
             const link = document.createElement("a"); link.href = store.placeUrl; link.target = "_blank"; link.rel = "noopener"; link.textContent = "카카오맵에서 보기 →"; card.appendChild(link);
           }
-          opened = new kakao.maps.CustomOverlay({ map, position: storePosition, content: card, yAnchor: 1.25, zIndex: 10 });
+          opened = new kakao.maps.CustomOverlay({ map, position: storePosition, content: card, xAnchor: .5, yAnchor: 1.35, zIndex: 1000 });
         };
       });
     });
