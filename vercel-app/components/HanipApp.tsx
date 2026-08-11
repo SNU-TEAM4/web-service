@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Papa from "papaparse";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Check, ChevronDown, ChevronUp, LocateFixed, MapPin, Menu as MenuIcon, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowDown, Check, ChevronDown, ChevronUp, LocateFixed, MapPin, Menu as MenuIcon, Search, ShoppingCart, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_LOGOS } from "@/lib/brands";
 import type { Menu, Place, Store } from "@/lib/types";
@@ -23,6 +23,9 @@ export default function HanipApp() {
   const [brands, setBrands] = useState<string[]>([]);
   const [brandCategory, setBrandCategory] = useState("전체");
   const [safetyMode, setSafetyMode] = useState<SafetyMode>("all");
+  const [showQuickFilters, setShowQuickFilters] = useState(false);
+  const [quickFiltersOpen, setQuickFiltersOpen] = useState(false);
+  const filtersAnchorRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [maxCalories, setMaxCalories] = useState(600);
   const [minProtein, setMinProtein] = useState(0);
@@ -51,6 +54,18 @@ export default function HanipApp() {
   }, []);
 
   useEffect(() => { localStorage.setItem("hanip-cart", JSON.stringify(cart)); }, [cart]);
+
+  useEffect(() => {
+    const anchor = filtersAnchorRef.current;
+    if (!anchor) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      const passed = !entry.isIntersecting && entry.boundingClientRect.bottom < 80;
+      setShowQuickFilters(passed);
+      if (!passed) setQuickFiltersOpen(false);
+    }, { rootMargin: "-70px 0px 0px" });
+    observer.observe(anchor);
+    return () => observer.disconnect();
+  }, []);
 
   const brandOptions = useMemo(() => Array.from(new Set(menus.map((menu) => menu.brand))), [menus]);
   const targetCalories = useMemo(() => {
@@ -91,6 +106,16 @@ export default function HanipApp() {
 
   return (
     <main>
+      <button className={`quick-filter-trigger ${showQuickFilters ? "visible" : ""}`} onClick={() => setQuickFiltersOpen(true)}><SlidersHorizontal size={17} /> 조건 바꾸기</button>
+      <aside className={`quick-filter-panel ${showQuickFilters ? "visible" : ""} ${quickFiltersOpen ? "open" : ""}`}>
+        <button className="quick-filter-close" onClick={() => setQuickFiltersOpen(false)} aria-label="조건 패널 닫기"><X size={20} /></button>
+        <div className="quick-filter-title"><span>QUICK FILTER</span><b>조건 바로 바꾸기</b></div>
+        <div className="quick-group"><h3>알레르기</h3><div className="chips">{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div></div>
+        <div className="quick-group"><h3>안전 상태</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>모두</button><button className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>위험</button><button className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>안전</button></div></div>
+        <div className="quick-group"><h3>카테고리</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item}>{item}</option>)}</select></div>
+        <div className="quick-group quick-ranges"><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
+      </aside>
+      {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label="닫기" onClick={() => setQuickFiltersOpen(false)} />}
       <header className="landing">
         <div className="landing-orb orb-one" /><div className="landing-orb orb-two" />
         <div className="landing-copy"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><p className="landing-brand">🍽️ 한입안심</p><h1>오늘의 한 끼,<br />안심하고 고르세요.</h1><p>알레르기와 영양 목표를 한 번 설정하면<br />여러 프랜차이즈 메뉴를 한곳에서 찾아드려요.</p><a href="#explorer">내 메뉴 찾아보기 <ArrowDown size={18} /></a></div>
@@ -99,7 +124,7 @@ export default function HanipApp() {
 
       <section className="content" id="explorer">
         <Reveal><header className="section-intro"><span>01 · 내 조건</span><h2>나에게 맞는 기준부터 선택해요</h2><p>선택한 정보는 브라우저 안에서 메뉴를 찾는 데만 사용됩니다.</p></header></Reveal>
-        <Reveal><section className="horizontal-filters">
+        <div ref={filtersAnchorRef}><Reveal><section className="horizontal-filters">
           <div className="filter-block allergy-block"><h3>피해야 할 알레르기</h3><p>대한민국 의무표시 대상 기준</p><div className="chips">{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div></div>
           <div className="filter-block"><h3>메뉴 안전 상태</h3><p>{allergens.length ? "선택한 알레르기 기준" : "표시 성분 유무 기준"}</p><div className="safety-options">
             <label><input type="radio" name="safety" checked={safetyMode === "all"} onChange={() => setSafetyMode("all")} /> 모두 보기</label>
@@ -108,7 +133,7 @@ export default function HanipApp() {
           </div></div>
           <div className="filter-block"><h3>맞춤 프로필</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> 신체·다이어트 목표 반영</label>{profileOn && <div className="profile-grid"><select value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option>여성</option><option>남성</option></select><select value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option>감량</option><option>유지</option><option>증량</option></select><NumberField label="나이" value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField label="키(cm)" value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField label="체중(kg)" value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">하루 참고 목표 <b>{targetCalories.toLocaleString()} kcal</b></div></div>}</div>
           <div className="filter-block nutrition-block"><h3>영양 조건</h3><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
-        </section></Reveal>
+        </section></Reveal></div>
 
         <Reveal><section className="category-section"><div className="section-intro compact"><span>02 · 카테고리</span><h2>어떤 종류를 찾고 있나요?</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{category}</b><small>{category === "전체" ? "모든 브랜드" : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand] === category).length}개 브랜드`}</small></button>)}</div><div className="brand-picker">{brandOptions.filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand] === brandCategory).map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><Image src={BRAND_LOGOS[brand]} alt="" width={44} height={44} /><span>{brand}</span></button>)}</div></section></Reveal>
 
