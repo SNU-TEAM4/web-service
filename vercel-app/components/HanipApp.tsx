@@ -20,28 +20,50 @@ const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량"
 function menuSection(menu: Menu) {
   const category = menu.category.trim();
   const name = menu.menu.trim();
-  const text = `${category} ${name}`;
 
-  // 이름 속 재료명보다 브랜드가 제공한 공식 카테고리를 우선한다.
-  // 특히 써브웨이의 새우·치킨 샌드위치를 버거로 분류하지 않는다.
+  // 공통 키워드 추측보다 브랜드가 공개한 원본 카테고리를 먼저 사용한다.
   if (menu.brand === "써브웨이") {
     if (/샌드위치|아침메뉴/.test(category)) return "샌드위치";
     if (/샐러드/.test(category)) return "샐러드";
-    if (/랩|기타/.test(category)) return "랩·기타";
-    if (/사이드·음료/.test(category)) {
-      return /음료|커피|라떼|티|콜드 브루|아메리카노|에이드|콜라|사이다|주스/.test(name) ? "음료" : "사이드";
-    }
+    if (/랩/.test(category)) return "랩";
+    if (/커피|아메리카노|라떼|콜라|사이다|주스|음료/.test(name)) return "음료";
+    return "사이드";
   }
-
-  if (/버거메뉴|^버거$|^단품$/.test(category)) return "버거";
-  if (menu.brand === "KFC" && category) return category === "추가 메뉴" ? "사이드" : category;
-  if (/음료|드링크|커피|라떼|티|콜드 브루|아메리카노|에이드|콜라|사이다|주스|스무디|블렌디드/.test(text)) return "음료";
-  if (/치킨|윙|텐더|너겟|휠레/.test(text) && !/버거|샌드위치/.test(text)) return "치킨";
-  if (/버거/.test(text)) return "버거";
-  if (/샌드위치/.test(text)) return "샌드위치";
-  if (/디저트|사이드|스낵|토핑|소스|시즈닝|베이커리|아이스크림|빙수/.test(text)) return "사이드·디저트";
-  return menu.category || "기타";
+  if (menu.brand === "맥도날드") {
+    if (category === "버거") return "버거";
+    if (category === "단품") return "맥모닝";
+    if (category === "음료") return "음료";
+    return "사이드·디저트";
+  }
+  if (menu.brand === "롯데리아") {
+    if (category === "버거메뉴") return "버거";
+    if (category === "드링크 메뉴") return "음료";
+    if (category === "아이스샷") return "사이드·디저트";
+    if (/소스|토핑/.test(category)) return "소스·추가";
+    return "사이드·디저트";
+  }
+  if (menu.brand === "KFC") {
+    if (category === "추가 메뉴") return "소스·추가";
+    return category || "기타";
+  }
+  if (menu.brand === "이디야") return category === "음료" ? "음료" : "베이커리·푸드";
+  if (menu.brand === "스타벅스") {
+    if (/브루드 티|아이스 티|티 라떼/.test(category)) return "티";
+    if (/브루드 커피|콜드 브루|에스프레소|도피오|마키아또|모카|라떼|카푸치노|리스트레또/.test(category)) return "커피";
+    return "기타 음료";
+  }
+  if (menu.brand === "배스킨라빈스") return "아이스크림";
+  if (menu.brand === "파리바게뜨") return "베이커리";
+  if (menu.brand === "버거킹") {
+    if (/추가|시즈닝|패티|^슬라이스치즈|^롱베이컨/.test(name) || (/소스$/.test(name) && !/[+&]/.test(name))) return "소스·추가";
+    if (/버거|와퍼|스태커/.test(name)) return "버거";
+    if (/콜라|사이다|환타|주스|아메리카노|커피|라떼|에이드|미닛메이드|아이스초코|핫초코/.test(name)) return "음료";
+    return "사이드·디저트";
+  }
+  return category || "기타";
 }
+
+const MENU_SECTION_ORDER = ["샌드위치", "버거", "맥모닝", "치킨", "샐러드", "랩", "사이드", "사이드·디저트", "베이커리·푸드", "베이커리", "아이스크림", "커피", "티", "기타 음료", "음료", "소스·추가", "기타"];
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
@@ -136,7 +158,11 @@ export default function HanipApp() {
     .sort(([, a], [, b]) => a.length && b.length ? compareMenus(a[0], b[0]) : b.length - a.length), [filtered, sortMode, profileOn, targetCalories]);
   const activeBrand = Object.keys(openBrands).find((brand) => openBrands[brand]) || "";
   const activeItems = grouped.find(([brand]) => brand === activeBrand)?.[1] || [];
-  const menuSections = useMemo(() => ["전체", ...Array.from(new Set(activeItems.map(menuSection)))], [activeItems]);
+  const menuSections = useMemo(() => ["전체", ...Array.from(new Set(activeItems.map(menuSection))).sort((a, b) => {
+    const aRank = MENU_SECTION_ORDER.indexOf(a);
+    const bRank = MENU_SECTION_ORDER.indexOf(b);
+    return (aRank < 0 ? 999 : aRank) - (bRank < 0 ? 999 : bRank) || a.localeCompare(b, "ko");
+  })], [activeItems]);
   const visibleActiveItems = useMemo(() => activeItems.filter((menu) => menuSectionFilter === "전체" || menuSection(menu) === menuSectionFilter).sort(compareMenus), [activeItems, menuSectionFilter, sortMode, profileOn, targetCalories]);
   const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
     const menu = menus[Number(id)]; return menu ? [{ menu, quantity }] : [];
