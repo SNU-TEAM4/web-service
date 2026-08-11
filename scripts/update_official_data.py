@@ -384,6 +384,8 @@ def baskin_robbins() -> list[dict]:
             "carbs": number(sugar), "sodium": number(sodium),
             "allergens": normalize_allergens(allergy), "source_url": detail_url,
             "source_date": date.today().isoformat(), "verified": True, "allergen_known": True,
+            "price": 3900, "price_note": "싱글레귤러 115g 공식 표시가",
+            "price_source_url": detail_url, "price_checked_at": date.today().isoformat(),
         })
     return result
 

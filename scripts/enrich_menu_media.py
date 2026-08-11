@@ -171,7 +171,7 @@ def baskin() -> dict[str, dict]:
             continue
         name = clean(image.get("alt", ""))
         tags = link.select_one(".menu-list__hash")
-        result[key(name)] = {"image_url": urljoin(url, image.get("src", "")), "description": clean(tags.get_text()) if tags else "", "price_note": "매장별 확인", "media_source_url": url}
+        result[key(name)] = {"image_url": urljoin(url, image.get("src", "")), "description": clean(tags.get_text()) if tags else "", "price": 3900, "price_note": "싱글레귤러 115g 공식 표시가", "price_source_url": urljoin(url, link.get("href", "")), "price_checked_at": TODAY, "media_source_url": url}
     return result
 
 
@@ -191,7 +191,7 @@ def apply() -> None:
     sources = {"맥도날드": mcdonalds(), "롯데리아": lotteria(), "스타벅스": starbucks(), "써브웨이": subway(), "배스킨라빈스": baskin(), "파리바게뜨": paris_baguette()}
     for path in CSV_PATHS:
         frame = pd.read_csv(path).fillna("")
-        for column in ["image_url", "description", "price", "price_note", "media_source_url", "media_checked_at"]:
+        for column in ["image_url", "description", "price", "price_note", "price_source_url", "price_checked_at", "media_source_url", "media_checked_at"]:
             if column not in frame:
                 frame[column] = ""
         matched = 0

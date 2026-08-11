@@ -9,6 +9,7 @@ declare global {
 }
 
 type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[] };
+const PIN_COLORS: Record<string, string> = { "맥도날드": "#ffcc00", "롯데리아": "#00a6b2", "버거킹": "#ed7800", "스타벅스": "#00754a", "KFC": "#c8102e", "써브웨이": "#008c45", "이디야": "#172f70", "배스킨라빈스": "#f45b9d", "파리바게뜨": "#112e67" };
 
 export default function KakaoMap({ center, radiusKm, stores }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -32,6 +33,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
       stores.forEach((store) => {
         const pin = document.createElement("button");
         pin.className = "store-pin";
+        pin.style.borderColor = PIN_COLORS[store.brand] || "#ffffff";
         const logo = document.createElement("img");
         logo.src = BRAND_LOGOS[store.brand] || "";
         logo.alt = "";

@@ -12,6 +12,7 @@ import time
 from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -51,7 +52,7 @@ def fetch_area(session: requests.Session, brand: str, area: str, x: float, y: fl
     response = session.post(
         ENDPOINT,
         headers={"accept": "*/*", "accept-language": "ko", "content-type": "application/json",
-                 "referer": SEARCH_URL.format(query=brand)},
+                 "referer": SEARCH_URL.format(query=quote(brand))},
         json=[{"operationName": "getRestaurants", "variables": variables, "query": QUERY}], timeout=30)
     response.raise_for_status()
     payload = response.json()[0]["data"]["restaurants"]
