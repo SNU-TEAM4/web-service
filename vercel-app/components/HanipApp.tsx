@@ -143,7 +143,7 @@ export default function HanipApp() {
         <div ref={filtersAnchorRef}><Reveal><section className="horizontal-filters">
           <div className="filter-block allergy-block"><h3>피해야 할 알레르기</h3><p>대한민국 의무표시 대상 기준</p><div className="chips">{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div></div>
           <div className="filter-block"><h3>메뉴 안전 상태</h3><p>{allergens.length ? "선택한 알레르기 기준" : "표시 성분 유무 기준"}</p><div className="safety-options">
-            <label><input type="radio" name="safety" checked={safetyMode === "all"} onChange={() => setSafetyMode("all")} /> 모두 보기</label>
+            <label className="all-option"><input type="radio" name="safety" checked={safetyMode === "all"} onChange={() => setSafetyMode("all")} /> 모두 보기</label>
             <label className="safe-option"><input type="radio" name="safety" checked={safetyMode === "safe"} onChange={() => setSafetyMode("safe")} /> 안전한 것만</label>
             <label className="danger-option"><input type="radio" name="safety" checked={safetyMode === "danger"} onChange={() => setSafetyMode("danger")} /> 위험한 것만</label>
           </div></div>
