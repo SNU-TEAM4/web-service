@@ -42,12 +42,17 @@ def lotteria() -> dict[str, dict]:
         price = card.select_one(".mn-card-price")
         if not name:
             continue
-        result[clean(name.get_text())] = {
+        item = {
             "image_url": image.get("src", "") if image else "",
             "price": re.sub(r"\D", "", price.get_text()) if price else "",
             "price_note": "롯데잇츠 표시가",
             "media_source_url": url,
         }
+        menu_key = key(name.get_text())
+        result[menu_key] = item
+        # 영양표는 버터번 표기를 생략하지만 판매 페이지는 괄호로 덧붙인다.
+        if menu_key.endswith("버터번"):
+            result[menu_key.removesuffix("버터번")] = item
     return result
 
 
@@ -163,7 +168,7 @@ def baskin() -> dict[str, dict]:
             continue
         name = clean(image.get("alt", ""))
         tags = link.select_one(".menu-list__hash")
-        result[name] = {"image_url": urljoin(url, image.get("src", "")), "description": clean(tags.get_text()) if tags else "", "price_note": "매장별 확인", "media_source_url": url}
+        result[key(name)] = {"image_url": urljoin(url, image.get("src", "")), "description": clean(tags.get_text()) if tags else "", "price_note": "매장별 확인", "media_source_url": url}
     return result
 
 
@@ -175,7 +180,7 @@ def paris_baguette() -> dict[str, dict]:
         name = link.select_one(".product-name")
         image = link.select_one("img.product-tb")
         if name and image:
-            result[clean(name.get_text())] = {"image_url": image.get("src", ""), "price_note": "매장별 확인", "media_source_url": url}
+            result[key(name.get_text())] = {"image_url": image.get("src", ""), "price_note": "매장별 확인", "media_source_url": url}
     return result
 
 

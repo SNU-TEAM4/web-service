@@ -70,25 +70,25 @@ def lotteria() -> list[dict]:
     response = requests.get(LOTTE_URL, timeout=30)
     response.raise_for_status()
     response.encoding = "utf-8"
-    table = pd.read_html(StringIO(response.text), flavor="lxml")[0]
+    soup = BeautifulSoup(response.text, "lxml")
     result = []
-    for _, row in table.iterrows():
-        calories = number(row["열량(kcal)"])
-        # 세트 범위와 빈 행은 제외하고 단일 수치가 있는 메뉴만 사용한다.
-        if calories is None or "~" in str(row["열량(kcal)"]):
+    category = ""
+    for table_row in soup.select("tbody tr"):
+        cells = [cell.get_text(" ", strip=True) for cell in table_row.find_all(["th", "td"], recursive=False)]
+        # 단품 영양행은 10개 셀, 새 구분의 첫 행은 rowspan 구분 셀을 포함해 11개다.
+        if len(cells) == 11:
+            category, cells = cells[0], cells[1:]
+        if len(cells) != 10:
             continue
-        # 공식 표의 `구분`은 카테고리, `제품명`은 실제 메뉴명이다.
-        # 둘을 뒤집으면 첫 행의 rowspan 값(예: 버거메뉴)이 메뉴처럼 저장된다.
-        menu = str(row["제품명"]).strip()
-        category = str(row["구분"]).strip()
-        if not menu or menu == "nan":
+        menu, allergy, _weight, kcal, protein, sodium, sugar, fat, _caffeine, _origin = cells
+        calories = number(kcal)
+        if not menu or calories is None or "~" in kcal:
             continue
         result.append({
             "brand": "롯데리아", "menu": menu, "category": category,
-            "calories": calories, "protein": number(row["단백질(g)"]),
-            "fat": number(row["포화지방(g)"]), "carbs": number(row["당류(g)"]),
-            "sodium": number(row["나트륨(mg)"]),
-            "allergens": normalize_allergens(row["알레르기 성분"]),
+            "calories": calories, "protein": number(protein),
+            "fat": number(fat), "carbs": number(sugar), "sodium": number(sodium),
+            "allergens": normalize_allergens(allergy),
             "source_url": LOTTE_URL, "source_date": "2026-06-08", "verified": True,
             "allergen_known": True,
         })
