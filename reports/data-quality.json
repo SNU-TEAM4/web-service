@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-08-11T04:19:44+00:00",
+  "status": "pass",
+  "summary": {
+    "rows": 631,
+    "brands": 9,
+    "errors": 0,
+    "warnings": 1,
+    "duplicate_brand_menu": 0
+  },
+  "coverage": {
+    "KFC": {
+      "rows": 17,
+      "allergen_known_rows": 17,
+      "allergen_known_rate": 1.0
+    },
+    "롯데리아": {
+      "rows": 100,
+      "allergen_known_rows": 100,
+      "allergen_known_rate": 1.0
+    },
+    "맥도날드": {
+      "rows": 39,
+      "allergen_known_rows": 39,
+      "allergen_known_rate": 1.0
+    },
+    "배스킨라빈스": {
+      "rows": 31,
+      "allergen_known_rows": 31,
+      "allergen_known_rate": 1.0
+    },
+    "버거킹": {
+      "rows": 210,
+      "allergen_known_rows": 210,
+      "allergen_known_rate": 1.0
+    },
+    "스타벅스": {
+      "rows": 192,
+      "allergen_known_rows": 0,
+      "allergen_known_rate": 0.0
+    },
+    "써브웨이": {
+      "rows": 25,
+      "allergen_known_rows": 0,
+      "allergen_known_rate": 0.0
+    },
+    "이디야": {
+      "rows": 16,
+      "allergen_known_rows": 8,
+      "allergen_known_rate": 0.5
+    },
+    "파리바게뜨": {
+      "rows": 1,
+      "allergen_known_rows": 1,
+      "allergen_known_rate": 1.0
+    }
+  },
+  "numeric_ranges": {
+    "calories": {
+      "min": 0.0,
+      "max": 1812.0
+    },
+    "protein": {
+      "min": 0.0,
+      "max": 197.0
+    },
+    "fat": {
+      "min": 0.0,
+      "max": 58.0
+    },
+    "carbs": {
+      "min": 0.0,
+      "max": 99.0
+    },
+    "sodium": {
+      "min": 0.0,
+      "max": 3351.0
+    }
+  },
+  "source_dates": {
+    "2026-07-16": 100,
+    "2026-07-21": 17,
+    "2026-08-11": 514
+  },
+  "source_hosts": {
+    "ediya.com": 16,
+    "www.baskinrobbins.co.kr": 31,
+    "www.burgerking.co.kr": 210,
+    "www.kfckorea.com": 17,
+    "www.lotteeatz.com": 100,
+    "www.mcdonalds.co.kr": 39,
+    "www.paris.co.kr": 1,
+    "www.starbucks.co.kr": 192,
+    "www.subway.co.kr": 25
+  },
+  "errors": [],
+  "warnings": [
+    {
+      "code": "low_brand_coverage",
+      "brand": "파리바게뜨",
+      "rows": 1
+    }
+  ],
+  "mirror": {
+    "primary": "data/menus.csv",
+    "mirror": "vercel-app/public/data/menus.csv",
+    "primary_sha256": "01dc6086d45c886f188c5ffcf173e2f9d0a399083bfd6023e8d78a05b269f3f3",
+    "mirror_sha256": "01dc6086d45c886f188c5ffcf173e2f9d0a399083bfd6023e8d78a05b269f3f3",
+    "identical": true
+  }
+}

@@ -9,7 +9,6 @@ from math import asin, cos, radians, sin, sqrt
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import pydeck as pdk
 import requests
 import streamlit as st
@@ -20,7 +19,10 @@ from streamlit_searchbox import st_searchbox
 
 BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / "data" / "menus.csv"
-ALLERGENS = ["우유", "계란", "밀", "대두", "땅콩", "새우", "게", "돼지고기", "쇠고기", "닭고기"]
+ALLERGENS = [
+    "계란", "우유", "대두", "밀", "땅콩", "새우", "게", "돼지고기", "쇠고기",
+    "닭고기", "토마토", "아황산류", "오징어", "조개류", "복숭아",
+]
 NUTRIENTS = {
     "칼로리": ("calories", "kcal"),
     "단백질": ("protein", "g"),
@@ -586,7 +588,10 @@ with st.sidebar:
         key="brand_selector_v2",
         label_visibility="collapsed",
     )
-    st.caption(f"공식 데이터 {len(data):,}개 · {len(brand_options)}개 브랜드 · 2026-08-07 갱신")
+    st.caption(
+        f"공식 데이터 {len(data):,}개 · {len(brand_options)}개 브랜드 · "
+        f"최신 기준일 {data['source_date'].max()}"
+    )
     st.markdown("#### 3. 맞춤 프로필")
     profile_enabled = st.toggle("신체·다이어트 목표 반영", value=False)
     profile = None
@@ -1130,19 +1135,32 @@ with tab_detail:
         keys = available["brand"] + " · " + available["menu"]
         compared = available[keys.isin(chosen)].copy()
         compared["label"] = compared["brand"] + " · " + compared["menu"]
-        nutrition = ["calories", "protein", "fat", "carbs", "sodium"]
-        normalized = compared[nutrition].div(data[nutrition].max()).mul(100)
-        radar = go.Figure()
-        for idx, row in compared.reset_index(drop=True).iterrows():
-            values = normalized.reset_index(drop=True).iloc[idx].tolist()
-            radar.add_trace(
-                go.Scatterpolar(r=values + values[:1], theta=["칼로리", "단백질", "포화지방", "당류", "나트륨", "칼로리"], fill="toself", name=row["label"])
-            )
-        radar.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100], ticksuffix="%")),
-            paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=40, r=40, t=35, b=20), height=470,
+        reference = {
+            "calories": (2000, "칼로리"), "protein": (55, "단백질"), "fat": (15, "포화지방"),
+            "carbs": (100, "당류"), "sodium": (2000, "나트륨"),
+        }
+        relative_rows = []
+        for _, row in compared.iterrows():
+            for nutrient, (standard, label) in reference.items():
+                relative_rows.append({
+                    "메뉴": row["label"], "영양성분": label,
+                    "1일 참고치 대비(%)": float(row[nutrient]) / standard * 100,
+                })
+        relative = pd.DataFrame(relative_rows)
+        comparison_chart = px.bar(
+            relative, x="1일 참고치 대비(%)", y="메뉴", color="영양성분",
+            orientation="h", barmode="group", text_auto=".0f",
+            color_discrete_sequence=["#3d8b63", "#2b6cb0", "#d27a49", "#8b5ca6", "#c84d4d"],
         )
-        st.plotly_chart(radar, use_container_width=True)
+        comparison_chart.add_vline(x=100, line_dash="dash", line_color="#9a3d2f")
+        comparison_chart.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            legend_title_text="", margin=dict(l=10, r=10, t=30, b=20),
+            height=max(360, 150 * len(compared)),
+        )
+        comparison_chart.update_xaxes(gridcolor="#e3e8e1", ticksuffix="%")
+        st.caption("점선은 성인 1일 참고치 100%입니다. 단백질은 충분량 참고, 나머지는 과다 섭취를 피하기 위한 비교 지표로 해석하세요.")
+        st.plotly_chart(comparison_chart, use_container_width=True)
         compared["가격"] = compared["price"].apply(
             lambda value: f"{float(value):,.0f}원" if pd.notna(value) else "매장별 확인"
         )
@@ -1174,6 +1192,28 @@ with tab_about:
         - 맞춤 열량은 성인용 Mifflin–St Jeor 추정식과 활동계수를 사용한 참고값이며 의료·영양 처방이 아님
         """
     )
+    coverage = (
+        data.groupby("brand")
+        .agg(
+            메뉴_수=("menu", "count"),
+            알레르기_확인_수=("allergen_known", "sum"),
+            최신_기준일=("source_date", "max"),
+            공식_출처=("source_url", "first"),
+        )
+        .reset_index()
+        .rename(columns={"brand": "브랜드"})
+    )
+    coverage["알레르기_확인율"] = (
+        coverage["알레르기_확인_수"] / coverage["메뉴_수"] * 100
+    ).round(1).astype(str) + "%"
+    st.markdown("#### 브랜드별 데이터 범위")
+    st.dataframe(
+        coverage[["브랜드", "메뉴_수", "알레르기_확인_수", "알레르기_확인율", "최신_기준일", "공식_출처"]],
+        hide_index=True,
+        use_container_width=True,
+        column_config={"공식_출처": st.column_config.LinkColumn("공식 출처")},
+    )
+    st.caption("기준일은 공식 표기일이 없을 때 수집 확인일을 사용하며, 원본 CSV의 source_date_type으로 구분합니다.")
     st.dataframe(
         data.drop(columns="allergen_list").rename(
             columns={"brand": "브랜드", "menu": "메뉴", "category": "분류", "price": "가격", "calories": "칼로리", "protein": "단백질", "fat": "포화지방", "carbs": "당류", "sodium": "나트륨", "allergens": "알레르기 성분", "allergen_known": "알레르기 정보 확인", "source_url": "공식 출처", "source_date": "기준일", "verified": "검증"}

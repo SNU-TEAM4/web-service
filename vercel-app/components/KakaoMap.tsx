@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- Kakao Maps global SDK는 로컬 타입 선언을 제공하지 않습니다. */
+
 import { useEffect, useRef } from "react";
 import { BRAND_LOGOS } from "@/lib/brands";
 import type { Store } from "@/lib/types";

@@ -11,6 +11,12 @@ export type Menu = {
   allergens: string[];
   allergenKnown: boolean;
   sourceUrl: string;
+  sourceDate: string;
+  sourceDateType: string;
+  verified: boolean;
+  allergySourceUrl: string;
+  collectedAt: string;
+  collectionMethod: string;
 };
 
 export type Place = {
