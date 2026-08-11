@@ -5,3 +5,4 @@ G001/C001 happy path evidence
 - Chrome production path: filter drawer opens with focus, allergen chip toggles, menu can be added, cart survives reload, comparison metric changes, exact-value table and data evidence panel render.
 - Visual artifacts: production-desktop.png, production-compare.png, production-about.png, mobile-cdp-390x844.png.
 - Mobile metrics: 390px inner width equals 390px document scroll width, so no horizontal overflow.
+- GitHub/Vercel: commit 884a0aa12d4ded01077fbcc87aa0dc390910a64b; Actions quality run 8 success; Vercel status success; Preview alias renders the four-metric comparison and evaluation evidence.

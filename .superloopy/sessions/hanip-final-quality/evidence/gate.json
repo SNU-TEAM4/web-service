@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "createdAt": "2026-08-11T07:39:41.699Z",
+  "artifacts": [
+    ".superloopy/sessions/hanip-final-quality/evidence/G001-C001.txt",
+    ".superloopy/sessions/hanip-final-quality/evidence/G001-C002.txt"
+  ],
+  "summary": {
+    "goals": {
+      "total": 1,
+      "pending": 0,
+      "in_progress": 1,
+      "complete": 0,
+      "failed": 0,
+      "blocked": 0
+    },
+    "criteria": {
+      "total": 2,
+      "pass": 2,
+      "pending": 0,
+      "fail": 0,
+      "blocked": 0
+    },
+    "aggregateComplete": false
+  },
+  "notes": "최종 프로젝트 네 평가 기준의 웹 구현과 배포 증거 검토 완료"
+}

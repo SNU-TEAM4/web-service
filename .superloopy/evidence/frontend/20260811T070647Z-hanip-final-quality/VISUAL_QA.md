@@ -18,6 +18,14 @@
 - 메뉴 1개 담기 전후와 새로고침 뒤 모두 `장바구니 (1)` 유지 확인
 - 비교 지표를 알레르기 확인률로 전환하면 `%` 단위와 정확값·표본 표가 함께 변경됨
 
+## 실제 Vercel Preview
+
+- URL: `https://web-service-snu-git-agent-hanip-quality-improvements-proto15.vercel.app`
+- `vercel-preview-final.png`: 새 문서 제목과 PASS·원천/배포 CSV 일치 표시 확인
+- `vercel-preview-about.png`: 평가 기준 증거, 검증 640/640·오류 0·중복 0 표시 확인
+- 배포된 브랜드 비교에서 평균 나트륨 버튼 `aria-pressed=true`, 네 지표와 정확값 표 확인
+- GitHub Actions `quality` run 8 성공, Vercel commit status 성공
+
 ## 모바일
 
 - `mobile-cdp-390x844.png`: Chrome DevTools device metrics로 production 화면 캡처
