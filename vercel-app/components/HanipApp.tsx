@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Papa from "papaparse";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { ArrowDown, Check, ChevronDown, ChevronLeft, ChevronUp, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_LOGOS } from "@/lib/brands";
 import type { Menu, Place, Store } from "@/lib/types";
@@ -95,6 +95,10 @@ export default function HanipApp() {
   const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
     const menu = menus[Number(id)]; return menu ? [{ menu, quantity }] : [];
   }), [cart, menus]);
+  const cartMenuIds = useMemo(() => cartItems.map(({ menu }) => menu.id), [cartItems]);
+  useEffect(() => {
+    setDetailSelection(cartMenuIds.slice(0, 4));
+  }, [cartMenuIds]);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totals = cartItems.reduce((sum, { menu, quantity }) => ({
     calories: sum.calories + menu.calories * quantity, protein: sum.protein + menu.protein * quantity,
@@ -173,7 +177,7 @@ export default function HanipApp() {
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}
 
-        {tab === "cart" && <div className="meal-workspace"><CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} allergens={allergens} /><DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartItems.map(({ menu }) => menu.id)} /></div>}
+        {tab === "cart" && <div className="meal-workspace"><CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} allergens={allergens} /><DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartMenuIds} /></div>}
         {tab === "map" && <MapPanel brands={brands} />}
         {tab === "compare" && <ComparePanel menus={filtered} brands={brandOptions} />}
         {tab === "about" && <section className="panel prose"><h2>알레르기 표시 기준과 데이터 안내</h2><div className="law-card"><b>대한민국 · 의무표시</b><p><strong>근거법령</strong> 식품 등의 표시·광고에 관한 법률 시행규칙</p><p><strong>소관기관</strong> 식품의약품안전처</p><p><strong>표시 대상</strong> 알류(가금류), 우유, 메밀, 땅콩, 대두, 밀, 고등어, 게, 새우, 돼지고기, 복숭아, 토마토, 아황산류(최종제품 이산화황 10mg/kg 이상), 호두, 닭고기, 쇠고기, 오징어, 조개류(굴·전복·홍합 포함), 잣 및 이들 식품에서 추출한 성분을 원재료로 사용한 식품(젤라틴·새우엑기스 등)</p><p><strong>혼입 우려 표시 예시</strong> “○○ 혼입 가능”</p></div><p>영양·알레르기 정보는 각 브랜드 공식 자료를 기반으로 정리했습니다. ‘표시 알레르기 없음’은 알레르기 위험이 절대 없다는 뜻이 아닙니다. 교차오염 가능성과 원재료 변경이 있으므로 심한 알레르기가 있다면 반드시 주문 전 매장에 확인하세요.</p><p>매장 위치·검색은 카카오맵과 카카오 로컬 API를 사용합니다. 가격은 매장·배달 채널별로 달라질 수 있어 실시간 가격으로 제공하지 않습니다.</p></section>}
@@ -216,7 +220,7 @@ function DetailComparePanel({ menus, selection, setSelection, cartIds }: { menus
   ].map((axis) => ({ subject: axis.subject, ...Object.fromEntries(selected.map((menu) => [`menu${menu.id}`, Math.min(100, Number(menu[axis.key as keyof Menu]) / axis.max * 100)])) }));
   const addMenu = (id: number) => { if (id >= 0 && selection.length < 4 && !selection.includes(id)) setSelection((current) => [...current, id]); };
   return <section className="panel detail-compare"><div className="panel-head"><div><span className="compare-kicker">NUTRITION COMPARE</span><h2>메뉴 영양성분 비교</h2><p>최대 4개 메뉴의 영양 균형을 같은 기준으로 비교해요.</p></div></div>
-    <button className="meal-import-card" disabled={!cartIds.length} onClick={() => setSelection(Array.from(new Set(cartIds)).slice(0, 4))}><span className="meal-import-icon"><UtensilsCrossed size={25} /></span><span><b>나의 한 끼 불러오기</b><small>{cartIds.length ? `담아둔 메뉴 ${cartIds.length}개를 바로 비교해 보세요` : "나의 한 끼에 메뉴를 먼저 담아주세요"}</small></span><ChevronRight /></button>
+    <div className={`meal-sync-card ${cartIds.length ? "active" : ""}`}><span className="meal-import-icon"><UtensilsCrossed size={25} /></span><span><b>나의 한 끼 자동 반영</b><small>{cartIds.length ? `담아둔 메뉴 ${Math.min(cartIds.length, 4)}개가 비교에 자동으로 표시됩니다` : "나의 한 끼에 메뉴를 담으면 여기에 자동으로 나타나요"}</small></span>{cartIds.length > 0 && <Check size={20} />}</div>
     <div className="compare-step"><span>01</span><b>직접 메뉴 추가</b><small>{selection.length}/4 선택</small></div>
     <div className="detail-picker"><label className="search"><Search size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="브랜드 또는 메뉴 이름 검색" /></label><select value="" disabled={selection.length >= 4} onChange={(e) => { addMenu(Number(e.target.value)); setSearch(""); }}><option value="">{selection.length >= 4 ? "최대 4개까지 선택할 수 있어요" : "검색 결과에서 메뉴 선택"}</option>{choices.map((menu) => <option key={menu.id} value={menu.id}>{menu.brand} · {menu.menu}</option>)}</select></div>
     <div className="selected-menu-chips">{selected.map((menu, index) => <button style={{ borderColor: DETAIL_COLORS[index] }} key={menu.id} onClick={() => setSelection((current) => current.filter((id) => id !== menu.id))}><i style={{ background: DETAIL_COLORS[index] }} />{menu.brand} · {menu.menu}<X size={14} /></button>)}</div>
