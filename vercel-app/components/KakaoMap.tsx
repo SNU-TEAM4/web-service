@@ -9,7 +9,7 @@ declare global {
 }
 
 type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[] };
-const PIN_COLORS: Record<string, string> = { "맥도날드": "#ffcc00", "롯데리아": "#00a6b2", "버거킹": "#ed7800", "스타벅스": "#00754a", "KFC": "#c8102e", "써브웨이": "#008c45", "이디야": "#172f70", "배스킨라빈스": "#f45b9d", "파리바게뜨": "#112e67" };
+const PIN_COLORS: Record<string, string> = { "맥도날드": "#ffcc00", "롯데리아": "#f00028", "버거킹": "#ed7800", "스타벅스": "#00754a", "KFC": "#c8102e", "써브웨이": "#008c45", "이디야": "#172f70", "배스킨라빈스": "#f45b9d", "파리바게뜨": "#112e67" };
 
 export default function KakaoMap({ center, radiusKm, stores }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -30,19 +30,38 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
       new kakao.maps.CustomOverlay({ map, position, content: here, yAnchor: .5 });
 
       let opened: any = null;
+      let selectedPin: HTMLButtonElement | null = null;
+      const nearbyPositions = new Map<string, number>();
       stores.forEach((store) => {
         const pin = document.createElement("button");
         pin.className = "store-pin";
-        pin.style.borderColor = PIN_COLORS[store.brand] || "#ffffff";
+        pin.dataset.brand = store.brand;
+        pin.style.setProperty("--pin-color", PIN_COLORS[store.brand] || "#287653");
+        const positionKey = `${store.lat.toFixed(4)}:${store.lon.toFixed(4)}`;
+        const positionOrder = nearbyPositions.get(positionKey) || 0;
+        nearbyPositions.set(positionKey, positionOrder + 1);
+        if (positionOrder > 0) {
+          const angle = positionOrder * 2.4;
+          const offset = Math.min(18, 7 + positionOrder * 3);
+          pin.style.left = `${Math.cos(angle) * offset}px`;
+          pin.style.top = `${Math.sin(angle) * offset}px`;
+        }
         const logo = document.createElement("img");
         logo.src = BRAND_LOGOS[store.brand] || "";
         logo.alt = "";
         pin.appendChild(logo);
         pin.setAttribute("aria-label", `${store.brand} ${store.name}`);
         const storePosition = new kakao.maps.LatLng(store.lat, store.lon);
-        new kakao.maps.CustomOverlay({ map, position: storePosition, content: pin, yAnchor: 1 }).setMap(map);
+        const baseZIndex = Math.max(1, 50 - Math.round(store.distance * 2));
+        const overlay = new kakao.maps.CustomOverlay({ map, position: storePosition, content: pin, yAnchor: 1, zIndex: baseZIndex });
+        pin.onmouseenter = () => { pin.classList.add("hovered"); overlay.setZIndex(100); };
+        pin.onmouseleave = () => { pin.classList.remove("hovered"); if (pin !== selectedPin) overlay.setZIndex(baseZIndex); };
         pin.onclick = () => {
           if (opened) opened.setMap(null);
+          if (selectedPin) selectedPin.classList.remove("selected");
+          selectedPin = pin;
+          pin.classList.add("selected");
+          overlay.setZIndex(110);
           const card = document.createElement("div");
           card.className = "map-info-card";
           const safeName = document.createElement("b");
