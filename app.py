@@ -1074,7 +1074,7 @@ with tab_map:
                             unsafe_allow_html=True,
                         )
                         st.caption("지도에서 매장 아이콘을 누르면 매장명과 이동시간을 확인할 수 있습니다.")
-                        st.dataframe(stores[["브랜드", "매장", "거리(km)", "도보 예상", "차량 예상", "주소"]], hide_index=True, use_container_width=True)
+                        st.dataframe(stores[["브랜드", "매장", "거리(km)", "도보 예상", "차량 예상", "주소"]], hide_index=True, width="stretch")
                         st.caption("이동시간은 직선거리 × 1.25를 기준으로 계산한 참고값입니다. 실제 경로, 신호와 교통상황에 따라 달라질 수 있습니다.")
                         matched = stores[stores["브랜드"].isin(recommended["brand"].unique())]
                         st.success(f"현재 식단 조건에 맞는 메뉴가 있는 브랜드의 주변 매장: {len(matched)}곳")
@@ -1111,7 +1111,7 @@ with tab_compare:
             legend_title_text="", margin=dict(l=10, r=10, t=20, b=10), height=390,
         )
         fig.update_yaxes(gridcolor="#e3e8e1")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         best = summary.sort_values(["추천 비율", "safe"], ascending=False).iloc[0]
         st.success(f"현재 조건에서는 **{best['brand']}**의 추천 가능 비율이 {best['추천 비율']:.0f}%로 가장 높습니다.")
 
@@ -1160,14 +1160,14 @@ with tab_detail:
         )
         comparison_chart.update_xaxes(gridcolor="#e3e8e1", ticksuffix="%")
         st.caption("점선은 성인 1일 참고치 100%입니다. 단백질은 충분량 참고, 나머지는 과다 섭취를 피하기 위한 비교 지표로 해석하세요.")
-        st.plotly_chart(comparison_chart, use_container_width=True)
+        st.plotly_chart(comparison_chart, width="stretch")
         compared["가격"] = compared["price"].apply(
             lambda value: f"{float(value):,.0f}원" if pd.notna(value) else "매장별 확인"
         )
         display = compared[["label", "가격", "calories", "protein", "fat", "carbs", "sodium"]].rename(
             columns={"label": "메뉴", "calories": "칼로리(kcal)", "protein": "단백질(g)", "fat": "포화지방(g)", "carbs": "당류(g)", "sodium": "나트륨(mg)"}
         )
-        st.dataframe(display, hide_index=True, use_container_width=True)
+        st.dataframe(display, hide_index=True, width="stretch")
     else:
         st.info("비교할 메뉴를 선택해 주세요.")
 
@@ -1210,7 +1210,7 @@ with tab_about:
     st.dataframe(
         coverage[["브랜드", "메뉴_수", "알레르기_확인_수", "알레르기_확인율", "최신_기준일", "공식_출처"]],
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={"공식_출처": st.column_config.LinkColumn("공식 출처")},
     )
     st.caption("기준일은 공식 표기일이 없을 때 수집 확인일을 사용하며, 원본 CSV의 source_date_type으로 구분합니다.")
@@ -1219,7 +1219,7 @@ with tab_about:
             columns={"brand": "브랜드", "menu": "메뉴", "category": "분류", "price": "가격", "calories": "칼로리", "protein": "단백질", "fat": "포화지방", "carbs": "당류", "sodium": "나트륨", "allergens": "알레르기 성분", "allergen_known": "알레르기 정보 확인", "source_url": "공식 출처", "source_date": "기준일", "verified": "검증"}
         ),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
 st.divider()
