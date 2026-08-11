@@ -56,3 +56,4 @@ html{scroll-behavior:smooth}.landing{position:relative;display:flex;min-height:1
 /* 긴 설명은 축약문을 중복하지 않고 같은 자리에서 펼친다. */
 .menu-description .description-more{display:inline;margin:0 0 0 5px;padding:0;border:0;background:transparent;color:#2b7f55;cursor:pointer;font-size:11px;font-weight:850;text-decoration:underline;text-underline-offset:3px}
 .chip.no-allergy{border-style:dashed}
+.clear-cart{flex:0 0 auto;white-space:nowrap;word-break:keep-all}
