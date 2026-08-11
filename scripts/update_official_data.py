@@ -175,6 +175,10 @@ def kfc() -> list[dict]:
         ("핫크리스피치킨", "치킨", 264, 22, 4.3, 0, 455, "대두, 밀, 닭고기"),
         ("갓양념치킨", "치킨", 261, 15, 3.5, 6, 504, "대두, 밀, 닭고기, 토마토, 쇠고기"),
         ("핫윙 2조각", "치킨", 182, 10, 3.9, 0, 445, "대두, 밀, 닭고기"),
+        ("핫크리스피통다리", "치킨", 237, 13, 3.9, 0, 462, None),
+        ("갓양념통다리", "치킨", 298, 14, 4.0, 8, 610, None),
+        ("트러플치즈통다리", "치킨", 238, 15, 4.0, 6, 574, None),
+        ("오리지널통다리", "치킨", 162, 13, 2.4, 0, 378, None),
         ("징거", "버거", 553, 33, 7.4, 5, 866, "대두, 밀, 계란, 우유, 닭고기"),
         ("징거타워", "버거", 720, 36, 11.0, 9, 1343, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
         ("트위스터", "버거", 360, 18, 4.4, 4, 1334, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
@@ -184,17 +188,33 @@ def kfc() -> list[dict]:
         ("칙플레맵징거통다리", "버거", 695, 24, 10.1, 18, 1125, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
         ("칙플레맵징거타워", "버거", 803, 37, 11.8, 16, 1386, "대두, 밀, 계란, 우유, 닭고기, 토마토"),
         ("칙플레맵징거더블다운", "버거", 946, 46, 18.4, 6, 1626, "대두, 밀, 우유, 닭고기, 토마토, 돼지고기"),
+        ("트위스터(범계역점)", "버거", 415, 20, 3.0, 5, 1517, None),
         ("프렌치프라이", "사이드", 144, 2, 1.0, 0, 366, "대두"),
+        ("프렌치프라이(L)", "사이드", 204, 2, 1.0, 0, 568, None),
         ("에그타르트", "사이드", 215, 3, 8.5, 8, 105, "대두, 밀, 계란, 우유, 쇠고기"),
         ("코울슬로", "사이드", 139, 2, 1.9, 15, 190, ""),
+        ("치킨너겟", "사이드", 44, 3, 0.9, 0, 196, None),
+        ("트러플치즈프라이", "사이드", 256, 4, 3.0, 2, 516, None),
+        ("텐더", "사이드", 72, 7, 0.9, 0, 279, None),
+        ("버터갈릭라이스", "사이드", 405, 7, 2.0, 2, 427, None),
+        ("텐더스틱", "사이드", 119, 8, 1.5, 0, 290, None),
+        ("버터비스켓", "사이드", 300, 5, 13.1, 8, 342, None),
+        ("해쉬브라운", "사이드", 107, 1, 1.6, 0, 203, None),
+        ("매쉬포테이토&그레이비", "사이드", 163, 2, 6.0, 3, 424, None),
+        ("치즈 추가", "추가 메뉴", 43, 2, 2.1, 0, 147, None),
+        ("베이컨 추가", "추가 메뉴", 37, 3, 0.9, 0, 95, None),
+        ("가슴살 필렛", "추가 메뉴", 297, 29, 4.3, 1, 621, None),
+        ("다리살 필렛", "추가 메뉴", 346, 20, 6.7, 0, 537, None),
+        ("토마토 추가", "추가 메뉴", 10, 0, 0, 0, 9, None),
         ("아메리카노", "음료", 7, 0, 0, 0, 3, ""),
     ]
     result = []
     for menu, category, kcal, protein, fat, sugar, sodium, allergens in rows:
         result.append({"brand": "KFC", "menu": menu, "category": category, "calories": kcal,
                        "protein": protein, "fat": fat, "carbs": sugar, "sodium": sodium,
-                       "allergens": normalize_allergens(allergens), "source_url": source,
-                       "source_date": "2026-07-21", "verified": True, "allergen_known": True,
+                       "allergens": normalize_allergens(allergens or ""), "source_url": source,
+                       "source_date": "2026-07-21", "verified": True,
+                       "allergen_known": allergens is not None,
                        "allergy_source_url": allergy_source})
     return result
 
@@ -263,28 +283,43 @@ def ediya() -> list[dict]:
     """이디야 공식 메뉴 상세 레이어에 공개된 영양·알레르기 정보를 수집한다."""
     result = []
     for url, category in EDIYA_PAGES.items():
+        product_cate = 7 if category == "음료" else 8
         response = requests.get(url, timeout=30)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, "lxml")
-        for detail in soup.select(".pro_detail"):
-            title = detail.select_one("h2")
-            nutrients = {
-                dl.select_one("dt").get_text(strip=True): number(dl.select_one("dd").get_text(strip=True))
-                for dl in detail.select(".pro_nutri dl") if dl.select_one("dt") and dl.select_one("dd")
-            }
+        documents = [response.text]
+        # 첫 화면에는 일부 상품만 들어 있고 나머지는 공식 '더보기' AJAX로 제공된다.
+        for page_number in range(2, 100):
+            more = requests.get(
+                "https://ediya.com/inc/ajax_brand.php",
+                params={"gubun": "menu_more", "product_cate": product_cate,
+                        "chked_val": "", "skeyword": "", "page": page_number},
+                timeout=30,
+            )
+            more.raise_for_status()
+            if more.text.strip().lower() in {"", "none"}:
+                break
+            documents.append(more.text)
+        for document in documents:
+            soup = BeautifulSoup(document, "lxml")
+            for detail in soup.select(".pro_detail"):
+                title = detail.select_one("h2")
+                nutrients = {
+                    dl.select_one("dt").get_text(strip=True): number(dl.select_one("dd").get_text(strip=True))
+                    for dl in detail.select(".pro_nutri dl") if dl.select_one("dt") and dl.select_one("dd")
+                }
             # new_pro_detail은 실제 상품이 아니라 예시값이 들어간 숨김 템플릿이다.
-            if not title or detail.get("id") == "new_pro_detail" or nutrients.get("칼로리") is None:
-                continue
-            allergy_tag = detail.select_one(".pro_allergy")
-            allergy = allergy_tag.get_text(" ", strip=True) if allergy_tag else ""
-            result.append({
-                "brand": "이디야", "menu": title.contents[0].strip(), "category": category,
-                "calories": nutrients.get("칼로리"), "protein": nutrients.get("단백질"),
-                "fat": nutrients.get("포화지방"), "carbs": nutrients.get("당류"),
-                "sodium": nutrients.get("나트륨"), "allergens": normalize_allergens(allergy),
-                "source_url": url, "source_date": date.today().isoformat(), "verified": True,
-                "allergen_known": bool(allergy_tag),
-            })
+                if not title or detail.get("id") == "new_pro_detail" or nutrients.get("칼로리") is None:
+                    continue
+                allergy_tag = detail.select_one(".pro_allergy")
+                allergy = allergy_tag.get_text(" ", strip=True) if allergy_tag else ""
+                result.append({
+                    "brand": "이디야", "menu": title.contents[0].strip(), "category": category,
+                    "calories": nutrients.get("칼로리"), "protein": nutrients.get("단백질"),
+                    "fat": nutrients.get("포화지방"), "carbs": nutrients.get("당류"),
+                    "sodium": nutrients.get("나트륨"), "allergens": normalize_allergens(allergy),
+                    "source_url": url, "source_date": date.today().isoformat(), "verified": True,
+                    "allergen_known": bool(allergy_tag),
+                })
     return result
 
 
@@ -332,7 +367,7 @@ def paris_baguette() -> list[dict]:
         name = link.get_text(" ", strip=True)
         if url.rstrip("/").endswith("/product") or not name:
             continue
-        links[url] = name
+        links[requests.compat.urljoin(PARIS_LIST, url)] = name
     result = []
     for detail_url, fallback_name in links.items():
         page_response = requests.get(detail_url, timeout=30)
@@ -341,13 +376,14 @@ def paris_baguette() -> list[dict]:
         text = page.get_text(" ", strip=True)
         pattern = (r"영양정보\s+총 내용량:.*?총 내용량당 칼로리\(kcal\):\s*([\d,.]+).*?"
                    r"나트륨\(mg\):\s*([\d,.]+).*?당류\(g\):\s*([\d,.]+).*?"
-                   r"포화지방\(g\):\s*([\d,.]+).*?단백질\(g\):\s*([\d,.]+)\s+"
+                   r"포화지방\(g\):\s*([\d,.]+).*?단백질\(g\):\s*([\d,.]+).*?"
                    r"알레르기 정보\s+(.*?)\s+추가정보")
         match = re.search(pattern, text)
         if not match:
             continue
         kcal, sodium, sugar, fat, protein, allergy = match.groups()
-        heading = page.select_one("h1")
+        # 첫 h1은 공통 브랜드명이므로 상세 영역의 첫 product-name을 사용한다.
+        heading = page.select_one(".product-name")
         menu = heading.get_text(" ", strip=True) if heading else fallback_name
         result.append({
             "brand": "파리바게뜨", "menu": menu, "category": "공식 제품",
