@@ -18,14 +18,27 @@ const parseNumber = (value: unknown) => Number(value || 0);
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 
 function menuSection(menu: Menu) {
-  const text = `${menu.category} ${menu.menu}`;
+  const category = menu.category.trim();
+  const name = menu.menu.trim();
+  const text = `${category} ${name}`;
+
+  // 이름 속 재료명보다 브랜드가 제공한 공식 카테고리를 우선한다.
+  // 특히 써브웨이의 새우·치킨 샌드위치를 버거로 분류하지 않는다.
+  if (menu.brand === "써브웨이") {
+    if (/샌드위치|아침메뉴/.test(category)) return "샌드위치";
+    if (/샐러드/.test(category)) return "샐러드";
+    if (/랩|기타/.test(category)) return "랩·기타";
+    if (/사이드·음료/.test(category)) {
+      return /음료|커피|라떼|티|콜드 브루|아메리카노|에이드|콜라|사이다|주스/.test(name) ? "음료" : "사이드";
+    }
+  }
+
+  if (/버거메뉴|^버거$|^단품$/.test(category)) return "버거";
+  if (menu.brand === "KFC" && category) return category === "추가 메뉴" ? "사이드" : category;
   if (/음료|드링크|커피|라떼|티|콜드 브루|아메리카노|에이드|콜라|사이다|주스|스무디|블렌디드/.test(text)) return "음료";
   if (/치킨|윙|텐더|너겟|휠레/.test(text) && !/버거|샌드위치/.test(text)) return "치킨";
-  if (/버거|샌드위치|단품/.test(text)) {
-    if (/새우/.test(menu.menu)) return "새우 버거";
-    if (/치킨|징거|통다리/.test(menu.menu)) return "치킨 버거";
-    return "버거";
-  }
+  if (/버거/.test(text)) return "버거";
+  if (/샌드위치/.test(text)) return "샌드위치";
   if (/디저트|사이드|스낵|토핑|소스|시즈닝|베이커리|아이스크림|빙수/.test(text)) return "사이드·디저트";
   return menu.category || "기타";
 }
