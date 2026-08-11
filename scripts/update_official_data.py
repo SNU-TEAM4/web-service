@@ -74,8 +74,10 @@ def lotteria() -> list[dict]:
         # 세트 범위와 빈 행은 제외하고 단일 수치가 있는 메뉴만 사용한다.
         if calories is None or "~" in str(row["열량(kcal)"]):
             continue
-        menu = str(row["구분"]).strip()
-        category = str(row["제품명"]).strip()
+        # 공식 표의 `구분`은 카테고리, `제품명`은 실제 메뉴명이다.
+        # 둘을 뒤집으면 첫 행의 rowspan 값(예: 버거메뉴)이 메뉴처럼 저장된다.
+        menu = str(row["제품명"]).strip()
+        category = str(row["구분"]).strip()
         if not menu or menu == "nan":
             continue
         result.append({
