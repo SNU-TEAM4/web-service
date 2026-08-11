@@ -4,4 +4,4 @@
 - UX contract: `UX_CONTRACT.md`
 - Implementation: `IMPLEMENTATION.md`
 - Chrome QA: `VISUAL_QA.md`
-- Screenshots: `after-desktop.png`, `after-brand-folders.png`, `filter-drawer-active.png`
+- Screenshots: `after-desktop.png`, `after-brand-folders.png`, `filter-drawer-active.png`, `vercel-preview-58fd13c.png`, `vercel-preview-kyochon-58fd13c.png`
