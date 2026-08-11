@@ -45,8 +45,9 @@ def mcdonalds() -> list[dict]:
     rows = response.json()["resultObject"]["list"]
     result = []
     for row in rows:
-        # 범위로만 제공되는 세트는 개별 영양 목표 비교에서 제외한다.
-        if not str(row.get("calorie", "")).isdigit():
+        # 범위로만 제공되는 세트는 제외하되 `582.0` 같은 정상 단품 수치는 포함한다.
+        calorie_text = str(row.get("calorie", "")).strip()
+        if not re.fullmatch(r"\d+(?:\.\d+)?", calorie_text):
             continue
         facts = {}
         for part in str(row.get("nutritionFacts", "")).split(","):

@@ -32,16 +32,7 @@ function menuSection(menu: Menu) {
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
-  const name = menu.menu;
-  if (/새우/.test(name)) return "새우의 풍미를 살린 메뉴예요.";
-  if (/불고기/.test(name)) return "달콤짭짤한 불고기 풍미의 메뉴예요.";
-  if (/치킨|징거|통다리/.test(name)) return "치킨을 중심으로 구성한 메뉴예요.";
-  if (/베이컨/.test(name)) return "베이컨의 진한 풍미를 더한 메뉴예요.";
-  if (/말차/.test(name)) return "쌉싸름한 말차 풍미를 즐기는 메뉴예요.";
-  if (/라떼/.test(name)) return "부드럽고 고소한 라떼 메뉴예요.";
-  if (/아메리카노|콜드 브루/.test(name)) return "깔끔한 커피 풍미를 즐기는 메뉴예요.";
-  if (/아이스크림|요거트|빙수/.test(`${menu.category} ${name}`)) return "달콤하게 즐기는 디저트 메뉴예요.";
-  return `${menuSection(menu)} 메뉴의 영양정보를 확인해 보세요.`;
+  return "";
 }
 
 export default function HanipApp() {
@@ -208,7 +199,7 @@ export default function HanipApp() {
             <Image src={BRAND_LOGOS[brand]} alt={brand} width={78} height={78} /><span><b>{brand}</b><small><strong>안전 추천 {safeCount}개</strong>{allergens.length > 0 && dangerCount > 0 && <em>위험 {dangerCount}개</em>}</small></span>{activeBrand === brand ? <Check /> : <ChevronRight />}
           </button>; })}</div>
           {activeBrand ? <div className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 종류별로 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => setMenuSectionFilter(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length ? allergens.some((item) => menu.allergens.includes(item)) : menu.allergens.length > 0; return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
-            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || BRAND_LOGOS[menu.brand]} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = BRAND_LOGOS[menu.brand]; event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)} · {menu.category}</span><h3>{menu.menu}</h3><p className="menu-description">{menuDescription(menu)}</p><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small></div><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
+            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || BRAND_LOGOS[menu.brand]} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = BRAND_LOGOS[menu.brand]; event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)} · {menu.category}</span><h3>{menu.menu}</h3>{menuDescription(menu) && <p className="menu-description">{menuDescription(menu)}</p>}<div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small></div><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
           </article>; })}</div></div> : <div className="brand-menu-placeholder"><MenuIcon size={34} /><h3>브랜드를 선택해 주세요</h3><p>왼쪽 카드를 누르면 이곳에서 메뉴를 바로 비교할 수 있어요.</p></div>}</div>
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}

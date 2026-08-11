@@ -68,6 +68,7 @@ def mcdonalds() -> dict[str, dict]:
                 name = BeautifulSoup(row.get("korName") or "", "lxml").get_text(" ", strip=True)
                 image = row.get("pcImageUrl") or row.get("pcListImageUrl") or row.get("pcListThumUrl") or ""
                 description = BeautifulSoup(row.get("korContent") or "", "lxml").get_text(" ", strip=True)
+                description = re.split(r"\s*\*\s*(?:판매 시간|매장별)", description, maxsplit=1)[0]
                 if name:
                     result[key(name)] = {"image_url": urljoin(base, image), "description": clean(description), "price_note": "매장별 확인", "media_source_url": f"{base}/kor/menu/burger"}
     return result
