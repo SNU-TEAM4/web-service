@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const key = process.env.KAKAO_REST_API_KEY;
-  if (!key) return NextResponse.json({ error: "Kakao REST API key is missing" }, { status: 503 });
+  if (!key) return NextResponse.json({ error: "카카오 REST API 키가 설정되지 않았습니다. Vercel 환경변수를 확인해 주세요." }, { status: 503 });
   const lat = Number(request.nextUrl.searchParams.get("lat"));
   const lon = Number(request.nextUrl.searchParams.get("lon"));
   const radius = Math.min(10000, Math.max(1000, Number(request.nextUrl.searchParams.get("radius") || 3000)));

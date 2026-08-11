@@ -16,6 +16,15 @@ type LoadStatus = "loading" | "ready" | "error";
 const parseNumber = (value: unknown) => Number(value || 0);
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 
+async function readJsonResponse<T>(response: Response, fallback: string): Promise<T> {
+  const payload = await response.json().catch(() => null) as { error?: string } | T | null;
+  if (!response.ok) {
+    const message = payload && typeof payload === "object" && "error" in payload ? payload.error : null;
+    throw new Error(message || fallback);
+  }
+  return payload as T;
+}
+
 export default function HanipApp() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
@@ -76,6 +85,20 @@ export default function HanipApp() {
 
   useEffect(() => { localStorage.setItem("hanip-cart", JSON.stringify(cart)); }, [cart]);
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFiltersOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [filtersOpen]);
+
   const brandOptions = useMemo(() => Array.from(new Set(menus.map((menu) => menu.brand))), [menus]);
   const targetCalories = useMemo(() => {
     const bmr = profile.sex === "남성"
@@ -113,10 +136,16 @@ export default function HanipApp() {
   };
 
   return (
-    <main>
-      <button className="mobile-filter-button" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={18} /> CLICK! 내 조건</button>
-      <aside className={filtersOpen ? "sidebar open" : "sidebar"}>
-        <button className="close-sidebar" onClick={() => setFiltersOpen(false)}><X /></button>
+    <main className="app-shell">
+      <header className="global-nav">
+        <div className="global-nav-inner">
+          <a className="global-wordmark" href="#top" aria-label="한입안심 처음으로"><span aria-hidden="true">◉</span><b>한입안심</b></a>
+          <span className="global-data-note">공식 데이터 · {loadStatus === "ready" ? `${menus.length}개 메뉴` : "불러오는 중"}</span>
+          <button className="filter-trigger" aria-expanded={filtersOpen} aria-controls="filter-drawer" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={17} /> 내 조건</button>
+        </div>
+      </header>
+      <aside id="filter-drawer" role="dialog" aria-modal="true" aria-label="메뉴 추천 조건" aria-hidden={!filtersOpen} inert={filtersOpen ? undefined : true} className={filtersOpen ? "filter-drawer open" : "filter-drawer"}>
+        <button className="close-sidebar" aria-label="조건 패널 닫기" onClick={() => setFiltersOpen(false)}><X /></button>
         <div className="brand-title">🍽️ <b>한입안심</b><span>내 조건에 맞는 메뉴 탐색기</span></div>
         <FilterSection title="1. 피해야 할 알레르기">
           <div className="chips">{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div>
@@ -144,11 +173,11 @@ export default function HanipApp() {
       </aside>
       {filtersOpen && <button className="backdrop" aria-label="닫기" onClick={() => setFiltersOpen(false)} />}
 
-      <section className="content">
-        <header className="hero"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><h1>오늘, 내가 먹을 수 있는 메뉴</h1><p>알레르기부터 영양 목표, 주변 매장까지 한 번에 확인하세요.</p>{loadStatus === "ready" && <div className="data-status"><Check size={15} /> 공식 출처 {menus.length}개 메뉴 · {brandOptions.length}개 브랜드 · 최신 기준일 {latestSourceDate}</div>}</header>
+      <section className="content" id="top">
+        <header className="hero"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><h1>안심하고 고르는<br />오늘의 한 끼.</h1><p>알레르기, 영양 목표, 주변 매장까지. 흩어진 공식 정보를 한곳에서 비교하고 내 조건에 맞는 메뉴를 빠르게 찾으세요.</p>{loadStatus === "ready" && <div className="data-status"><Check size={15} /> 공식 출처 {menus.length}개 메뉴 · {brandOptions.length}개 브랜드 · 최신 기준일 {latestSourceDate}</div>}</header>
         {loadStatus === "loading" && <div className="status-panel" role="status"><RefreshCw className="spin" /> 공식 메뉴 데이터를 불러오는 중입니다…</div>}
         {loadStatus === "error" && <div className="status-panel error" role="alert"><AlertCircle /><div><b>메뉴 데이터를 불러오지 못했습니다.</b><span>{loadError}</span></div><button onClick={() => window.location.reload()}>다시 시도</button></div>}
-        <div className="metrics"><Metric label="추천 가능한 메뉴" value={`${filtered.length}개`} note={`전체 ${menus.length}개 메뉴`} /><Metric label="선택 브랜드" value={`${brands.length}개`} note={`총 ${brandOptions.length}개 브랜드`} /><Metric label="장바구니" value={`${cartCount}개`} note={`${totals.calories.toFixed(0)} kcal`} /></div>
+        <div className="metrics"><Metric label="추천 가능한 메뉴" value={`${filtered.length}개`} note={`전체 ${menus.length}개 메뉴`} /><Metric label="선택 브랜드" value={`${brands.length}개`} note={`총 ${brandOptions.length}개 브랜드`} /><Metric label="선택 알레르기" value={`${allergens.length}개`} note={allergens.length ? "조건 적용 중" : "선택 없음"} /><Metric label="장바구니" value={`${cartCount}개`} note={`${totals.calories.toFixed(0)} kcal`} /></div>
         <nav className="tabs" role="tablist" aria-label="한입안심 기능">
           <TabButton active={tab === "menus"} onClick={() => setTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
           <TabButton active={tab === "cart"} onClick={() => setTab("cart")} icon={<ShoppingCart size={17} />} label={`장바구니 (${cartCount})`} />
@@ -214,8 +243,8 @@ function AboutPanel({ menus }: { menus: Menu[] }) {
 
 function MapPanel({ brands }: { brands: string[] }) {
   const [mode, setMode] = useState<"search" | "gps">("search"); const [term, setTerm] = useState(""); const [places, setPlaces] = useState<Place[]>([]); const [center, setCenter] = useState<Place | null>(null); const [stores, setStores] = useState<Store[]>([]); const [radius, setRadius] = useState(3); const [loading, setLoading] = useState(false); const [mapError, setMapError] = useState("");
-  useEffect(() => { if (term.trim().length < 2) return; const controller = new AbortController(); const timer = window.setTimeout(() => fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error("장소 검색에 실패했습니다."); return r.json(); }).then((data) => { setPlaces(Array.isArray(data) ? data : []); setMapError(""); }).catch((error) => { if (!controller.signal.aborted) setMapError(error instanceof Error ? error.message : "장소 검색에 실패했습니다."); }), 400); return () => { window.clearTimeout(timer); controller.abort(); }; }, [term]);
-  const findStores = async (place: Place) => { setCenter(place); setLoading(true); setMapError(""); try { const response = await fetch(`/api/stores?lat=${place.lat}&lon=${place.lon}&radius=${radius * 1000}&brands=${encodeURIComponent(brands.join(","))}`); if (!response.ok) throw new Error("주변 매장 검색에 실패했습니다."); const data = await response.json(); setStores(Array.isArray(data) ? data : []); } catch (error) { setStores([]); setMapError(error instanceof Error ? error.message : "주변 매장 검색에 실패했습니다."); } finally { setLoading(false); } };
+  useEffect(() => { if (term.trim().length < 2) return; const controller = new AbortController(); const timer = window.setTimeout(() => fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((response) => readJsonResponse<Place[]>(response, "장소 검색에 실패했습니다.")).then((data) => { setPlaces(Array.isArray(data) ? data : []); setMapError(""); }).catch((error) => { if (!controller.signal.aborted) setMapError(error instanceof Error ? error.message : "장소 검색에 실패했습니다."); }), 400); return () => { window.clearTimeout(timer); controller.abort(); }; }, [term]);
+  const findStores = async (place: Place) => { setCenter(place); setLoading(true); setMapError(""); try { const response = await fetch(`/api/stores?lat=${place.lat}&lon=${place.lon}&radius=${radius * 1000}&brands=${encodeURIComponent(brands.join(","))}`); const data = await readJsonResponse<Store[]>(response, "주변 매장 검색에 실패했습니다."); setStores(Array.isArray(data) ? data : []); } catch (error) { setStores([]); setMapError(error instanceof Error ? error.message : "주변 매장 검색에 실패했습니다."); } finally { setLoading(false); } };
   const locate = () => navigator.geolocation.getCurrentPosition((position) => findStores({ id: "gps", name: "현재 위치", address: `정확도 약 ${Math.round(position.coords.accuracy)}m`, lat: position.coords.latitude, lon: position.coords.longitude }), () => setMapError("브라우저 위치 권한이 필요합니다. 장소 검색을 이용하거나 권한을 허용해 주세요."), { enableHighAccuracy: true });
   return <section className="panel"><div className="panel-head map-panel-head"><div><h2>내 주변 매장</h2><p>카카오맵에서 선택한 브랜드의 매장을 찾아요.</p></div><label className="radius-slider"><span>검색 반경 <b>{radius} km</b></span><input type="range" min="1" max="10" step="1" value={radius} onChange={(e) => setRadius(Number(e.target.value))} /><small><i>1km</i><i>10km</i></small></label></div>
     <div className="mode-switch"><button className={mode === "search" ? "active" : ""} onClick={() => setMode("search")}><Search size={17} />장소 검색</button><button className={mode === "gps" ? "active" : ""} onClick={() => { setMode("gps"); locate(); }}><LocateFixed size={17} />현재 위치</button></div>

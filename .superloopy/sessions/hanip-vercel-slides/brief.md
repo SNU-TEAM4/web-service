@@ -1,0 +1,1 @@
+기존 조별 프로젝트 한입안심의 실제 Streamlit 배포 화면(https://hanip-ansim.streamlit.app/)을 기준으로, 앞서 적용한 데이터 수집·정제 충실도, 시각화 완성도, 웹 구현·배포, AI 활용·발표 기준과 개선안을 Vercel용 Next.js 인터랙티브 웹페이지에 충실히 구현한다. 포크 저장소 psgg123/web-service-SNU-의 vercel-app을 대상으로 소스 화면 구조와 동작을 문서화하고, 실제 Vercel 배포와 브라우저 QA 증거를 남긴다. 같은 프로젝트의 평가·개선·구현·검증 과정을 설명하는 Superloopy HTML 발표 자료도 사용자 목적·길이·콘텐츠 준비도·밀도와 3개 스타일 시안 승인 후 제작한다.

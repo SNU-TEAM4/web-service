@@ -9,6 +9,8 @@
 - 데이터 사전·수집 정책: [`data/README.md`](./data/README.md)
 - 재현 가능한 분석: [`analysis/data_quality_audit.ipynb`](./analysis/data_quality_audit.ipynb)
 - 휴대형 HTML 보고서: [`reports/project-evaluation.html`](./reports/project-evaluation.html)
+- Apple 참고 디자인 기록: [`docs/design-references/apple.com/DESIGN_REFERENCE.md`](./docs/design-references/apple.com/DESIGN_REFERENCE.md)
+- Vercel UI 컴포넌트 사양: [`docs/research/hanip-ansim.streamlit.app`](./docs/research/hanip-ansim.streamlit.app)
 
 ## 현재 범위
 
@@ -17,6 +19,7 @@
 - 칼로리·단백질·나트륨 조건, 장바구니 영양 합계, 브랜드 비교
 - 메뉴별 공식 출처·기준일과 브랜드별 알레르기 확인율 표시
 - 카카오맵 기반 장소·주변 매장 탐색(환경변수 필요)
+- Apple Korea의 타이포·여백·표면 대비를 참고한 Vercel UI(Apple 자산·카피 미사용)
 
 의학적 처방 서비스가 아닙니다. 제품 구성과 교차접촉 가능성은 바뀔 수 있으므로 심한 알레르기가 있다면 주문 전에 공식 원문과 매장에 재확인해야 합니다.
 
@@ -61,6 +64,6 @@ Pull request와 `main` push에서 다음 항목을 자동 확인합니다.
 | 표면 | 상태 | 검증 범위 |
 |---|---|---|
 | Streamlit | 실제 공개 배포 확인 | Chrome에서 화면 로드와 631개 메뉴 표시 확인 |
-| Next.js | Vercel 배포 준비 완료 | 로컬 프로덕션 빌드·Chrome 상호작용 확인, 공개 Vercel URL은 미확인 |
+| Next.js | Vercel Git 연결 준비 완료 | 로컬 프로덕션 빌드·390px/데스크톱 Chrome 상호작용 확인, 공개 Vercel URL은 미확인 |
 
-Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 Root Directory를 `vercel-app`으로 지정하고 `.env.example`의 카카오 키를 등록합니다.
+Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 GitHub 저장소를 Import한 뒤 Root Directory를 `vercel-app`으로 지정하고 `.env.example`의 카카오 키를 등록합니다. 배포 후 `/api/health`에서 앱과 키 설정 여부를 확인합니다.

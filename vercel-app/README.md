@@ -2,6 +2,8 @@
 
 기존 Streamlit MVP의 메뉴 데이터와 추천 기준을 재사용해 만든 Vercel용 웹 애플리케이션입니다.
 
+Apple Korea 홈페이지의 큰 타이포그래피, 넓은 여백, 반투명 내비게이션, 명확한 라이트/다크 표면 대비를 디자인 참고로 사용했습니다. Apple 로고·제품 이미지·카피는 사용하지 않습니다.
+
 ## 포함 기능
 
 - 알레르기, 브랜드, 칼로리, 단백질, 나트륨 필터
@@ -41,5 +43,7 @@ NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY=카카오_JavaScript_키
 3. Framework Preset은 `Next.js`를 선택합니다.
 4. Environment Variables에 `KAKAO_REST_API_KEY`, `NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY`를 등록합니다.
 5. 배포 후 생성된 도메인을 카카오 JavaScript SDK 도메인에도 추가합니다.
+
+배포 직후 `https://배포주소.vercel.app/api/health`에서 앱 응답과 카카오 키 설정 여부를 확인할 수 있습니다. 응답에 실제 키 값은 노출되지 않습니다.
 
 카카오 REST 키는 서버 API에서만 사용하고, JavaScript 키만 브라우저에 공개됩니다. `.env.local`은 Git에서 제외됩니다.

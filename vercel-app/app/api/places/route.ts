@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (query.length < 2) return NextResponse.json([]);
   const key = process.env.KAKAO_REST_API_KEY;
-  if (!key) return NextResponse.json({ error: "Kakao REST API key is missing" }, { status: 503 });
+  if (!key) return NextResponse.json({ error: "카카오 REST API 키가 설정되지 않았습니다. Vercel 환경변수를 확인해 주세요." }, { status: 503 });
 
   const results: Array<{ id: string; name: string; address: string; lat: number; lon: number }> = [];
   for (const endpoint of ["keyword", "address"]) {
