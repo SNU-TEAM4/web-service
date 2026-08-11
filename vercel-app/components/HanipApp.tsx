@@ -48,12 +48,10 @@ function menuSection(menu: Menu) {
   }
   if (menu.brand === "이디야") return category === "음료" ? "음료" : "베이커리·푸드";
   if (menu.brand === "스타벅스") {
-    if (/브루드 티|아이스 티|티 라떼/.test(category)) return "티";
-    if (/브루드 커피|콜드 브루|에스프레소|도피오|마키아또|모카|라떼|카푸치노|리스트레또/.test(category)) return "커피";
-    return "기타 음료";
+    return category || "기타 음료";
   }
   if (menu.brand === "배스킨라빈스") return "아이스크림";
-  if (menu.brand === "파리바게뜨") return "베이커리";
+  if (menu.brand === "파리바게뜨") return category || "기타";
   if (menu.brand === "버거킹") {
     if (/추가|시즈닝|패티|^슬라이스치즈|^롱베이컨/.test(name) || (/소스$/.test(name) && !/[+&]/.test(name))) return "소스·추가";
     if (/버거|와퍼|스태커/.test(name)) return "버거";
@@ -63,7 +61,7 @@ function menuSection(menu: Menu) {
   return category || "기타";
 }
 
-const MENU_SECTION_ORDER = ["샌드위치", "버거", "맥모닝", "치킨", "샐러드", "랩", "사이드", "사이드·디저트", "베이커리·푸드", "베이커리", "아이스크림", "커피", "티", "기타 음료", "음료", "소스·추가", "기타"];
+const MENU_SECTION_ORDER = ["빵", "케이크", "샌드위치·샐러드", "샌드위치", "버거", "맥모닝", "치킨", "샐러드", "랩", "사이드", "사이드·디저트", "선물", "디저트·스낵", "간편식", "베이커리·푸드", "아이스크림", "콜드 브루", "브루드 커피", "에스프레소", "프라푸치노", "블렌디드", "리프레셔", "피지오", "티", "기타 음료", "병음료", "음료", "소스·추가", "기타"];
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
@@ -270,8 +268,11 @@ function Range({ label, value, min, max, step, unit, onChange }: { label: string
 function CartPanel({ items, cart, setCart, totals, targetCalories, allergens }: { items: Array<{ menu: Menu; quantity: number }>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number; allergens: string[] }) {
   if (!items.length) return <section className="panel empty"><UtensilsCrossed size={36} /><h2>나의 한 끼가 비어 있어요</h2><p>추천 메뉴에서 버거, 음료, 사이드를 조합해보세요.</p></section>;
   const standards = [{ name: "칼로리", value: totals.calories, max: targetCalories, unit: "kcal" }, { name: "단백질", value: totals.protein, max: 55, unit: "g" }, { name: "포화지방", value: totals.fat, max: 15, unit: "g" }, { name: "당류", value: totals.carbs, max: 100, unit: "g" }, { name: "나트륨", value: totals.sodium, max: 2000, unit: "mg" }];
-  return <section className="panel"><div className="panel-head"><div><h2>나의 한 끼 영양 분석</h2><p>수량을 바꾸면 한 끼의 영양 합계가 즉시 계산돼요.</p></div><button className="danger" onClick={() => setCart({})}>전체 비우기</button></div>
-    <div className="cart-list">{items.map(({ menu, quantity }) => { const matched = allergens.filter((item) => menu.allergens.includes(item)); return <div className={`cart-item ${matched.length ? "allergy-warning" : ""}`} key={menu.id}><div><b>{menu.menu}</b><span>{menu.brand} · {menu.calories} kcal</span>{matched.length > 0 && <em>주의 · 선택 알레르기: {matched.join(", ")}</em>}</div><div className="quantity"><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.max(1, quantity - 1) }))}>−</button><b>{quantity}</b><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.min(10, quantity + 1) }))}>+</button></div><button className="icon-button" onClick={() => setCart((current) => { const next = { ...current }; delete next[menu.id]; return next; })}><Trash2 size={18} /></button></div>; })}</div>
+  const knownPrice = items.reduce((sum, { menu, quantity }) => sum + (menu.price || 0) * quantity, 0);
+  const unknownPriceCount = items.reduce((sum, { menu, quantity }) => sum + (menu.price ? 0 : quantity), 0);
+  return <section className="panel"><div className="panel-head"><div><h2>나의 한 끼 영양 분석</h2><p>수량을 바꾸면 한 끼의 영양과 확인된 가격 합계가 즉시 계산돼요.</p></div><button className="danger" onClick={() => setCart({})}>전체 비우기</button></div>
+    <div className="meal-price-total"><span>확인된 메뉴 가격 합계</span><b>{knownPrice.toLocaleString()}원</b><small>{unknownPriceCount ? `가격 미확인 메뉴 ${unknownPriceCount}개는 합계에서 제외됐어요.` : "모든 메뉴 가격이 합계에 포함됐어요."}</small></div>
+    <div className="cart-list">{items.map(({ menu, quantity }) => { const matched = allergens.filter((item) => menu.allergens.includes(item)); return <div className={`cart-item ${matched.length ? "allergy-warning" : ""}`} key={menu.id}><div><b>{menu.menu}</b><span>{menu.brand} · {menu.calories} kcal · {menu.price ? `${(menu.price * quantity).toLocaleString()}원` : "가격 미확인"}</span>{matched.length > 0 && <em>주의 · 선택 알레르기: {matched.join(", ")}</em>}</div><div className="quantity"><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.max(1, quantity - 1) }))}>−</button><b>{quantity}</b><button onClick={() => setCart((current) => ({ ...current, [menu.id]: Math.min(10, quantity + 1) }))}>+</button></div><button className="icon-button" onClick={() => setCart((current) => { const next = { ...current }; delete next[menu.id]; return next; })}><Trash2 size={18} /></button></div>; })}</div>
     <div className="nutrition-summary">{standards.map((item) => <div key={item.name}><span>{item.name}<b>{item.value.toFixed(item.unit === "mg" || item.unit === "kcal" ? 0 : 1)}{item.unit}</b></span><div className="progress"><i className={item.value > item.max ? "over" : ""} style={{ width: `${Math.min(100, item.value / item.max * 100)}%` }} /></div><small>{item.max}{item.unit} 기준 · {(item.value / item.max * 100).toFixed(0)}%</small></div>)}</div>
   </section>;
 }

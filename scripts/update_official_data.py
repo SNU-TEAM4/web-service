@@ -154,12 +154,17 @@ def starbucks() -> list[dict]:
             allergy, detail_url, known = allergies.get(row["product_NM"].strip(), ("", "", False))
             result.append({
                 "brand": "스타벅스", "menu": row["product_NM"].strip(),
-                "category": row.get("cate_NAME") or category,
+                # JSON 파일 자체가 공식 대분류별로 나뉘므로 세부 이름을 재추측하지 않는다.
+                "category": category,
                 "calories": number(row["kcal"]), "protein": number(row["protein"]),
                 "fat": number(row["sat_FAT"]), "carbs": number(row["sugars"]),
                 "sodium": number(row["sodium"]), "allergens": normalize_allergens(allergy),
                 "source_url": detail_url or "https://www.starbucks.co.kr/menu/drink_list.do",
                 "source_date": date.today().isoformat(), "verified": True,
+                "image_url": requests.compat.urljoin(row.get("img_UPLOAD_PATH") or "https://www.starbucks.co.kr", row.get("file_PATH", "")),
+                "description": re.sub(r"\s+", " ", BeautifulSoup(row.get("content") or "", "lxml").get_text(" ", strip=True)).strip(),
+                "media_source_url": detail_url or "https://www.starbucks.co.kr/menu/drink_list.do",
+                "media_checked_at": date.today().isoformat(),
                 # 상세 페이지에 ALLERGY 필드가 존재하면 빈 값도 공식 '표시 없음'으로 구분한다.
                 "allergen_known": known,
             })
@@ -449,5 +454,23 @@ if __name__ == "__main__":
     frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway()
                          + ediya() + baskin_robbins() + paris_baguette())
     frame = frame.dropna(subset=["calories", "protein", "sodium"]).drop_duplicates(["brand", "menu"])
+    # 사진·설명·가격 보강값은 영양정보 갱신 때 지우지 않는다. 브랜드/메뉴 원문을 안정 키로 사용한다.
+    if OUT.exists():
+        previous = pd.read_csv(OUT).fillna("")
+        preserved = ["image_url", "description", "media_source_url", "media_checked_at",
+                     "price", "price_note", "price_source_url", "price_checked_at"]
+        old = previous[["brand", "menu"] + [column for column in preserved if column in previous]].drop_duplicates(["brand", "menu"])
+        frame = frame.merge(old, on=["brand", "menu"], how="left", suffixes=("", "_old"))
+        for column in preserved:
+            old_column = f"{column}_old"
+            if old_column not in frame:
+                continue
+            if column not in frame:
+                frame[column] = frame[old_column]
+            else:
+                frame[column] = frame[column].astype(object)
+                empty = frame[column].isna() | frame[column].astype(str).eq("")
+                frame.loc[empty, column] = frame.loc[empty, old_column]
+            frame = frame.drop(columns=[old_column])
     frame.to_csv(OUT, index=False, encoding="utf-8")
     print(f"saved {len(frame)} verified menu rows -> {OUT}")
