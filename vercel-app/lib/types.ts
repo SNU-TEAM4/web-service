@@ -15,6 +15,8 @@ export type Menu = {
   description?: string;
   price?: number;
   priceNote?: string;
+  priceSourceUrl?: string;
+  priceCheckedAt?: string;
   mediaSourceUrl?: string;
   mediaCheckedAt?: string;
 };
