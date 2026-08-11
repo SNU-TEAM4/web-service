@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Papa from "papaparse";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Check, ChevronDown, ChevronUp, ExternalLink, LocateFixed, MapPin, Menu as MenuIcon, RefreshCw, Search, ShoppingCart, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_LOGOS } from "@/lib/brands";
@@ -22,6 +22,12 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: "about", label: "데이터 안내" },
 ];
 const stableMenuId = (brand: string, menu: string) => `${brand}::${menu}`;
+const median = (values: number[]) => {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
 
 async function readJsonResponse<T>(response: Response, fallback: string): Promise<T> {
   const payload = await response.json().catch(() => null) as { error?: string } | T | null;
@@ -241,7 +247,7 @@ export default function HanipApp() {
         {loadStatus === "error" && <div className="status-panel error" role="alert"><AlertCircle /><div><b>메뉴 데이터를 불러오지 못했습니다.</b><span>{loadError}</span></div><button onClick={() => window.location.reload()}>다시 시도</button></div>}
         {loadStatus === "ready" && <section className="source-stage" aria-label="공식 데이터 원칙">
           <div><span className="source-stage-eyebrow">OFFICIAL SOURCE FIRST</span><h2>숫자보다 먼저,<br />출처를 확인합니다.</h2><p>메뉴별 공식 페이지와 공개 자료를 연결하고, 알레르기 표기가 확인된 정보만 구분해 보여줍니다.</p></div>
-          <div className="source-stage-stats"><div><b>{brandOptions.length}</b><span>공식 브랜드</span></div><div><b>{menus.filter((menu) => menu.allergenKnown).length}</b><span>알레르기 확인 메뉴</span></div><div><b>{quality?.status === "pass" ? "PASS" : "확인 중"}</b><span>{quality?.mirror.identical ? "원천·배포 CSV 일치" : "자동 품질 검증"}</span></div></div>
+          <div className="source-stage-stats"><div><b>{brandOptions.length}</b><span>공식 브랜드</span></div><div><b>{menus.filter((menu) => menu.allergenKnown).length}</b><span>알레르기 확인 메뉴</span></div><div><b>{quality?.status === "pass" ? "스키마 PASS" : "확인 중"}</b><span>{quality?.mirror.identical ? "원천·배포 CSV 일치" : "자동 품질 검증"}</span></div></div>
         </section>}
         <div className="metrics"><Metric label="추천 가능한 메뉴" value={`${filtered.length}개`} note={`전체 ${menus.length}개 메뉴`} /><Metric label="선택 브랜드" value={`${brands.length}개`} note={`총 ${brandOptions.length}개 브랜드`} /><Metric label="선택 알레르기" value={`${allergens.length}개`} note={allergens.length ? "조건 적용 중" : "선택 없음"} /><Metric label="장바구니" value={`${cartCount}개`} note={`${totals.calories.toFixed(0)} kcal`} /></div>
         <div className="condition-summary" aria-label="현재 적용 조건"><span>현재 조건</span>{activeConditions.map((item) => <b key={item}>{item}</b>)}<button onClick={resetFilters}>초기화</button></div>
@@ -303,8 +309,8 @@ function ComparePanel({ menus }: { menus: Menu[] }) {
   const configs: Record<CompareMetric, { label: string; unit: string; digits: number; description: string }> = {
     count: { label: "조건 통과 메뉴", unit: "개", digits: 0, description: "현재 알레르기·영양 조건을 통과한 메뉴 수" },
     coverage: { label: "알레르기 확인률", unit: "%", digits: 1, description: "현재 결과 중 공식 알레르기 표기를 확인한 행의 비율" },
-    protein: { label: "평균 단백질", unit: "g", digits: 1, description: "현재 결과 메뉴의 1개 제품당 단백질 단순 평균" },
-    sodium: { label: "평균 나트륨", unit: "mg", digits: 0, description: "현재 결과 메뉴의 1개 제품당 나트륨 단순 평균" },
+    protein: { label: "단백질 중앙값", unit: "g", digits: 1, description: "현재 결과 메뉴의 브랜드별 단백질 중앙값" },
+    sodium: { label: "나트륨 중앙값", unit: "mg", digits: 0, description: "현재 결과 메뉴의 브랜드별 나트륨 중앙값" },
   };
   const config = configs[metric];
   const grouped = Array.from(new Set(menus.map((menu) => menu.brand))).map((brand) => {
@@ -313,13 +319,14 @@ function ComparePanel({ menus }: { menus: Menu[] }) {
     const values: Record<CompareMetric, number> = {
       count: rows.length,
       coverage: rows.length ? known / rows.length * 100 : 0,
-      protein: rows.length ? rows.reduce((sum, menu) => sum + menu.protein, 0) / rows.length : 0,
-      sodium: rows.length ? rows.reduce((sum, menu) => sum + menu.sodium, 0) / rows.length : 0,
+      protein: median(rows.map((menu) => menu.protein)),
+      sodium: median(rows.map((menu) => menu.sodium)),
     };
     return { brand, rows: rows.length, known, value: Number(values[metric].toFixed(config.digits)) };
   }).sort((a, b) => b.value - a.value || a.brand.localeCompare(b.brand, "ko"));
   return <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" className="panel compare-panel">
-    <div className="panel-head"><div><span className="section-kicker">INTERACTIVE COMPARISON</span><h2>브랜드를 같은 기준으로 비교합니다.</h2><p>{config.description}. 현재 필터 결과 {menus.length}개를 기준으로 계산합니다.</p></div></div>
+    <div className="panel-head"><div><span className="section-kicker">INTERACTIVE COMPARISON</span><h2>같은 계산 규칙과 표본으로 비교합니다.</h2><p>{config.description}. 현재 필터 결과 {menus.length}개를 기준으로 계산합니다.</p></div></div>
+    <p className="comparison-caveat">제품군과 제공량이 브랜드마다 다르므로 영양 수치를 브랜드의 절대적 우열로 해석하지 마세요. 중앙값과 표본 수를 함께 확인하세요.</p>
     <div className="metric-switch" aria-label="비교 지표">{(Object.keys(configs) as CompareMetric[]).map((key) => <button key={key} aria-pressed={metric === key} className={metric === key ? "active" : ""} onClick={() => setMetric(key)}>{configs[key].label}</button>)}</div>
     {grouped.length ? <><figure className="chart-card" aria-labelledby="compare-chart-title"><figcaption id="compare-chart-title"><b>{config.label}</b><span>단위 {config.unit} · 0 기준 · 값 내림차순</span></figcaption><div className="chart"><ResponsiveContainer width="100%" height={Math.max(360, grouped.length * 46)}><BarChart data={grouped} layout="vertical" margin={{ left: 18, right: 34 }}><CartesianGrid stroke="#e2e2e7" horizontal={false} /><XAxis type="number" domain={[0, "auto"]} allowDecimals={metric !== "count" && metric !== "sodium"} tickLine={false} axisLine={false} /><YAxis type="category" dataKey="brand" width={92} tickLine={false} axisLine={false} /><Tooltip cursor={{ fill: "rgba(0,113,227,.05)" }} formatter={(value) => [`${Number(value).toLocaleString("ko-KR", { maximumFractionDigits: config.digits })}${config.unit}`, config.label]} /><Bar dataKey="value" name={config.label} fill="#0071e3" radius={[0, 7, 7, 0]} /></BarChart></ResponsiveContainer></div></figure><div className="table-scroll"><table className="data-table compare-table"><caption>차트의 정확한 값과 표본</caption><thead><tr><th>브랜드</th><th>{config.label}</th><th>표본</th><th>알레르기 확인</th></tr></thead><tbody>{grouped.map((row) => <tr key={row.brand}><td>{row.brand}</td><td>{row.value.toLocaleString("ko-KR", { maximumFractionDigits: config.digits })}{config.unit}</td><td>{row.rows}개</td><td>{row.known}/{row.rows}</td></tr>)}</tbody></table></div></> : <div className="empty"><h3>비교할 메뉴가 없습니다.</h3><p>추천 메뉴 탭에서 조건을 초기화하거나 범위를 넓혀보세요.</p></div>}
   </section>;
@@ -337,8 +344,8 @@ function AboutPanel({ menus, quality, qualityError }: { menus: Menu[]; quality: 
     {qualityError && <div className="inline-error" role="status"><AlertCircle size={18} /> 메뉴 탐색은 사용할 수 있지만 품질 요약을 불러오지 못했습니다: {qualityError}</div>}
     <div className="evidence-grid">
       <article><span>01 · 데이터·주제</span><b>{summary ? `${summary.rows}행 · ${summary.brands}브랜드` : `${menus.length}행`}</b><p>공식 API·HTML·공식 이미지에서 수집하고 출처 URL, 기준일, 수집법을 행 단위로 보존했습니다.</p><small>{summary ? `검증 ${summary.verified_rows}/${summary.rows} · 오류 ${summary.errors} · 중복 ${summary.duplicate_brand_menu}` : "품질 보고서 확인 중"}</small></article>
-      <article><span>02 · 시각화 완성도</span><b>4개 비교 지표</b><p>메뉴 수·알레르기 확인률·평균 단백질·평균 나트륨을 한 단위씩 바꿔 보며 비교합니다.</p><small>0 기준 · 표본 수 · 정확값 표 제공</small></article>
-      <article><span>03 · 웹 구현·배포</span><b>Vercel 공개 배포</b><p>Next.js 반응형 UI, 오류·빈 상태, 키보드 탭 이동, 안정적인 장바구니 저장을 구현했습니다.</p><small><a href="#top">현재 배포 화면 확인</a> · 카카오 API 연동</small></article>
+      <article><span>02 · 시각화 완성도</span><b>4개 비교 지표</b><p>메뉴 수·알레르기 확인률·단백질 중앙값·나트륨 중앙값을 한 단위씩 바꿔 보며 비교합니다.</p><small>0 기준 · 표본 수 · 정확값 표 · 해석 한계 제공</small></article>
+      <article><span>03 · 웹 구현·배포</span><b>Vercel Preview 배포</b><p>Next.js 반응형 UI, 오류·빈 상태, 키보드 탭 이동, 안정적인 장바구니 저장을 구현했습니다.</p><small>Production 반영은 PR 병합 뒤 · 카카오 상태 별도 공개</small></article>
       <article><span>04 · AI 활용·발표</span><b>4단계 검증 루프</b><p>AI가 구조 분석·수집기 보완·코드 구현·검증을 보조하고, 공식 원문과 Chrome 결과를 사람이 확인했습니다.</p><small>분석 → 대안 → 적용 → 브라우저 QA</small></article>
     </div>
     <div className="notice"><b>안전 안내</b><p>공식 알레르기 정보가 미표기된 메뉴는 알레르기 필터를 선택하면 추천에서 제외합니다. ‘미표기’를 ‘없음’으로 해석하지 않습니다. 심한 알레르기가 있다면 주문 전 공식 원문과 매장에 다시 확인하세요.</p></div>
@@ -349,14 +356,86 @@ function AboutPanel({ menus, quality, qualityError }: { menus: Menu[]; quality: 
   </section>;
 }
 
+type KakaoIntegration = { status: "checking" | "ready" | "incomplete" | "error"; rest: boolean; javascript: boolean; message: string };
+
 function MapPanel({ brands }: { brands: string[] }) {
-  const [mode, setMode] = useState<"search" | "gps">("search"); const [term, setTerm] = useState(""); const [places, setPlaces] = useState<Place[]>([]); const [center, setCenter] = useState<Place | null>(null); const [stores, setStores] = useState<Store[]>([]); const [radius, setRadius] = useState(3); const [loading, setLoading] = useState(false); const [mapError, setMapError] = useState("");
-  useEffect(() => { if (term.trim().length < 2) return; const controller = new AbortController(); const timer = window.setTimeout(() => fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((response) => readJsonResponse<Place[]>(response, "장소 검색에 실패했습니다.")).then((data) => { setPlaces(Array.isArray(data) ? data : []); setMapError(""); }).catch((error) => { if (!controller.signal.aborted) setMapError(error instanceof Error ? error.message : "장소 검색에 실패했습니다."); }), 400); return () => { window.clearTimeout(timer); controller.abort(); }; }, [term]);
-  const findStores = async (place: Place) => { setCenter(place); setLoading(true); setMapError(""); try { const response = await fetch(`/api/stores?lat=${place.lat}&lon=${place.lon}&radius=${radius * 1000}&brands=${encodeURIComponent(brands.join(","))}`); const data = await readJsonResponse<Store[]>(response, "주변 매장 검색에 실패했습니다."); setStores(Array.isArray(data) ? data : []); } catch (error) { setStores([]); setMapError(error instanceof Error ? error.message : "주변 매장 검색에 실패했습니다."); } finally { setLoading(false); } };
-  const locate = () => navigator.geolocation.getCurrentPosition((position) => findStores({ id: "gps", name: "현재 위치", address: `정확도 약 ${Math.round(position.coords.accuracy)}m`, lat: position.coords.latitude, lon: position.coords.longitude }), () => setMapError("브라우저 위치 권한이 필요합니다. 장소 검색을 이용하거나 권한을 허용해 주세요."), { enableHighAccuracy: true });
-  return <section id="panel-map" role="tabpanel" aria-labelledby="tab-map" className="panel"><div className="panel-head map-panel-head"><div><h2>내 주변 매장</h2><p>카카오맵에서 선택한 브랜드의 매장을 찾아요.</p></div><label className="radius-slider"><span>검색 반경 <b>{radius} km</b></span><input aria-label="매장 검색 반경" type="range" min="1" max="10" step="1" value={radius} onChange={(e) => setRadius(Number(e.target.value))} /><small><i>1km</i><i>10km</i></small></label></div>
-    <div className="mode-switch"><button aria-pressed={mode === "search"} className={mode === "search" ? "active" : ""} onClick={() => setMode("search")}><Search size={17} />장소 검색</button><button aria-pressed={mode === "gps"} className={mode === "gps" ? "active" : ""} onClick={() => { setMode("gps"); locate(); }}><LocateFixed size={17} />현재 위치</button></div>
-    {mode === "search" && <div className="location-search"><label className="search"><Search size={18} /><input aria-label="장소 검색" value={term} onChange={(e) => { const value = e.target.value; setTerm(value); if (value.trim().length < 2) { setPlaces([]); setMapError(""); } }} placeholder="성수역, 서울시청처럼 입력하세요" /></label>{places.length > 0 && <div className="suggestions">{places.map((place) => <button key={place.id} onClick={() => { setTerm(place.name); setPlaces([]); findStores(place); }}><MapPin size={17} /><span><b>{place.name}</b><small>{place.address}</small></span></button>)}</div>}</div>}
-    {mapError && <div className="inline-error" role="alert"><AlertCircle size={18} /> {mapError}</div>}{loading && <div className="map-empty">주변 매장을 찾고 있어요…</div>}{center && !loading && !mapError && <><KakaoMap center={center} radiusKm={radius} stores={stores} /><div className="store-summary"><b>{center.name}</b> 기준 {stores.length}개 매장</div>{!stores.length && <div className="empty compact-empty">선택한 반경에서 확인된 매장이 없습니다. 반경이나 브랜드를 바꿔보세요.</div>}<div className="store-list">{stores.slice(0, 20).map((store) => { const logo = BRAND_LOGOS[store.brand]; return <a href={store.placeUrl || "#"} key={store.id}>{logo ? <Image src={logo} alt="" width={34} height={34} /> : <span className="store-logo-fallback" aria-hidden="true">{store.brand.slice(0, 1)}</span>}<span><b>{store.name}</b><small>{store.distance.toFixed(2)}km · 도보 약 {Math.ceil(store.distance * 1.25 / 4.5 * 60)}분 · {store.address}</small></span></a>; })}</div></>}
+  const [mode, setMode] = useState<"search" | "gps">("search");
+  const [term, setTerm] = useState("");
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [center, setCenter] = useState<Place | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [radius, setRadius] = useState(3);
+  const [searchedRadius, setSearchedRadius] = useState<number | null>(null);
+  const [searchedBrands, setSearchedBrands] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const [integration, setIntegration] = useState<KakaoIntegration>({ status: "checking", rest: false, javascript: false, message: "카카오 연결 상태를 확인하고 있어요…" });
+  const brandSignature = [...brands].sort((a, b) => a.localeCompare(b, "ko")).join(",");
+
+  const readIntegration = useCallback(async (signal?: AbortSignal): Promise<KakaoIntegration> => {
+    try {
+      const response = await fetch("/api/health", { cache: "no-store", signal });
+      const health = await readJsonResponse<{ kakaoRestConfigured: boolean; kakaoJavascriptConfigured: boolean }>(response, "배포 상태 확인에 실패했습니다.");
+      const missing = [!health.kakaoRestConfigured && "REST API 키", !health.kakaoJavascriptConfigured && "JavaScript 키"].filter(Boolean);
+      return {
+        status: missing.length ? "incomplete" : "ready",
+        rest: health.kakaoRestConfigured,
+        javascript: health.kakaoJavascriptConfigured,
+        message: missing.length ? `배포 설정 필요: ${missing.join(", ")}` : "카카오 장소 검색과 지도 렌더링이 모두 준비됐습니다.",
+      };
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      return { status: "error", rest: true, javascript: true, message: error instanceof Error ? error.message : "배포 상태를 확인하지 못했습니다." };
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void readIntegration(controller.signal).then((next) => { if (!controller.signal.aborted) setIntegration(next); }).catch(() => undefined);
+    return () => controller.abort();
+  }, [readIntegration]);
+
+  const restUnavailable = integration.status !== "error" && !integration.rest;
+  useEffect(() => {
+    if (term.trim().length < 2 || restUnavailable || !brands.length) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal })
+      .then((response) => readJsonResponse<Place[]>(response, "장소 검색에 실패했습니다."))
+      .then((data) => { setPlaces(Array.isArray(data) ? data : []); setMapError(""); })
+      .catch((error) => { if (!controller.signal.aborted) { setPlaces([]); setMapError(error instanceof Error ? error.message : "장소 검색에 실패했습니다."); } }), 400);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [term, restUnavailable, brands.length]);
+
+  const findStores = async (place: Place) => {
+    if (!brands.length) { setMapError("주변 매장을 찾을 브랜드를 한 개 이상 선택해 주세요."); return; }
+    if (restUnavailable) { setMapError("카카오 REST API 키가 없어 장소·매장 검색을 시작할 수 없습니다."); return; }
+    setLoading(true); setMapError("");
+    try {
+      const response = await fetch(`/api/stores?lat=${place.lat}&lon=${place.lon}&radius=${radius * 1000}&brands=${encodeURIComponent(brands.join(","))}`);
+      const data = await readJsonResponse<Store[]>(response, "주변 매장 검색에 실패했습니다.");
+      setCenter(place); setStores(Array.isArray(data) ? data : []); setSearchedRadius(radius); setSearchedBrands(brandSignature);
+    } catch (error) {
+      setMapError(error instanceof Error ? error.message : "주변 매장 검색에 실패했습니다.");
+    } finally { setLoading(false); }
+  };
+  const locate = () => {
+    if (!brands.length) { setMapError("현재 위치를 검색하기 전에 브랜드를 한 개 이상 선택해 주세요."); return; }
+    navigator.geolocation.getCurrentPosition(
+      (position) => void findStores({ id: "gps", name: "현재 위치", address: `정확도 약 ${Math.round(position.coords.accuracy)}m`, lat: position.coords.latitude, lon: position.coords.longitude }),
+      () => setMapError("브라우저 위치 권한이 필요합니다. 장소 검색을 이용하거나 권한을 허용해 주세요."),
+      { enableHighAccuracy: true },
+    );
+  };
+  const resultsStale = Boolean(center && (searchedRadius !== radius || searchedBrands !== brandSignature));
+  const controlsDisabled = integration.status === "checking" || restUnavailable || !brands.length;
+
+  return <section id="panel-map" role="tabpanel" aria-labelledby="tab-map" className="panel"><div className="panel-head map-panel-head"><div><h2>내 주변 매장</h2><p>카카오맵에서 선택한 {brands.length}개 브랜드의 매장을 찾아요.</p></div><label className="radius-slider"><span>검색 반경 <b>{radius} km</b></span><input aria-label="매장 검색 반경" type="range" min="1" max="10" step="1" value={radius} onChange={(e) => setRadius(Number(e.target.value))} /><small><i>1km</i><i>10km</i></small></label></div>
+    <div className={`map-integration-status ${integration.status}`} role={integration.status === "ready" ? "status" : "alert"}><span aria-hidden="true">{integration.status === "ready" ? "✓" : "!"}</span><div><b>{integration.status === "ready" ? "카카오 지도 연결 준비 완료" : "카카오 지도 연결 상태"}</b><small>{integration.message}</small></div>{integration.status === "error" && <button onClick={() => { setIntegration((current) => ({ ...current, status: "checking", message: "카카오 연결 상태를 확인하고 있어요…" })); void readIntegration().then(setIntegration); }}>다시 확인</button>}</div>
+    {!brands.length && <div className="inline-error" role="alert"><AlertCircle size={18} /> 내 조건에서 주변 매장을 찾을 브랜드를 한 개 이상 선택해 주세요.</div>}
+    <div className="mode-switch"><button disabled={controlsDisabled} aria-pressed={mode === "search"} className={mode === "search" ? "active" : ""} onClick={() => setMode("search")}><Search size={17} />장소 검색</button><button disabled={controlsDisabled} aria-pressed={mode === "gps"} className={mode === "gps" ? "active" : ""} onClick={() => { setMode("gps"); locate(); }}><LocateFixed size={17} />현재 위치</button></div>
+    {mode === "search" && <div className="location-search"><label className="search"><Search size={18} /><input disabled={controlsDisabled} aria-label="장소 검색" value={term} onChange={(e) => { const value = e.target.value; setTerm(value); if (value.trim().length < 2) { setPlaces([]); setMapError(""); } }} placeholder={restUnavailable ? "카카오 REST API 키 설정이 필요합니다" : "성수역, 서울시청처럼 입력하세요"} /></label>{places.length > 0 && <div className="suggestions" aria-label="장소 검색 결과">{places.map((place) => <button key={place.id} onClick={() => { setTerm(place.name); setPlaces([]); void findStores(place); }}><MapPin size={17} /><span><b>{place.name}</b><small>{place.address}</small></span></button>)}</div>}</div>}
+    {mapError && <div className="inline-error" role="alert"><AlertCircle size={18} /> {mapError}</div>}
+    {loading && <div className="map-loading" role="status">주변 매장을 찾고 있어요…</div>}
+    {center && <><KakaoMap center={center} radiusKm={searchedRadius ?? radius} stores={stores} /><div className="store-summary"><b>{center.name}</b> · {searchedRadius ?? radius}km 기준 {stores.length}개 매장</div>{resultsStale && <div className="map-stale" role="status"><span>반경 또는 브랜드 조건이 바뀌었습니다. 현재 지도는 이전 검색 결과입니다.</span><button onClick={() => void findStores(center)} disabled={loading}>변경 조건으로 다시 검색</button></div>}{!stores.length && !loading && <div className="empty compact-empty">선택한 반경에서 확인된 매장이 없습니다. 반경이나 브랜드를 바꿔보세요.</div>}<div className="store-list">{stores.slice(0, 20).map((store) => { const logo = BRAND_LOGOS[store.brand]; const content = <>{logo ? <Image src={logo} alt="" width={34} height={34} /> : <span className="store-logo-fallback" aria-hidden="true">{store.brand.slice(0, 1)}</span>}<span><b>{store.name}</b><small>{store.distance.toFixed(2)}km · 도보 약 {Math.ceil(store.distance * 1.25 / 4.5 * 60)}분 · {store.address}</small></span></>; return store.placeUrl ? <a href={store.placeUrl} key={store.id}>{content}</a> : <div className="store-list-item" key={store.id}>{content}</div>; })}</div></>}
   </section>;
 }
