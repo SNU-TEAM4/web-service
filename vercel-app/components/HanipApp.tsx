@@ -92,6 +92,8 @@ export default function HanipApp() {
     (groups[menu.brand] ||= []).push(menu);
     return groups;
   }, {})), [filtered]);
+  const activeBrand = Object.keys(openBrands).find((brand) => openBrands[brand]) || "";
+  const activeItems = grouped.find(([brand]) => brand === activeBrand)?.[1] || [];
   const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
     const menu = menus[Number(id)]; return menu ? [{ menu, quantity }] : [];
   }), [cart, menus]);
@@ -163,17 +165,12 @@ export default function HanipApp() {
 
         {tab === "menus" && <Reveal><section className="panel">
           <div className="panel-head"><div><h2>조건에 맞는 메뉴</h2><p>브랜드를 누르면 메뉴를 펼칠 수 있어요.</p></div><label className="search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="브랜드 또는 메뉴 검색" /></label></div>
-          <div className="brand-folders">{grouped.map(([brand, items]) => { if (!items) return null; const safeCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length : items.length; const dangerCount = allergens.length ? items.filter((menu) => allergens.some((item) => menu.allergens.includes(item))).length : 0; return <div className="brand-folder" key={brand}>
-            <button className="brand-folder-head" onClick={() => setOpenBrands((current) => ({ ...current, [brand]: !current[brand] }))}>
-              <Image src={BRAND_LOGOS[brand]} alt={brand} width={86} height={86} /><span><b>{brand}</b><small><strong>안전 추천 {safeCount}개</strong>{allergens.length > 0 && dangerCount > 0 && <em>위험 {dangerCount}개</em>}</small></span>{openBrands[brand] ? <ChevronUp /> : <ChevronDown />}
-            </button>
-            {openBrands[brand] && <div className="menu-grid">{items.map((menu) => { const danger = allergens.length ? allergens.some((item) => menu.allergens.includes(item)) : menu.allergens.length > 0; return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
-              <span className="category">{menu.category}</span><h3>{menu.menu}</h3>
-              <p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p>
-              <div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div>
-              <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
-            </article>; })}</div>}
-          </div>; })}</div>
+          <div className="brand-folders">{grouped.map(([brand, items]) => { if (!items) return null; const safeCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length : items.length; const dangerCount = allergens.length ? items.filter((menu) => allergens.some((item) => menu.allergens.includes(item))).length : 0; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""}`} key={brand} onClick={() => setOpenBrands(activeBrand === brand ? {} : { [brand]: true })}>
+            <Image src={BRAND_LOGOS[brand]} alt={brand} width={78} height={78} /><span><b>{brand}</b><small><strong>안전 추천 {safeCount}개</strong>{allergens.length > 0 && dangerCount > 0 && <em>위험 {dangerCount}개</em>}</small></span>{activeBrand === brand ? <ChevronUp /> : <ChevronDown />}
+          </button>; })}</div>
+          {activeBrand && <div className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-grid">{activeItems.map((menu) => { const danger = allergens.length ? allergens.some((item) => menu.allergens.includes(item)) : menu.allergens.length > 0; return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
+            <span className="category">{menu.category}</span><h3>{menu.menu}</h3><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
+          </article>; })}</div></div>}
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}
 
