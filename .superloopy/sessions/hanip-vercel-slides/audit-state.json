@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "sessionId": "hanip-vercel-slides",
+  "auditsAccepted": 0,
+  "updatedAt": "2026-08-11T06:53:40.584Z",
+  "criteria": [
+    {
+      "criterion": "G001/C001",
+      "scenario": "Happy path works from the real user-facing surface.",
+      "inputHash": "9ee121f200702fa1291619ed1cfac5e4207406d78452948af0ea698c0c4eebf4",
+      "sourceHash": "afb369cd390744e210bdab5ab2d6595e3b5079bca493c0eec6eba51abeb645b4",
+      "verdict": null,
+      "failCount": 0,
+      "auditedAt": "2026-08-11T06:53:40.583Z",
+      "command": null,
+      "rerunStatus": "manual-recheck",
+      "rerunArtifact": ".superloopy/sessions/hanip-vercel-slides/evidence/G001-C001.txt",
+      "rerunArtifactHash": "afb369cd390744e210bdab5ab2d6595e3b5079bca493c0eec6eba51abeb645b4",
+      "floor": "pass",
+      "verdictArtifact": null,
+      "verdictHash": null
+    },
+    {
+      "criterion": "G001/C002",
+      "scenario": "Riskiest edge or failure path is handled.",
+      "inputHash": "8232eb45ba54bec10a3a81e5532986980d167366910b90bd941591c570d8f362",
+      "sourceHash": "60ae7376a9e26c58bc5065a941e7ab4a2e31b51096c272d414b6c00bb8ca45b0",
+      "verdict": null,
+      "failCount": 0,
+      "auditedAt": "2026-08-11T06:53:40.584Z",
+      "command": null,
+      "rerunStatus": "manual-recheck",
+      "rerunArtifact": ".superloopy/sessions/hanip-vercel-slides/evidence/G001-C002.txt",
+      "rerunArtifactHash": "60ae7376a9e26c58bc5065a941e7ab4a2e31b51096c272d414b6c00bb8ca45b0",
+      "floor": "pass",
+      "verdictArtifact": null,
+      "verdictHash": null
+    }
+  ]
+}

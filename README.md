@@ -1,42 +1,70 @@
 # 한입안심
 
-## Next.js + Vercel 버전
+프랜차이즈 공식 영양·알레르기 자료를 수집해 사용자의 알레르기 및 영양 조건에 맞는 메뉴를 탐색하는 웹 서비스입니다.
 
-반응형 디자인과 카카오맵을 브라우저에서 직접 처리하는 Next.js 버전은 [`vercel-app`](./vercel-app) 폴더에 있습니다. 기존 Streamlit 앱은 비교 및 예비 배포용으로 그대로 유지합니다.
+- 실제 배포: [Streamlit Community Cloud](https://hanip-ansim.streamlit.app/)
+- 반응형 웹: [`vercel-app`](./vercel-app) — Next.js 16 / Vercel용
+- 4단계 평가·개선 결과: [`docs/PROJECT_EVALUATION.md`](./docs/PROJECT_EVALUATION.md)
+- 발표 가이드: [`docs/PRESENTATION_GUIDE.md`](./docs/PRESENTATION_GUIDE.md)
+- 데이터 사전·수집 정책: [`data/README.md`](./data/README.md)
+- 재현 가능한 분석: [`analysis/data_quality_audit.ipynb`](./analysis/data_quality_audit.ipynb)
+- 초기 4단계 휴대형 HTML 보고서(631행 시점): [`reports/project-evaluation.html`](./reports/project-evaluation.html)
+- Apple 참고 디자인 기록: [`docs/design-references/apple.com/DESIGN_REFERENCE.md`](./docs/design-references/apple.com/DESIGN_REFERENCE.md)
+- Vercel UI 컴포넌트 사양: [`docs/research/hanip-ansim.streamlit.app`](./docs/research/hanip-ansim.streamlit.app)
 
-프랜차이즈 메뉴의 알레르기 유발 성분과 영양정보를 한곳에서 탐색하는 Streamlit MVP입니다.
+## 현재 범위
+
+- 11개 브랜드, 공식 자료 기반 691개 메뉴(BBQ치킨 51개 가격·이미지·알레르기 엄격 매핑 포함)
+- 알레르기 15종 필터와 정보 미표기 행의 보수적 제외
+- 칼로리·단백질·나트륨 조건, 데이터 순서가 바뀌어도 유지되는 장바구니 영양 합계
+- 영양 프리셋·실시간 메뉴 스포트라이트, 4개 브랜드 지표와 메뉴별 칼로리×단백질 분포를 오가는 인터랙티브 비교
+- 메뉴별 공식 출처·기준일, 브랜드별 알레르기 확인율, CI 품질 요약 표시
+- 키 없이도 보이는 OpenStreetMap 위치 미리보기와 GPS, 카카오 키 연결 시 장소·주변 매장 탐색
+- Apple Korea의 타이포·여백·표면 대비를 참고한 Vercel UI(Apple 자산·카피 미사용)
+
+의학적 처방 서비스가 아닙니다. 제품 구성과 교차접촉 가능성은 바뀔 수 있으므로 심한 알레르기가 있다면 주문 전에 공식 원문과 매장에 재확인해야 합니다.
 
 ## 실행
 
+Python 3.10 이상이 필요합니다.
+
 ```bash
 python -m pip install -r requirements.txt
+python scripts/validate_menu_data.py
 streamlit run app.py
 ```
 
-## 주요 기능
+Next.js 버전:
 
-- 사용자 알레르기 성분 기준 메뉴 제외
-- 칼로리·단백질·나트륨 조건 필터
-- 브랜드별 추천 가능 메뉴 수 비교
-- 메뉴별 영양성분 레이더 차트
-- 필터 결과 CSV 다운로드
+```bash
+cd vercel-app
+npm ci
+npm run lint
+npm run build
+npm run dev
+```
 
-## 데이터 주의사항
-
-`data/menus.csv`는 맥도날드, 롯데리아, 버거킹, 스타벅스, KFC, 써브웨이, 이디야,
-배스킨라빈스, 파리바게뜨의 공식 공개 자료에서 정제했습니다. 공식 페이지에서 영양·알레르기
-정보가 함께 확인되는 메뉴만 포함하며, 다음 명령으로 갱신할 수 있습니다.
-
-맞춤 프로필에서는 목표 체중·기간·식사 유형·영양 우선순위를 설정해 개인화된 추천 점수와 추천 이유를 확인할 수 있습니다.
+## 공식 데이터 갱신
 
 ```bash
 python scripts/update_official_data.py
+python scripts/validate_menu_data.py
 ```
 
-매장 위치와 검색은 카카오맵·카카오 로컬 API를 우선 사용하고, 카카오 연결이 없거나 실패하면 Nominatim·OpenStreetMap/Overpass API를 예비 데이터로 사용합니다. 공개 지도 데이터는 누락되거나 오래된 매장을 포함할 수 있습니다.
+갱신기는 공식 API·HTML·공식 이미지 표를 수집한 뒤 스키마, 중복, 수치 범위, 날짜, HTTPS 출처를 검사합니다. 검사를 통과한 경우에만 `data/menus.csv`와 `vercel-app/public/data/menus.csv`를 같은 내용으로 저장합니다. 상세 결과는 `reports/data-quality.json`, 브라우저용 요약은 `vercel-app/public/data/quality.json`에 생성됩니다.
 
-## Streamlit Community Cloud 배포
+## 품질 게이트
 
-1. 이 폴더를 GitHub 저장소에 push합니다.
-2. Streamlit Community Cloud에서 저장소를 연결합니다.
-3. Main file path를 `app.py`로 지정하고 배포합니다.
+Pull request와 `main` push에서 다음 항목을 자동 확인합니다.
+
+- 데이터 검증기 단위 테스트, Python 구문 검사, 2개 CSV 해시 일치
+- Next.js ESLint, 프로덕션 빌드, 높은 심각도 배포 의존성 감사
+
+## 배포 상태
+
+| 표면 | 상태 | 검증 범위 |
+|---|---|---|
+| Streamlit | 실제 공개 배포 확인 | 현재 Production은 main 기준 631개 메뉴 표시 확인 |
+| Next.js | Vercel Git 연결·배포 완료 | [Production](https://web-service-snu.vercel.app)과 PR Preview 연결, 로컬 최신본 691개·11브랜드 Chrome 상호작용 확인. 카카오 장소·매장 검색 키는 별도 설정 필요 |
+
+Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 GitHub 저장소를 Import하고 Root Directory를 `vercel-app`으로 지정해 배포했습니다. 2026-08-11 현재 개선 브랜치의 PR Preview가 Chrome에서 공개 접근되는 것을 확인했으며, Production 반영은 PR 병합 뒤에 이뤄집니다. 위치 미리보기와 GPS는 키 없이 사용할 수 있고, 카카오 장소·매장 검색을 활성화하려면 `.env.example`의 두 키와 배포 도메인을 등록해야 합니다. 배포 후 `/api/health`에서 앱과 키 설정 여부를 확인합니다.

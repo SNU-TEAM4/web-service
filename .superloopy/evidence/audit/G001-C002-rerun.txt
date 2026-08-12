@@ -1,0 +1,15 @@
+Superloopy command capture
+startedAt: 2026-08-11T04:21:31.074Z
+finishedAt: 2026-08-11T04:21:31.100Z
+cwd: /Users/jayk/Downloads/Open Sources/web-service-SNU-
+status: pass
+exitCode: 0
+signal: null
+command: ["/Users/jayk/miniforge3/envs/stat_env/bin/python","-m","unittest","discover","-s","tests"]
+[stdout]
+[stderr]
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK

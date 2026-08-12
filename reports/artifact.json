@@ -1,0 +1,190 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "한입안심 프로젝트 평가·개선 보고서",
+    "description": "데이터, 시각화, 웹·배포, AI·발표 기준으로 구조를 평가하고 대안을 적용한 결과입니다.",
+    "generatedAt": "2026-08-11T04:15:00Z",
+    "cards": [
+      {
+        "id": "score_card",
+        "description": "네 평가 기준의 적용 전후 합계입니다.",
+        "dataset": "summary",
+        "sourceId": "evaluation_doc",
+        "metrics": [
+          { "label": "개선 후 종합 점수", "field": "after_score", "format": "number", "unit": "점" },
+          { "label": "개선 전", "field": "before_score", "format": "number", "unit": "점" }
+        ]
+      },
+      {
+        "id": "rows_card",
+        "description": "품질 게이트를 통과한 공식 메뉴 행입니다.",
+        "dataset": "summary",
+        "sourceId": "quality_report",
+        "metrics": [
+          { "label": "검증 메뉴", "field": "rows", "format": "number", "unit": "개" },
+          { "label": "브랜드", "field": "brands", "format": "number", "unit": "개" }
+        ]
+      },
+      {
+        "id": "errors_card",
+        "description": "스키마·중복·수치·날짜·출처·미러 검사 오류입니다.",
+        "dataset": "summary",
+        "sourceId": "quality_report",
+        "metrics": [
+          { "label": "품질 오류", "field": "errors", "format": "number", "unit": "건" },
+          { "label": "범위 경고", "field": "warnings", "format": "number", "unit": "건" }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "criteria_scores",
+        "title": "평가 기준별 개선 전후 점수",
+        "subtitle": "가장 큰 개선은 데이터 신뢰성과 AI 활용 과정의 설명 가능성에서 나타났습니다.",
+        "type": "bar",
+        "dataset": "criteria_scores",
+        "sourceId": "evaluation_doc",
+        "encodings": {
+          "x": { "field": "criterion", "type": "nominal", "label": "평가 기준" },
+          "y": { "field": "score", "type": "quantitative", "label": "점수(25점 만점)", "format": "number" },
+          "color": { "field": "phase", "type": "nominal", "label": "단계" },
+          "tooltip": [
+            { "field": "delta", "type": "quantitative", "label": "개선 폭", "format": "number" }
+          ]
+        },
+        "yAxisTitle": "점수(25점 만점)",
+        "valueFormat": "number",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "brand_coverage",
+        "title": "브랜드별 수집 범위와 알레르기 확인율",
+        "subtitle": "행 수가 적거나 확인율이 낮은 브랜드가 다음 데이터 개선 우선순위입니다.",
+        "dataset": "brand_coverage",
+        "sourceId": "quality_report",
+        "defaultSort": { "field": "rows", "direction": "desc" },
+        "columns": [
+          { "field": "brand", "label": "브랜드", "type": "text" },
+          { "field": "rows", "label": "메뉴 수", "format": "number" },
+          { "field": "allergen_known_rows", "label": "알레르기 확인 메뉴", "format": "number" },
+          { "field": "allergen_known_rate", "label": "알레르기 확인율", "format": "percent" }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "evaluation_doc", "label": "4단계 평가 문서", "path": "docs/PROJECT_EVALUATION.md",
+        "query": {
+          "engine": "duckdb", "language": "sql",
+          "sql": "WITH scores(criterion, before_score, after_score) AS (VALUES ('데이터 수집·정제', 14, 22), ('시각화 완성도', 15, 22), ('웹 구현·배포', 17, 23), ('AI 활용·발표', 9, 20)) SELECT criterion, before_score, after_score, after_score - before_score AS delta FROM scores",
+          "description": "평가 문서의 네 기준별 개선 전후 점수와 차이를 재현합니다.",
+          "tables_used": ["docs/PROJECT_EVALUATION.md"],
+          "executed_at": "2026-08-11T04:15:00Z"
+        }
+      },
+      {
+        "id": "quality_report", "label": "자동 데이터 품질 보고서", "path": "reports/data-quality.json",
+        "query": {
+          "engine": "duckdb", "language": "sql",
+          "sql": "SELECT * FROM read_json_auto('reports/data-quality.json')",
+          "description": "자동 검증기가 생성한 품질 요약과 브랜드별 범위를 읽습니다.",
+          "tables_used": ["reports/data-quality.json"],
+          "executed_at": "2026-08-11T04:15:00Z"
+        }
+      },
+      { "id": "browser_evidence", "label": "Chrome 최종 화면 증거", "path": ".superloopy/evidence/frontend/20260811T035205Z-snu-web-improvement/final-next-desktop.png" }
+    ],
+    "blocks": [
+      { "id": "title", "type": "markdown", "body": "# 한입안심 프로젝트 평가·개선 보고서" },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "sourceId": "evaluation_doc",
+        "body": "## Executive Summary\n\n핵심 결함은 화면보다 데이터 파싱 신뢰성이었습니다. 공식 표의 병합 셀 때문에 열이 뒤바뀐 행을 찾아 파서를 수정하고, 수집→정규화→검증→두 앱 동시 저장 구조로 바꿨습니다. 결과적으로 종합 평가는 **55점에서 87점**으로 상승했습니다."
+      },
+      { "id": "metrics", "type": "metric-strip", "cardIds": ["score_card", "rows_card", "errors_card"] },
+      {
+        "id": "findings_header",
+        "type": "markdown",
+        "body": "## Key findings with visual evidence\n\n평가 기준별 개선 폭과 브랜드별 데이터 범위를 함께 보면, 기능 추가보다 신뢰 가능한 출처·오류 상태·한계 공개가 완성도를 더 크게 높였음을 확인할 수 있습니다."
+      },
+      { "id": "criteria_chart", "type": "chart", "chartId": "criteria_scores", "layout": "full" },
+      { "id": "coverage_table", "type": "table", "tableId": "brand_coverage", "layout": "full" },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "sourceId": "evaluation_doc",
+        "body": "## Recommendations\n\n1. 파리바게뜨 공식 데이터 파싱 범위를 넓히고 브랜드별 수동 표본 대조를 추가합니다.\n2. Vercel 공개 배포와 카카오 키가 있는 지도 전체 여정을 확인합니다.\n3. `carbs` 열을 의미에 맞는 `sugars`로 단계적으로 이관하고 제공량 단위를 명시합니다.\n4. 실제 사용자 테스트로 필터 이해도와 발표 전달력을 측정합니다."
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## Further questions\n\n- 브랜드별 공식 데이터 갱신 주기를 어떤 SLA로 운영할 것인가?\n- 정보 미표기 메뉴의 보수적 제외가 사용자 기대와 일치하는가?\n- 공개 Vercel 환경에서 지도 API 실패율과 검색 완주율은 어느 정도인가?"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "sourceId": "quality_report",
+        "body": "## Caveats and assumptions\n\n자동 품질 게이트의 오류 0건은 구조와 명백한 이상을 통과했다는 뜻이며 공식 값의 의미를 완전히 보증하지 않습니다. 파리바게뜨는 1행뿐이고 스타벅스·써브웨이는 메뉴별 알레르기 정보를 확인하지 못했습니다. Streamlit 실배포는 확인했지만 이 변경 브랜치의 재배포와 공개 Vercel URL은 아직 확인하지 않았습니다."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-11T04:15:00Z",
+    "status": "ready",
+    "datasets": {
+      "summary": [
+        { "before_score": 55, "after_score": 87, "rows": 631, "brands": 9, "errors": 0, "warnings": 1 }
+      ],
+      "criteria_scores": [
+        { "criterion": "데이터 수집·정제", "phase": "개선 전", "score": 14, "delta": 8 },
+        { "criterion": "데이터 수집·정제", "phase": "개선 후", "score": 22, "delta": 8 },
+        { "criterion": "시각화 완성도", "phase": "개선 전", "score": 15, "delta": 7 },
+        { "criterion": "시각화 완성도", "phase": "개선 후", "score": 22, "delta": 7 },
+        { "criterion": "웹 구현·배포", "phase": "개선 전", "score": 17, "delta": 6 },
+        { "criterion": "웹 구현·배포", "phase": "개선 후", "score": 23, "delta": 6 },
+        { "criterion": "AI 활용·발표", "phase": "개선 전", "score": 9, "delta": 11 },
+        { "criterion": "AI 활용·발표", "phase": "개선 후", "score": 20, "delta": 11 }
+      ],
+      "brand_coverage": [
+        { "brand": "버거킹", "rows": 210, "allergen_known_rows": 210, "allergen_known_rate": 1.0 },
+        { "brand": "스타벅스", "rows": 192, "allergen_known_rows": 0, "allergen_known_rate": 0.0 },
+        { "brand": "롯데리아", "rows": 100, "allergen_known_rows": 100, "allergen_known_rate": 1.0 },
+        { "brand": "맥도날드", "rows": 39, "allergen_known_rows": 39, "allergen_known_rate": 1.0 },
+        { "brand": "배스킨라빈스", "rows": 31, "allergen_known_rows": 31, "allergen_known_rate": 1.0 },
+        { "brand": "써브웨이", "rows": 25, "allergen_known_rows": 0, "allergen_known_rate": 0.0 },
+        { "brand": "KFC", "rows": 17, "allergen_known_rows": 17, "allergen_known_rate": 1.0 },
+        { "brand": "이디야", "rows": 16, "allergen_known_rows": 8, "allergen_known_rate": 0.5 },
+        { "brand": "파리바게뜨", "rows": 1, "allergen_known_rows": 1, "allergen_known_rate": 1.0 }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "evaluation_doc", "label": "4단계 평가 문서", "path": "docs/PROJECT_EVALUATION.md",
+      "query": {
+        "engine": "duckdb", "language": "sql",
+        "sql": "WITH scores(criterion, before_score, after_score) AS (VALUES ('데이터 수집·정제', 14, 22), ('시각화 완성도', 15, 22), ('웹 구현·배포', 17, 23), ('AI 활용·발표', 9, 20)) SELECT criterion, before_score, after_score, after_score - before_score AS delta FROM scores",
+        "description": "평가 문서의 네 기준별 개선 전후 점수와 차이를 재현합니다.",
+        "tables_used": ["docs/PROJECT_EVALUATION.md"],
+        "executed_at": "2026-08-11T04:15:00Z"
+      }
+    },
+    {
+      "id": "quality_report", "label": "자동 데이터 품질 보고서", "path": "reports/data-quality.json",
+      "query": {
+        "engine": "duckdb", "language": "sql",
+        "sql": "SELECT * FROM read_json_auto('reports/data-quality.json')",
+        "description": "자동 검증기가 생성한 품질 요약과 브랜드별 범위를 읽습니다.",
+        "tables_used": ["reports/data-quality.json"],
+        "executed_at": "2026-08-11T04:15:00Z"
+      }
+    },
+    { "id": "browser_evidence", "label": "Chrome 최종 화면 증거", "path": ".superloopy/evidence/frontend/20260811T035205Z-snu-web-improvement/final-next-desktop.png" }
+  ]
+}

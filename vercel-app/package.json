@@ -6,23 +6,25 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "check:menu-images": "node scripts/validate-menu-images.mjs"
   },
   "dependencies": {
     "@types/papaparse": "^5.3.16",
     "lucide-react": "^0.468.0",
-    "next": "^15.1.0",
+    "next": "^16.3.0",
     "papaparse": "^5.4.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "recharts": "^2.15.0"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "recharts": "^3.10.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.17.0",
-    "eslint-config-next": "^15.1.0",
+    "eslint-config-next": "^16.3.0",
     "typescript": "^5.7.0"
   }
 }

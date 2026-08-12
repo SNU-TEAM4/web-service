@@ -1,16 +1,19 @@
-"""공식 공개 페이지에서 맥도날드·롯데리아 데이터를 갱신한다."""
+"""11개 브랜드의 공식 공개 자료를 수집·정제하고 두 웹 앱의 CSV를 함께 갱신한다."""
 from __future__ import annotations
 
 import re
-from datetime import date
-from io import StringIO
+from importlib.util import find_spec
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-OUT = Path(__file__).parents[1] / "data" / "menus.csv"
+from validate_menu_data import REQUIRED_COLUMNS, validate_rows
+
+ROOT = Path(__file__).parents[1]
+OUTS = [ROOT / "data" / "menus.csv", ROOT / "vercel-app" / "public" / "data" / "menus.csv"]
 MCD_URL = "https://www.mcdonalds.co.kr/api/v1/kor/product/nutrition"
 LOTTE_URL = "https://www.lotteeatz.com/upload/etc/ria/items.html"
 BURGERKING_URL = "https://web-prd.burgerking.co.kr/burgerking/BKR0347.json"
@@ -21,6 +24,10 @@ EDIYA_PAGES = {
 }
 BASKIN_LIST = "https://www.baskinrobbins.co.kr/menu/list.php?top=A"
 PARIS_LIST = "https://www.paris.co.kr/products/"
+KYOCHON_LIST = "https://www.kyochon.com/menu/chicken.asp"
+BBQ_CATEGORY_API = "https://bbq.co.kr/api/delivery/menu/category"
+BBQ_MENU_API = "https://bbq.co.kr/api/delivery/menu/{category_id}"
+HTML_PARSER = "lxml" if find_spec("lxml") else "html.parser"
 
 
 def number(value) -> float | None:
@@ -29,12 +36,33 @@ def number(value) -> float | None:
 
 
 def normalize_allergens(value: str) -> str:
-    value = str(value).replace("난류", "계란").replace("달걀", "계란")
+    value = str(value).replace("난류", "계란").replace("알류", "계란").replace("달걀", "계란")
     found = []
     for item in ["계란", "우유", "대두", "밀", "땅콩", "새우", "게", "돼지고기", "쇠고기", "닭고기", "토마토", "아황산류", "오징어", "조개류", "복숭아"]:
         if item in value and item not in found:
             found.append(item)
     return "|".join(found)
+
+
+def normalize_source_date(value: object) -> str:
+    """날짜 표기를 YYYY-MM-DD로 통일한다."""
+    match = re.search(r"(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})", str(value))
+    if not match:
+        raise ValueError(f"source_date를 해석할 수 없습니다: {value!r}")
+    year, month, day = map(int, match.groups())
+    return date(year, month, day).isoformat()
+
+
+def normalize_menu_key(value: object) -> str:
+    """공식 표와 상세 페이지 사이의 안전한 표기 차이만 제거한다."""
+    text = re.sub(r"\[(?:R|S)\]", "", str(value), flags=re.IGNORECASE)
+    text = re.sub(r"^교촌", "", text.strip())
+    return re.sub(r"[\s·]", "", text)
+
+
+def source_page_date(text: str, fallback: date | None = None) -> str:
+    match = re.search(r"(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})", text)
+    return normalize_source_date(match.group(0)) if match else (fallback or date.today()).isoformat()
 
 
 def mcdonalds() -> list[dict]:
@@ -67,24 +95,28 @@ def lotteria() -> list[dict]:
     response = requests.get(LOTTE_URL, timeout=30)
     response.raise_for_status()
     response.encoding = "utf-8"
-    table = pd.read_html(StringIO(response.text), flavor="lxml")[0]
+    soup = BeautifulSoup(response.text, HTML_PARSER)
+    current_category = ""
+    published_at = source_page_date(soup.get_text(" ", strip=True))
     result = []
-    for _, row in table.iterrows():
-        calories = number(row["열량(kcal)"])
-        # 세트 범위와 빈 행은 제외하고 단일 수치가 있는 메뉴만 사용한다.
-        if calories is None or "~" in str(row["열량(kcal)"]):
+    for table_row in soup.select("table tr"):
+        cells = [cell.get_text(" ", strip=True) for cell in table_row.select("th, td")]
+        # 세트·팩은 범위만 제공되므로 제외하고, 10개 영양 열이 있는 단품 행만 읽는다.
+        if len(cells) == 11 and cells[0] != "구분":
+            current_category, cells = cells[0], cells[1:]
+        elif len(cells) != 10:
             continue
-        menu = str(row["구분"]).strip()
-        category = str(row["제품명"]).strip()
-        if not menu or menu == "nan":
+        menu, allergy, _weight, calories_raw, protein_raw, sodium_raw, sugar_raw, fat_raw, _caffeine, _origin = cells
+        calories = number(calories_raw)
+        if not current_category or not menu or calories is None:
             continue
         result.append({
-            "brand": "롯데리아", "menu": menu, "category": category,
-            "calories": calories, "protein": number(row["단백질(g)"]),
-            "fat": number(row["포화지방(g)"]), "carbs": number(row["당류(g)"]),
-            "sodium": number(row["나트륨(mg)"]),
-            "allergens": normalize_allergens(row["알레르기 성분"]),
-            "source_url": LOTTE_URL, "source_date": "2026-06-08", "verified": True,
+            "brand": "롯데리아", "menu": menu, "category": current_category,
+            "calories": calories, "protein": number(protein_raw),
+            "fat": number(fat_raw), "carbs": number(sugar_raw),
+            "sodium": number(sodium_raw),
+            "allergens": normalize_allergens(allergy),
+            "source_url": LOTTE_URL, "source_date": published_at, "verified": True,
             "allergen_known": True,
         })
     return result
@@ -182,7 +214,7 @@ def subway() -> list[dict]:
     list_url = "https://www.subway.co.kr/menuList/sandwich"
     response = requests.get(list_url, timeout=30)
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = BeautifulSoup(response.text, HTML_PARSER)
     items = {}
     for link in soup.select("a[data-menuitemidx][data-category='sandwich']"):
         items[link["data-menuitemidx"]] = link.find_parent("li").select_one("strong.tit").get_text(strip=True)
@@ -194,7 +226,7 @@ def subway() -> list[dict]:
             detail.raise_for_status()
         except requests.RequestException:
             continue
-        page = BeautifulSoup(detail.text, "lxml")
+        page = BeautifulSoup(detail.text, HTML_PARSER)
         name_tag = page.select_one("h2.name")
         table = page.select_one("div.board_list_wrapper table")
         if table is None:
@@ -217,7 +249,7 @@ def ediya() -> list[dict]:
     for url, category in EDIYA_PAGES.items():
         response = requests.get(url, timeout=30)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, "lxml")
+        soup = BeautifulSoup(response.text, HTML_PARSER)
         for detail in soup.select(".pro_detail"):
             title = detail.select_one("h2")
             nutrients = {
@@ -244,13 +276,13 @@ def baskin_robbins() -> list[dict]:
     """배스킨라빈스 공식 아이스크림 목록과 상세 영양표를 결합한다."""
     response = requests.get(BASKIN_LIST, timeout=30)
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = BeautifulSoup(response.text, HTML_PARSER)
     result = []
     for link in soup.select("a.menu-list__link"):
         detail_url = requests.compat.urljoin(BASKIN_LIST, link.get("href", ""))
         page_response = requests.get(detail_url, timeout=30)
         page_response.raise_for_status()
-        page = BeautifulSoup(page_response.text, "lxml")
+        page = BeautifulSoup(page_response.text, HTML_PARSER)
         text = page.get_text(" ", strip=True)
         pattern = (r"영양정보\s+1회 제공량\(g\)\s+[\d.]+\s+열량\(kcal\)\s+([\d.]+)\s+"
                    r"당류\(g\)\s+([\d.]+)\s+단백질\(g\)\s+([\d.]+)\s+포화지방\(g\)\s+([\d.]+)\s+"
@@ -277,7 +309,7 @@ def paris_baguette() -> list[dict]:
     """파리바게뜨 공식 제품 목록에 노출된 상품의 상세 정보를 수집한다."""
     response = requests.get(PARIS_LIST, timeout=30)
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = BeautifulSoup(response.text, HTML_PARSER)
     links = {}
     for link in soup.select("a[href*='/product/']"):
         url = link.get("href", "")
@@ -289,7 +321,7 @@ def paris_baguette() -> list[dict]:
     for detail_url, fallback_name in links.items():
         page_response = requests.get(detail_url, timeout=30)
         page_response.raise_for_status()
-        page = BeautifulSoup(page_response.text, "lxml")
+        page = BeautifulSoup(page_response.text, HTML_PARSER)
         text = page.get_text(" ", strip=True)
         pattern = (r"영양정보\s+총 내용량:.*?총 내용량당 칼로리\(kcal\):\s*([\d,.]+).*?"
                    r"나트륨\(mg\):\s*([\d,.]+).*?당류\(g\):\s*([\d,.]+).*?"
@@ -311,9 +343,169 @@ def paris_baguette() -> list[dict]:
     return result
 
 
+def kyochon() -> list[dict]:
+    """교촌 공식 치킨 목록과 상세 HTML의 100g 영양·알레르기 표를 결합한다."""
+    session = requests.Session()
+    session.headers.update({"User-Agent": "HanipAnsimOfficialData/1.0 (+class project)"})
+    response = session.get(KYOCHON_LIST, timeout=30)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, HTML_PARSER)
+    detail_urls = {
+        requests.compat.urljoin(KYOCHON_LIST, link.get("href", ""))
+        for link in soup.select("ul.menuProduct a[href*='view.asp']")
+        if link.get("href")
+    }
+
+    result = []
+    for detail_url in sorted(detail_urls):
+        try:
+            detail_response = session.get(detail_url, timeout=30)
+            detail_response.raise_for_status()
+        except requests.RequestException:
+            continue
+        page = BeautifulSoup(detail_response.text, HTML_PARSER)
+        title = page.select_one(".viewRight dl.tit dt")
+        menu = title.get_text(" ", strip=True) if title else ""
+        if not menu:
+            continue
+
+        nutrition: dict[str, float | None] = {}
+        basis = ""
+        allergy_by_menu: dict[str, str] = {}
+        for table in page.select("table"):
+            caption = table.select_one("caption")
+            caption_text = caption.get_text(" ", strip=True) if caption else ""
+            if caption_text.startswith("영양정보"):
+                basis_tag = table.select_one(".gram")
+                basis = basis_tag.get_text(" ", strip=True) if basis_tag else ""
+                for table_row in table.select("tbody tr"):
+                    cells = [cell.get_text(" ", strip=True) for cell in table_row.select("th, td")]
+                    if len(cells) >= 2:
+                        nutrition[re.sub(r"\s", "", cells[0])] = number(cells[1])
+            elif caption_text.startswith("알레르기 정보"):
+                for table_row in table.select("tbody tr"):
+                    cells = [cell.get_text(" ", strip=True) for cell in table_row.select("th, td")]
+                    if len(cells) >= 2:
+                        allergy_by_menu[normalize_menu_key(cells[-2])] = cells[-1]
+
+        menu_key = normalize_menu_key(menu)
+        allergy = allergy_by_menu.get(menu_key)
+        values = {
+            "calories": nutrition.get("열량(Kcal)"),
+            "carbs": nutrition.get("당류(g)"),
+            "protein": nutrition.get("단백질(g)"),
+            "fat": nutrition.get("포화지방(g)"),
+            "sodium": nutrition.get("나트륨(mg)"),
+        }
+        # 표의 명칭이 현재 메뉴명과 정확히 연결되고 필수 값이 모두 있을 때만 채택한다.
+        if allergy is None or not basis or any(value is None for value in values.values()):
+            continue
+        result.append({
+            "brand": "교촌치킨", "menu": menu, "category": f"치킨 · 공식 {basis} 기준",
+            **values, "allergens": normalize_allergens(allergy),
+            "source_url": detail_url, "source_date": date.today().isoformat(),
+            "verified": True, "allergen_known": True,
+            "allergy_source_url": detail_url,
+        })
+    return result
+
+
+def bbq() -> list[dict]:
+    """BBQ 공식 주문 API에서 가격·100g 영양·알레르기가 모두 있는 행만 채택한다."""
+    session = requests.Session()
+    session.headers.update({"User-Agent": "HanipAnsimOfficialData/1.0 (+class project)"})
+    category_response = session.get(BBQ_CATEGORY_API, timeout=30)
+    category_response.raise_for_status()
+    categories = category_response.json()
+    category_rank = {
+        "치킨": 0, "피자&버거": 1, "사이드": 2, "음료": 3,
+        "소스&시즈닝&무": 4, "세트": 5, "추천": 6, "필릭스 PICK": 7,
+    }
+    selected: dict[int, tuple[dict, str, int]] = {}
+    for category in categories:
+        category_id = int(category["id"])
+        category_name = str(category.get("categoryName") or "공식 메뉴")
+        response = session.get(BBQ_MENU_API.format(category_id=category_id), timeout=30)
+        response.raise_for_status()
+        for row in response.json():
+            menu_id = int(row.get("id") or 0)
+            if not menu_id:
+                continue
+            rank = category_rank.get(category_name, 99)
+            if menu_id not in selected or rank < selected[menu_id][2]:
+                selected[menu_id] = (row, category_name, rank)
+
+    collected_on = date.today().isoformat()
+    result = []
+    for row, category_name, _rank in selected.values():
+        nutrient = row.get("nutrient") or {}
+        values = {
+            "calories": number(nutrient.get("calorie")),
+            "carbs": number(nutrient.get("sugars")),
+            "protein": number(nutrient.get("protein")),
+            "fat": number(nutrient.get("saturatedFat")),
+            "sodium": number(nutrient.get("natrium")),
+        }
+        price = number(row.get("menuPrice"))
+        allergy = str(row.get("allergy") or "").strip(" ,")
+        image_url = str(row.get("menuImageUrl") or "")
+        source_url = f"https://bbq.co.kr/products/{int(row['id'])}"
+        if (
+            not row.get("menuName") or not allergy or price is None or price <= 0
+            or not image_url.startswith("https://")
+            or any(value is None for value in values.values())
+            or values["calories"] <= 0 or values["calories"] > 900
+        ):
+            continue
+        result.append({
+            "brand": "BBQ치킨", "menu": str(row["menuName"]).strip(),
+            "category": f"{category_name} · 공식 100g 기준", **values,
+            "allergens": normalize_allergens(allergy), "source_url": source_url,
+            "source_date": collected_on, "verified": True, "allergen_known": True,
+            "allergy_source_url": source_url,
+            "price_krw": int(price), "price_type": "official_online_reference",
+            "price_source_url": source_url, "price_source_date": collected_on,
+            "price_note": "공식 온라인 주문 기준 · 매장·지역·채널에 따라 변동 가능",
+        })
+    return result
+
+
 if __name__ == "__main__":
     frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway()
-                         + ediya() + baskin_robbins() + paris_baguette())
-    frame = frame.dropna(subset=["calories", "protein", "sodium"]).drop_duplicates(["brand", "menu"])
-    frame.to_csv(OUT, index=False, encoding="utf-8")
-    print(f"saved {len(frame)} verified menu rows -> {OUT}")
+                         + ediya() + baskin_robbins() + paris_baguette() + kyochon() + bbq())
+    frame = frame.dropna(subset=["calories", "protein", "fat", "carbs", "sodium"]).drop_duplicates(["brand", "menu"])
+    frame["source_date"] = frame["source_date"].map(normalize_source_date)
+    frame["source_date_type"] = frame["brand"].map({
+        "맥도날드": "official_updated", "롯데리아": "official_published", "KFC": "official_version",
+    }).fillna("collected_on")
+    frame["collection_method"] = frame["brand"].map({
+        "맥도날드": "official_api", "버거킹": "official_api", "스타벅스": "official_api", "BBQ치킨": "official_api",
+        "KFC": "manual_official_image",
+    }).fillna("official_html")
+    frame["collected_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    frame["allergy_source_url"] = frame.get("allergy_source_url", pd.Series(index=frame.index, dtype="object"))
+    frame["allergy_source_url"] = frame["allergy_source_url"].fillna("")
+    known_without_url = frame["allergen_known"].astype(bool) & frame["allergy_source_url"].eq("")
+    frame.loc[known_without_url, "allergy_source_url"] = frame.loc[known_without_url, "source_url"]
+    price_defaults = {
+        "price_krw": "", "price_type": "unavailable", "price_source_url": "",
+        "price_source_date": "", "price_note": "공식 단일 가격 미확인",
+    }
+    for field, default in price_defaults.items():
+        if field not in frame:
+            frame[field] = default
+        else:
+            frame[field] = frame[field].fillna(default)
+    frame["price_krw"] = frame["price_krw"].map(
+        lambda value: int(float(value)) if str(value).strip() else ""
+    )
+    frame = frame[REQUIRED_COLUMNS]
+
+    report = validate_rows(frame.to_dict(orient="records"), frame.columns)
+    if report["errors"]:
+        first_errors = report["errors"][:5]
+        raise ValueError(f"수집 결과 품질 검증 실패: {first_errors}")
+    for output in OUTS:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_csv(output, index=False, encoding="utf-8")
+    print(f"saved {len(frame)} verified menu rows -> {', '.join(map(str, OUTS))}")

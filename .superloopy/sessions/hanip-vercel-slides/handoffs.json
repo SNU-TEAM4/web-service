@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "sessionId": "hanip-vercel-slides",
+  "handoffs": [
+    {
+      "id": "H001",
+      "agent": "nami",
+      "assignment": "TASK: /Users/jayk/Downloads/Open Sources/web-service-SNU-의 vercel-app 배포 구조를 읽기 전용으로 파악하고, Vercel 실제 배포에 필요한 설정·환경변수·빌드 명령·현재 누락 위험을 정확한 절대 경로와 함께 보고한다. SCOPE: 파일 읽기와 비파괴 명령만 허용하며 편집하지 않는다. 다른 작업자의 변경을 되돌리지 않는다. 대상은 vercel-app과 배포 관련 문서/설정이다. VERIFY: package.json, Next 설정, 환경변수 참조, git 상태, Vercel 설정 파일 존재 여부를 확인한다. DELIVERABLE: 파일을 쓰지 않고 직접 답변한다. 이는 실행 가능한 조사 과제이며 단순 문맥 전달이 아니다.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/VERCEL_READINESS.md",
+      "recordedAt": "2026-08-11T05:13:34.848Z",
+      "updatedAt": "2026-08-11T05:33:35.224Z"
+    },
+    {
+      "id": "H002",
+      "agent": "franky",
+      "assignment": "TASK: Apple Korea 디자인 참고값을 한입안심 Next.js 앱에 재해석해 vercel-app/app/globals.css 한 파일을 전면 정리·리디자인한다. TARGET: vercel-app/app/globals.css. SCOPE: 이 CSS 파일과 보고서 .superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/franky-css-report.md만 편집한다. HanipApp.tsx와 다른 파일은 편집하지 않는다. 다른 작업자의 변경을 되돌리지 않는다. Apple 자산·로고·카피는 사용하지 않는다. 기존 모든 클래스 기능과 반응형 상태를 보존한다. SPEC: 캔버스 #f5f5f7, 잉크 #1d1d1f, muted #6e6e73, CTA #0071e3, safety #18864b, 위험 #b42318. global-nav/filter-drawer 클래스가 추가될 것을 전제로 스타일을 제공한다. drawer는 데스크톱/모바일 모두 닫힘 기본이고 .open에서 노출한다. 히어로 56px/600 계층, 표면 24~32px radius, metrics 4/2/1열, menu 2/1열, tabs sticky, CTA pill, focus-visible, prefers-reduced-motion을 포함한다. VERIFY: cd vercel-app && npm run build. DELIVERABLE: 검증 결과와 변경 요약을 지정 보고서에 쓰고 끝에 SUPERLOOPY_EVIDENCE 경로를 반환한다.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/franky-css-report.md",
+      "recordedAt": "2026-08-11T05:18:21.816Z",
+      "updatedAt": "2026-08-11T05:33:35.354Z"
+    },
+    {
+      "id": "H003",
+      "agent": "franky",
+      "assignment": "TASK: Apple Korea 디자인 참고값을 한입안심 Next.js 앱에 재해석해 vercel-app/app/globals.css 한 파일을 전면 정리·리디자인한다. TARGET: vercel-app/app/globals.css. SCOPE: 이 CSS 파일과 보고서 .superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/franky-css-report.md만 편집한다. HanipApp.tsx와 다른 파일은 편집하지 않는다. 다른 작업자의 변경을 되돌리지 않는다. Apple 자산·로고·카피는 사용하지 않는다. 기존 모든 클래스 기능과 반응형 상태를 보존한다. SPEC: 캔버스 #f5f5f7, 잉크 #1d1d1f, muted #6e6e73, CTA #0071e3, safety #18864b, 위험 #b42318. global-nav/filter-drawer 클래스가 추가될 것을 전제로 스타일을 제공한다. drawer는 데스크톱/모바일 모두 닫힘 기본이고 .open에서 노출한다. 히어로 56px/600 계층, 표면 24~32px radius, metrics 4/2/1열, menu 2/1열, tabs sticky, CTA pill, focus-visible, prefers-reduced-motion을 포함한다. VERIFY: cd vercel-app && npm run build. DELIVERABLE: 검증 결과와 변경 요약을 지정 보고서에 쓰고 끝에 SUPERLOOPY_EVIDENCE 경로를 반환한다.",
+      "status": "dispatched",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/franky-css-report.md",
+      "recordedAt": "2026-08-11T05:22:45.319Z",
+      "updatedAt": "2026-08-11T05:22:45.319Z"
+    },
+    {
+      "id": "H004",
+      "agent": "nami",
+      "assignment": "TASK: /Users/jayk/Downloads/Open Sources/web-service-SNU-의 vercel-app 배포 구조를 읽기 전용으로 파악하고, Vercel 실제 배포에 필요한 설정·환경변수·빌드 명령·현재 누락 위험을 정확한 절대 경로와 함께 보고한다. SCOPE: 파일 읽기와 비파괴 명령만 허용하며 편집하지 않는다. 다른 작업자의 변경을 되돌리지 않는다. 대상은 vercel-app과 배포 관련 문서/설정이다. VERIFY: package.json, Next 설정, 환경변수 참조, git 상태, Vercel 설정 파일 존재 여부를 확인한다. DELIVERABLE: 파일을 쓰지 않고 직접 답변한다. 이는 실행 가능한 조사 과제이며 단순 문맥 전달이 아니다.",
+      "status": "dispatched",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/VERCEL_READINESS.md",
+      "recordedAt": "2026-08-11T05:23:12.974Z",
+      "updatedAt": "2026-08-11T05:23:12.974Z"
+    },
+    {
+      "id": "H005",
+      "agent": "usopp",
+      "assignment": "TASK: Apple 디자인 참고로 통합된 한입안심 Vercel Next.js 앱을 독립 QA한다. SCOPE: 제품 파일은 읽기 전용이며 편집하지 않는다. 보고서 .superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/usopp-qa-report.md만 작성한다. 다른 작업자의 변경을 되돌리지 않는다. 검증 대상은 vercel-app과 이미 캡처된 local/source PNG다. VERIFY: npm run lint, npm run build, /api/health 계약, 필터 drawer·알레르기 필터·장바구니·지도 키 누락 오류의 구현/증거를 점검한다. 브라우저 증거가 부족하면 FAIL 또는 NEEDS_CONTEXT로 기록한다. DELIVERABLE: 시나리오별 PASS/FAIL, 명령, 증거 경로, 남은 위험을 보고서에 쓰고 SUPERLOOPY_EVIDENCE로 끝낸다.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/usopp-qa-report.md",
+      "recordedAt": "2026-08-11T05:28:19.372Z",
+      "updatedAt": "2026-08-11T05:33:35.486Z"
+    },
+    {
+      "id": "H006",
+      "agent": "usopp",
+      "assignment": "TASK: Apple 디자인 참고로 통합된 한입안심 Vercel Next.js 앱을 독립 QA한다. SCOPE: 제품 파일은 읽기 전용이며 편집하지 않는다. 보고서 .superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/usopp-qa-report.md만 작성한다. 다른 작업자의 변경을 되돌리지 않는다. 검증 대상은 vercel-app과 이미 캡처된 local/source PNG다. VERIFY: npm run lint, npm run build, /api/health 계약, 필터 drawer·알레르기 필터·장바구니·지도 키 누락 오류의 구현/증거를 점검한다. 브라우저 증거가 부족하면 FAIL 또는 NEEDS_CONTEXT로 기록한다. DELIVERABLE: 시나리오별 PASS/FAIL, 명령, 증거 경로, 남은 위험을 보고서에 쓰고 SUPERLOOPY_EVIDENCE로 끝낸다.",
+      "status": "dispatched",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/website-clone/hanip-vercel/usopp-qa-report.md",
+      "recordedAt": "2026-08-11T05:32:45.433Z",
+      "updatedAt": "2026-08-11T05:32:45.433Z"
+    },
+    {
+      "id": "H007",
+      "agent": "nami",
+      "assignment": "Map codebase integration points for new franchise allergen data and diagnose logo/text overlap read-only.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/research/H007-code-integration.md",
+      "recordedAt": "2026-08-11T06:10:07.644Z",
+      "updatedAt": "2026-08-11T06:23:40.568Z"
+    },
+    {
+      "id": "H008",
+      "agent": "franky",
+      "assignment": "Research official burger and chicken franchise menu-level nutrition and allergen sources read-only.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/research/H008-burger-chicken.md",
+      "recordedAt": "2026-08-11T06:10:07.767Z",
+      "updatedAt": "2026-08-11T06:23:49.691Z"
+    },
+    {
+      "id": "H009",
+      "agent": "usopp",
+      "assignment": "Research official pizza, cafe, and bakery menu-level allergen sources and counter-brief candidates read-only.",
+      "status": "complete",
+      "verdict": "PASS",
+      "normalizedVerdict": "accept",
+      "artifact": ".superloopy/sessions/hanip-vercel-slides/evidence/research/H009-pizza-cafe-counter.md",
+      "recordedAt": "2026-08-11T06:10:07.883Z",
+      "updatedAt": "2026-08-11T06:23:49.848Z"
+    }
+  ]
+}

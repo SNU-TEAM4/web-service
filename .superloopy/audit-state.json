@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "sessionId": null,
+  "auditsAccepted": 0,
+  "updatedAt": "2026-08-11T04:21:31.100Z",
+  "criteria": [
+    {
+      "criterion": "G001/C001",
+      "scenario": "Happy path works from the real user-facing surface.",
+      "inputHash": "cb043e441f775d46e06322d667fc2386d7558d97ea371a02ebafa23251291802",
+      "sourceHash": "5dad68fdd43b867ff57ec06e22f15ee86ea0a755dd9cd3ecb8b71ea5adf22a9d",
+      "verdict": null,
+      "failCount": 0,
+      "auditedAt": "2026-08-11T04:21:31.073Z",
+      "command": null,
+      "rerunStatus": "manual-recheck",
+      "rerunArtifact": ".superloopy/evidence/frontend/20260811T035205Z-snu-web-improvement/VISUAL_QA.md",
+      "rerunArtifactHash": "5dad68fdd43b867ff57ec06e22f15ee86ea0a755dd9cd3ecb8b71ea5adf22a9d",
+      "floor": "pass",
+      "verdictArtifact": null,
+      "verdictHash": null
+    },
+    {
+      "criterion": "G001/C002",
+      "scenario": "Riskiest edge or failure path is handled.",
+      "inputHash": "b6b173199c32a8ef7947a7e861cab9145476788098649a2a8f69b50d2abfc7a4",
+      "sourceHash": "f337396f2836892be14820dd32999a5a04fb70355e71d537d945e214632fd428",
+      "verdict": null,
+      "failCount": 0,
+      "auditedAt": "2026-08-11T04:21:31.074Z",
+      "command": [
+        "/Users/jayk/miniforge3/envs/stat_env/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests"
+      ],
+      "rerunStatus": "pass",
+      "rerunExitCode": 0,
+      "rerunArtifact": ".superloopy/evidence/audit/G001-C002-rerun.txt",
+      "rerunArtifactHash": "8197255a6a658ae5f033dccf9475b845e1cf671b9f6bf5f1bba9415614edc177",
+      "floor": "pass",
+      "verdictArtifact": null,
+      "verdictHash": null
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+G001/C001 happy-path evidence
+
+Surface
+- Local production build opened and exercised in the user's Chrome browser.
+- GitHub commit 58fd13c was pushed to the existing PR branch; Vercel reported success and the branch Preview was re-opened in the user's signed-in Chrome session.
+- Hero and official-source proof stage loaded with 640 menus and 10 brands.
+- Brand folders opened normally; Kyochon showed 9 strict official rows.
+- Soy allergen filtering changed recommendations from 530 to 106.
+- Cart and source links remained available.
+
+Layout proof
+- Every measured brand folder had a 30 px logo-to-copy gap.
+- Every measured brand folder had a 14 px copy-to-chevron gap.
+- Evidence screenshots:
+  - .superloopy/evidence/frontend/20260811T060734Z-hanip-apple-allergen/after-desktop.png
+  - .superloopy/evidence/frontend/20260811T060734Z-hanip-apple-allergen/after-brand-folders.png
+  - .superloopy/evidence/frontend/20260811T060734Z-hanip-apple-allergen/filter-drawer-active.png
+  - .superloopy/evidence/frontend/20260811T060734Z-hanip-apple-allergen/vercel-preview-58fd13c.png
+  - .superloopy/evidence/frontend/20260811T060734Z-hanip-apple-allergen/vercel-preview-kyochon-58fd13c.png
+
+Automated checks
+- npm run lint: pass
+- npm run build: pass
+- scripts/validate_menu_data.py: pass, 640 rows, 10 brands, 0 errors, 0 duplicates
+- Python unit tests: 2 passed
+- npm audit --audit-level=high: 0 vulnerabilities
+- GitHub Actions quality run 31466572115: success
+- Vercel status for commit 58fd13c: success
+- slides_test.py: pass, no overflow

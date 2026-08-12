@@ -1,0 +1,22 @@
+G001/C002 riskiest-path evidence
+
+Risk: unsupported or ambiguous official allergen data could be presented as safe.
+- The Kyochon collector accepts a row only when the current menu name maps exactly to the official allergen table, the nutrition basis is explicit, and all five numeric fields are present.
+- Result: 9 accepted Kyochon rows from 69 official menu-detail links; ambiguous rows were intentionally omitted.
+- Unknown allergen rows remain visibly marked and are excluded from allergen-safe recommendations.
+- Compose Coffee and other candidates were not added because required fields, dates, or internal consistency were insufficient.
+
+Risk: franchise logo could overlap the adjacent copy or chevron.
+- Root cause: an 86 px image was rendered inside an 84 px grid track.
+- The new structure uses an 88 px track, a 72 px hard-bounded logo frame, minmax(0, 1fr) copy, min-width: 0, overflow wrapping, and a fixed 24 px chevron track.
+- Brands without a local logo use a bounded text fallback; Kyochon exercised this path.
+- Chrome geometry measured a positive 30 px logo-to-copy gap and 14 px copy-to-chevron gap for every brand.
+
+Risk: deployment-only services lack environment keys.
+- Kakao map/search API routes continue to expose their explicit missing-key error path instead of silently inventing store results.
+
+Automated checks
+- Data validator: 0 errors and 0 duplicate brand/menu rows.
+- Next.js lint/build: pass.
+- PowerPoint overflow test: pass.
+

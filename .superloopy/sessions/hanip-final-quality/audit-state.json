@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "sessionId": "hanip-final-quality",
+  "auditsAccepted": 0,
+  "updatedAt": "2026-08-11T07:39:41.705Z",
+  "criteria": [
+    {
+      "criterion": "G001/C001",
+      "scenario": "Happy path works from the real user-facing surface.",
+      "inputHash": "bafc6eb529c5a38374738c5a9a4e050db1dd91a001ba716554c11e6751e3e8eb",
+      "sourceHash": "39d6b7091c5bc1afbbdd16746b61f1ec663a6cf3283b7acd6e030189eea4d88e",
+      "verdict": null,
+      "failCount": 0,
+      "auditedAt": "2026-08-11T07:39:41.704Z",
+      "command": null,
+      "rerunStatus": "manual-recheck",
+      "rerunArtifact": ".superloopy/sessions/hanip-final-quality/evidence/G001-C001.txt",
+      "rerunArtifactHash": "39d6b7091c5bc1afbbdd16746b61f1ec663a6cf3283b7acd6e030189eea4d88e",
+      "floor": "pass",
+      "verdictArtifact": null,
+      "verdictHash": null
+    },
+    {
+      "criterion": "G001/C002",
+      "scenario": "Riskiest edge or failure path is handled.",
+      "inputHash": "656b8543ece51483e7ad15df6f19d5fdc51f4b614df83a2ce562c239a4f0ff4e",
+      "sourceHash": "8f248206401b0a6b6436d8e2a2e621512913b0a9e5b6a0b413098fd46c677b68",
+      "verdict": null,
+      "failCount": 0,
+      "auditedAt": "2026-08-11T07:39:41.705Z",
+      "command": null,
+      "rerunStatus": "manual-recheck",
+      "rerunArtifact": ".superloopy/sessions/hanip-final-quality/evidence/G001-C002.txt",
+      "rerunArtifactHash": "8f248206401b0a6b6436d8e2a2e621512913b0a9e5b6a0b413098fd46c677b68",
+      "floor": "pass",
+      "verdictArtifact": null,
+      "verdictHash": null
+    }
+  ]
+}

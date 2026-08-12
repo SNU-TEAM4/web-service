@@ -1,0 +1,4 @@
+| id | claim | risk | cost | observations | counter | primary | observed | as-of | depends-on | status |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C1 | 새로 채택한 교촌치킨 9개 행은 공식 메뉴 상세의 영양 5항목·100g 기준과 공식 알레르기 표의 현행 메뉴명 매핑을 함께 충족한다. | high | 잘못된 알레르기 추천과 허위 데이터 공개 | official list/detail HTML · collector accepted-row audit · 17-field validator and mirror hash | Compose 수치 모순과 타 브랜드 필드 누락을 counter-brief로 확인하고 교촌의 이름 미매핑 60개 링크는 제외 | https://www.kyochon.com/menu/view.asp?cg=2&id=30164 | 2026-08-11 | collected 2026-08-11 | C2 | verified |
+| C2 | 브랜드 폴더의 84px 첫 grid 열보다 86px 이미지 속성이 커서 로고가 텍스트 열을 침범할 수 있다. | normal | 브랜드명·추천 문구 겹침과 가독성 저하 | repo: vercel-app/components/HanipApp.tsx · repo: vercel-app/app/globals.css | 다른 렌더 원인과 모바일 override를 검색했으나 별도 소유자 없음 | vercel-app/app/globals.css | 2026-08-11 | 2026-08-11 | none | verified |
