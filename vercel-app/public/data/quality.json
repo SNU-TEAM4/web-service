@@ -1,81 +1,111 @@
 {
-  "generated_at": "2026-08-11T07:58:23+00:00",
+  "generated_at": "2026-08-12T13:23:50+00:00",
   "status": "pass",
   "summary": {
-    "rows": 640,
-    "brands": 10,
+    "rows": 691,
+    "brands": 11,
     "errors": 0,
     "warnings": 1,
     "duplicate_brand_menu": 0,
-    "verified_rows": 640,
-    "allergen_known_rows": 415,
-    "allergen_known_rate": 0.6484
+    "verified_rows": 691,
+    "allergen_known_rows": 470,
+    "allergen_known_rate": 0.6802,
+    "price_known_rows": 51,
+    "price_known_rate": 0.0738
   },
   "coverage": {
+    "BBQ치킨": {
+      "rows": 51,
+      "allergen_known_rows": 51,
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 51,
+      "price_known_rate": 1.0
+    },
     "KFC": {
       "rows": 17,
       "allergen_known_rows": 17,
-      "allergen_known_rate": 1.0
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "교촌치킨": {
       "rows": 9,
       "allergen_known_rows": 9,
-      "allergen_known_rate": 1.0
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "롯데리아": {
       "rows": 100,
       "allergen_known_rows": 100,
-      "allergen_known_rate": 1.0
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "맥도날드": {
-      "rows": 39,
-      "allergen_known_rows": 39,
-      "allergen_known_rate": 1.0
+      "rows": 37,
+      "allergen_known_rows": 37,
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "배스킨라빈스": {
-      "rows": 31,
-      "allergen_known_rows": 31,
-      "allergen_known_rate": 1.0
+      "rows": 30,
+      "allergen_known_rows": 30,
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "버거킹": {
-      "rows": 210,
-      "allergen_known_rows": 210,
-      "allergen_known_rate": 1.0
+      "rows": 213,
+      "allergen_known_rows": 213,
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "스타벅스": {
       "rows": 192,
       "allergen_known_rows": 0,
-      "allergen_known_rate": 0.0
+      "allergen_known_rate": 0.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "써브웨이": {
       "rows": 25,
       "allergen_known_rows": 0,
-      "allergen_known_rate": 0.0
+      "allergen_known_rate": 0.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "이디야": {
       "rows": 16,
-      "allergen_known_rows": 8,
-      "allergen_known_rate": 0.5
+      "allergen_known_rows": 12,
+      "allergen_known_rate": 0.75,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     },
     "파리바게뜨": {
       "rows": 1,
       "allergen_known_rows": 1,
-      "allergen_known_rate": 1.0
+      "allergen_known_rate": 1.0,
+      "price_known_rows": 0,
+      "price_known_rate": 0.0
     }
   },
   "source_dates": {
     "2026-07-16": 100,
     "2026-07-21": 17,
-    "2026-08-11": 523
+    "2026-08-12": 574
   },
   "source_hosts": {
+    "bbq.co.kr": 51,
     "ediya.com": 16,
-    "www.baskinrobbins.co.kr": 31,
-    "www.burgerking.co.kr": 210,
+    "www.baskinrobbins.co.kr": 30,
+    "www.burgerking.co.kr": 213,
     "www.kfckorea.com": 17,
     "www.kyochon.com": 9,
     "www.lotteeatz.com": 100,
-    "www.mcdonalds.co.kr": 39,
+    "www.mcdonalds.co.kr": 37,
     "www.paris.co.kr": 1,
     "www.starbucks.co.kr": 192,
     "www.subway.co.kr": 25
@@ -90,8 +120,8 @@
   "mirror": {
     "primary": "data/menus.csv",
     "mirror": "vercel-app/public/data/menus.csv",
-    "primary_sha256": "3cee8709c9c82ae42fe22bd535f6d79efeeda69fc698c4f44a2ebcd04223757c",
-    "mirror_sha256": "3cee8709c9c82ae42fe22bd535f6d79efeeda69fc698c4f44a2ebcd04223757c",
+    "primary_sha256": "7e9a78f268fc47e34e69bff1ed281044ff74126822748d83c3599ffadfc88d0e",
+    "mirror_sha256": "7e9a78f268fc47e34e69bff1ed281044ff74126822748d83c3599ffadfc88d0e",
     "identical": true
   }
 }

@@ -14,12 +14,12 @@
 
 ## 현재 범위
 
-- 10개 브랜드, 공식 자료 기반 640개 메뉴(교촌치킨 9개 엄격 매핑 행 포함)
+- 11개 브랜드, 공식 자료 기반 691개 메뉴(BBQ치킨 51개 가격·이미지·알레르기 엄격 매핑 포함)
 - 알레르기 15종 필터와 정보 미표기 행의 보수적 제외
 - 칼로리·단백질·나트륨 조건, 데이터 순서가 바뀌어도 유지되는 장바구니 영양 합계
-- 메뉴 수·알레르기 확인률·단백질 중앙값·나트륨 중앙값의 인터랙티브 브랜드 비교와 정확값 표
+- 영양 프리셋·실시간 메뉴 스포트라이트, 4개 브랜드 지표와 메뉴별 칼로리×단백질 분포를 오가는 인터랙티브 비교
 - 메뉴별 공식 출처·기준일, 브랜드별 알레르기 확인율, CI 품질 요약 표시
-- 카카오맵 기반 장소·주변 매장 탐색(환경변수 필요)
+- 키 없이도 보이는 OpenStreetMap 위치 미리보기와 GPS, 카카오 키 연결 시 장소·주변 매장 탐색
 - Apple Korea의 타이포·여백·표면 대비를 참고한 Vercel UI(Apple 자산·카피 미사용)
 
 의학적 처방 서비스가 아닙니다. 제품 구성과 교차접촉 가능성은 바뀔 수 있으므로 심한 알레르기가 있다면 주문 전에 공식 원문과 매장에 재확인해야 합니다.
@@ -65,6 +65,6 @@ Pull request와 `main` push에서 다음 항목을 자동 확인합니다.
 | 표면 | 상태 | 검증 범위 |
 |---|---|---|
 | Streamlit | 실제 공개 배포 확인 | 현재 Production은 main 기준 631개 메뉴 표시 확인 |
-| Next.js | Vercel Git 연결·배포 완료 | [Production](https://web-service-snu.vercel.app)과 PR Preview 연결, 로컬 최신본 640개·10브랜드 Chrome 상호작용 확인. 카카오 키는 별도 설정 필요 |
+| Next.js | Vercel Git 연결·배포 완료 | [Production](https://web-service-snu.vercel.app)과 PR Preview 연결, 로컬 최신본 691개·11브랜드 Chrome 상호작용 확인. 카카오 장소·매장 검색 키는 별도 설정 필요 |
 
-Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 GitHub 저장소를 Import하고 Root Directory를 `vercel-app`으로 지정해 배포했습니다. 2026-08-11 현재 개선 브랜치의 PR Preview가 Chrome에서 공개 접근되는 것을 확인했으며, Production 반영은 PR 병합 뒤에 이뤄집니다. 카카오 기능을 활성화하려면 `.env.example`의 두 키와 배포 도메인을 등록해야 합니다. 배포 후 `/api/health`에서 앱과 키 설정 여부를 확인합니다.
+Streamlit Community Cloud에서는 main file path를 `app.py`로 지정합니다. Next.js는 Vercel에서 GitHub 저장소를 Import하고 Root Directory를 `vercel-app`으로 지정해 배포했습니다. 2026-08-11 현재 개선 브랜치의 PR Preview가 Chrome에서 공개 접근되는 것을 확인했으며, Production 반영은 PR 병합 뒤에 이뤄집니다. 위치 미리보기와 GPS는 키 없이 사용할 수 있고, 카카오 장소·매장 검색을 활성화하려면 `.env.example`의 두 키와 배포 도메인을 등록해야 합니다. 배포 후 `/api/health`에서 앱과 키 설정 여부를 확인합니다.

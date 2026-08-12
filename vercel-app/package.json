@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:menu-images": "node scripts/validate-menu-images.mjs"
   },
   "dependencies": {
     "@types/papaparse": "^5.3.16",
@@ -15,7 +16,8 @@
     "papaparse": "^5.4.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -16,11 +16,17 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
+  const javascriptKey = process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY;
+
+  const latitudeSpan = Math.max(.018, radiusKm * .012);
+  const longitudeSpan = Math.max(.024, radiusKm * .016);
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${center.lon - longitudeSpan},${center.lat - latitudeSpan},${center.lon + longitudeSpan},${center.lat + latitudeSpan}`)}&layer=mapnik&marker=${encodeURIComponent(`${center.lat},${center.lon}`)}`;
+  const kakaoMapLink = `https://map.kakao.com/link/map/${encodeURIComponent(`${center.lat},${center.lon}`)}`;
 
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY;
-    if (!key || !mapRef.current) return;
+    if (!javascriptKey || !mapRef.current) return;
     let disposed = false;
+    let timeout: number | null = null;
     setStatus("loading"); setError("");
     const fail = () => {
       if (disposed) return;
@@ -78,12 +84,13 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
               opened = new kakao.maps.CustomOverlay({ map, position: storePosition, content: card, yAnchor: 1.25, zIndex: 10 });
             };
           });
+          if (timeout !== null) window.clearTimeout(timeout);
           setStatus("ready");
         } catch { fail(); }
       });
     };
 
-    const timeout = window.setTimeout(fail, 10000);
+    timeout = window.setTimeout(fail, 10000);
     let script: HTMLScriptElement | null = null;
     if (window.kakao?.maps) draw();
     else {
@@ -96,7 +103,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
       else {
         script = document.createElement("script");
         script.dataset.kakaoMap = "true";
-        script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false`;
+        script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${javascriptKey}&autoload=false`;
         script.onload = draw;
         script.onerror = fail;
         document.head.appendChild(script);
@@ -104,12 +111,16 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
     }
     return () => {
       disposed = true;
-      window.clearTimeout(timeout);
+      if (timeout !== null) window.clearTimeout(timeout);
       script?.removeEventListener("load", draw);
       script?.removeEventListener("error", fail);
     };
-  }, [center, radiusKm, stores]);
+  }, [center, javascriptKey, radiusKm, stores]);
 
-  if (!process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY) return <div className="map-empty map-sdk-error" role="alert"><b>지도 렌더링 설정이 필요합니다.</b><span>Vercel의 NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY와 카카오 JavaScript SDK 도메인을 확인해 주세요. 매장 목록은 REST API가 연결되면 계속 사용할 수 있습니다.</span></div>;
+  if (!javascriptKey) return <div className="map-stage map-fallback-stage">
+    <iframe className="osm-map" title="선택 위치 OpenStreetMap 대체 지도" src={osmEmbedUrl} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
+    <div className="map-provider-badge"><b>OpenStreetMap 대체 지도</b><span>Kakao JavaScript 키 연결 전에도 위치를 확인할 수 있습니다.</span></div>
+    <div className="map-provider-links"><a href={kakaoMapLink}>카카오맵에서 이 위치 열기 →</a><a href="https://www.openstreetmap.org/copyright">지도 저작권</a></div>
+  </div>;
   return <div className="map-stage"><div ref={mapRef} className="kakao-map" role="region" aria-label="선택 위치와 주변 프랜차이즈 매장 지도" />{status === "loading" && <div className="map-loading" role="status">카카오 지도를 불러오는 중입니다…</div>}{status === "error" && <div className="map-sdk-error" role="alert"><b>지도를 표시하지 못했습니다.</b><span>{error}</span></div>}</div>;
 }

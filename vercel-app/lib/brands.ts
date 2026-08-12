@@ -8,6 +8,7 @@ export const BRAND_LOGOS: Record<string, string> = {
   "이디야": "/logos/ediya.png",
   "배스킨라빈스": "/logos/baskinrobbins.png",
   "파리바게뜨": "/logos/parisbaguette.png"
+  ,"BBQ치킨": "/logos/bbq.svg"
 };
 
 export const ALLERGENS = [

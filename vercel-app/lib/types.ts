@@ -17,6 +17,11 @@ export type Menu = {
   allergySourceUrl: string;
   collectedAt: string;
   collectionMethod: string;
+  priceKrw: number | null;
+  priceType: "official_online_reference" | "unavailable";
+  priceSourceUrl: string;
+  priceSourceDate: string;
+  priceNote: string;
 };
 
 export type QualityReport = {
@@ -31,8 +36,10 @@ export type QualityReport = {
     verified_rows: number;
     allergen_known_rows: number;
     allergen_known_rate: number;
+    price_known_rows: number;
+    price_known_rate: number;
   };
-  coverage: Record<string, { rows: number; allergen_known_rows: number; allergen_known_rate: number }>;
+  coverage: Record<string, { rows: number; allergen_known_rows: number; allergen_known_rate: number; price_known_rows: number; price_known_rate: number }>;
   source_dates: Record<string, number>;
   source_hosts: Record<string, number>;
   warnings: Array<{ code: string; brand?: string; rows?: number }>;

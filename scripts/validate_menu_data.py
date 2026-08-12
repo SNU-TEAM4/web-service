@@ -17,6 +17,7 @@ REQUIRED_COLUMNS = [
     "brand", "menu", "category", "calories", "protein", "fat", "carbs", "sodium",
     "allergens", "source_url", "source_date", "source_date_type", "verified",
     "allergen_known", "allergy_source_url", "collected_at", "collection_method",
+    "price_krw", "price_type", "price_source_url", "price_source_date", "price_note",
 ]
 NUMERIC_LIMITS = {
     "calories": (0.0, 2500.0),
@@ -31,6 +32,7 @@ ALLOWED_ALLERGENS = {
 }
 ALLOWED_DATE_TYPES = {"official_updated", "official_published", "official_version", "collected_on"}
 ALLOWED_METHODS = {"official_api", "official_html", "manual_official_image"}
+ALLOWED_PRICE_TYPES = {"official_online_reference", "unavailable"}
 BOOLEAN_VALUES = {"true", "false"}
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -61,6 +63,8 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
     known_counts: Counter[str] = Counter()
     verified_rows = 0
     allergen_known_rows = 0
+    price_known_rows = 0
+    price_known_counts: Counter[str] = Counter()
     source_dates: Counter[str] = Counter()
     numeric_ranges: dict[str, list[float]] = {field: [] for field in NUMERIC_LIMITS}
     source_hosts: Counter[str] = Counter()
@@ -140,6 +144,32 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
         if unknown_tokens:
             errors.append({"code": "unknown_allergen_tokens", "tokens": unknown_tokens, **label})
 
+        price_type = row.get("price_type", "")
+        if price_type not in ALLOWED_PRICE_TYPES:
+            errors.append({"code": "invalid_price_type", "value": price_type, **label})
+        if price_type == "official_online_reference":
+            try:
+                price = float(row.get("price_krw", ""))
+                if not 100 <= price <= 200_000 or not price.is_integer():
+                    raise ValueError
+            except (TypeError, ValueError):
+                errors.append({"code": "invalid_price_krw", "value": row.get("price_krw", ""), **label})
+            if not _is_https(row.get("price_source_url", "")):
+                errors.append({"code": "invalid_https_url", "field": "price_source_url", "value": row.get("price_source_url", ""), **label})
+            price_date = row.get("price_source_date", "")
+            try:
+                parsed_price_date = date.fromisoformat(price_date)
+                if not ISO_DATE.fullmatch(price_date) or parsed_price_date > date.today():
+                    raise ValueError
+            except ValueError:
+                errors.append({"code": "invalid_price_source_date", "value": price_date, **label})
+            if not row.get("price_note", ""):
+                errors.append({"code": "missing_price_note", **label})
+            price_known_rows += 1
+            price_known_counts[brand] += 1
+        elif any(row.get(field, "") for field in ("price_krw", "price_source_url", "price_source_date")):
+            errors.append({"code": "unavailable_price_has_value", **label})
+
     for brand, count in brand_counts.items():
         if count < 5:
             warnings.append({"code": "low_brand_coverage", "brand": brand, "rows": count})
@@ -157,12 +187,16 @@ def validate_rows(rows: Iterable[Mapping[str, Any]], columns: Iterable[str]) -> 
             "verified_rows": verified_rows,
             "allergen_known_rows": allergen_known_rows,
             "allergen_known_rate": round(allergen_known_rows / len(records), 4) if records else 0,
+            "price_known_rows": price_known_rows,
+            "price_known_rate": round(price_known_rows / len(records), 4) if records else 0,
         },
         "coverage": {
             brand: {
                 "rows": count,
                 "allergen_known_rows": known_counts[brand],
                 "allergen_known_rate": round(known_counts[brand] / count, 4) if count else 0,
+                "price_known_rows": price_known_counts[brand],
+                "price_known_rate": round(price_known_counts[brand] / count, 4) if count else 0,
             }
             for brand, count in sorted(brand_counts.items()) if brand
         },

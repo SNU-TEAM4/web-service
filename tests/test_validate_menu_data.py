@@ -20,6 +20,8 @@ def valid_row(**overrides: object) -> dict[str, object]:
         "verified": True, "allergen_known": True,
         "allergy_source_url": "https://example.com/allergy",
         "collected_at": "2026-08-11T03:00:00+00:00", "collection_method": "official_html",
+        "price_krw": "", "price_type": "unavailable", "price_source_url": "",
+        "price_source_date": "", "price_note": "공식 단일 가격 미확인",
     }
     row.update(overrides)
     return row
@@ -34,6 +36,19 @@ class ValidateMenuDataTests(unittest.TestCase):
         self.assertEqual(report["summary"]["verified_rows"], 5)
         self.assertEqual(report["summary"]["allergen_known_rows"], 5)
         self.assertEqual(report["summary"]["allergen_known_rate"], 1)
+        self.assertEqual(report["summary"]["price_known_rows"], 0)
+
+    def test_official_reference_price_is_validated(self) -> None:
+        rows = [valid_row(
+            menu=f"메뉴 {index}", price_krw=23000,
+            price_type="official_online_reference",
+            price_source_url="https://example.com/order/menu",
+            price_source_date="2026-08-12",
+            price_note="공식 온라인 주문 기준 · 매장별 변동 가능",
+        ) for index in range(5)]
+        report = validate_rows(rows, REQUIRED_COLUMNS)
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["summary"]["price_known_rows"], 5)
 
     def test_public_report_excludes_row_level_errors(self) -> None:
         report = validate_rows([valid_row(menu=f"메뉴 {index}") for index in range(5)], REQUIRED_COLUMNS)

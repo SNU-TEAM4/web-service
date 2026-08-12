@@ -1,4 +1,4 @@
-"""10개 브랜드의 공식 공개 자료를 수집·정제하고 두 웹 앱의 CSV를 함께 갱신한다."""
+"""11개 브랜드의 공식 공개 자료를 수집·정제하고 두 웹 앱의 CSV를 함께 갱신한다."""
 from __future__ import annotations
 
 import re
@@ -25,6 +25,8 @@ EDIYA_PAGES = {
 BASKIN_LIST = "https://www.baskinrobbins.co.kr/menu/list.php?top=A"
 PARIS_LIST = "https://www.paris.co.kr/products/"
 KYOCHON_LIST = "https://www.kyochon.com/menu/chicken.asp"
+BBQ_CATEGORY_API = "https://bbq.co.kr/api/delivery/menu/category"
+BBQ_MENU_API = "https://bbq.co.kr/api/delivery/menu/{category_id}"
 HTML_PARSER = "lxml" if find_spec("lxml") else "html.parser"
 
 
@@ -34,7 +36,7 @@ def number(value) -> float | None:
 
 
 def normalize_allergens(value: str) -> str:
-    value = str(value).replace("난류", "계란").replace("달걀", "계란")
+    value = str(value).replace("난류", "계란").replace("알류", "계란").replace("달걀", "계란")
     found = []
     for item in ["계란", "우유", "대두", "밀", "땅콩", "새우", "게", "돼지고기", "쇠고기", "닭고기", "토마토", "아황산류", "오징어", "조개류", "복숭아"]:
         if item in value and item not in found:
@@ -408,16 +410,76 @@ def kyochon() -> list[dict]:
     return result
 
 
+def bbq() -> list[dict]:
+    """BBQ 공식 주문 API에서 가격·100g 영양·알레르기가 모두 있는 행만 채택한다."""
+    session = requests.Session()
+    session.headers.update({"User-Agent": "HanipAnsimOfficialData/1.0 (+class project)"})
+    category_response = session.get(BBQ_CATEGORY_API, timeout=30)
+    category_response.raise_for_status()
+    categories = category_response.json()
+    category_rank = {
+        "치킨": 0, "피자&버거": 1, "사이드": 2, "음료": 3,
+        "소스&시즈닝&무": 4, "세트": 5, "추천": 6, "필릭스 PICK": 7,
+    }
+    selected: dict[int, tuple[dict, str, int]] = {}
+    for category in categories:
+        category_id = int(category["id"])
+        category_name = str(category.get("categoryName") or "공식 메뉴")
+        response = session.get(BBQ_MENU_API.format(category_id=category_id), timeout=30)
+        response.raise_for_status()
+        for row in response.json():
+            menu_id = int(row.get("id") or 0)
+            if not menu_id:
+                continue
+            rank = category_rank.get(category_name, 99)
+            if menu_id not in selected or rank < selected[menu_id][2]:
+                selected[menu_id] = (row, category_name, rank)
+
+    collected_on = date.today().isoformat()
+    result = []
+    for row, category_name, _rank in selected.values():
+        nutrient = row.get("nutrient") or {}
+        values = {
+            "calories": number(nutrient.get("calorie")),
+            "carbs": number(nutrient.get("sugars")),
+            "protein": number(nutrient.get("protein")),
+            "fat": number(nutrient.get("saturatedFat")),
+            "sodium": number(nutrient.get("natrium")),
+        }
+        price = number(row.get("menuPrice"))
+        allergy = str(row.get("allergy") or "").strip(" ,")
+        image_url = str(row.get("menuImageUrl") or "")
+        source_url = f"https://bbq.co.kr/products/{int(row['id'])}"
+        if (
+            not row.get("menuName") or not allergy or price is None or price <= 0
+            or not image_url.startswith("https://")
+            or any(value is None for value in values.values())
+            or values["calories"] <= 0 or values["calories"] > 900
+        ):
+            continue
+        result.append({
+            "brand": "BBQ치킨", "menu": str(row["menuName"]).strip(),
+            "category": f"{category_name} · 공식 100g 기준", **values,
+            "allergens": normalize_allergens(allergy), "source_url": source_url,
+            "source_date": collected_on, "verified": True, "allergen_known": True,
+            "allergy_source_url": source_url,
+            "price_krw": int(price), "price_type": "official_online_reference",
+            "price_source_url": source_url, "price_source_date": collected_on,
+            "price_note": "공식 온라인 주문 기준 · 매장·지역·채널에 따라 변동 가능",
+        })
+    return result
+
+
 if __name__ == "__main__":
     frame = pd.DataFrame(mcdonalds() + lotteria() + burgerking() + starbucks() + kfc() + subway()
-                         + ediya() + baskin_robbins() + paris_baguette() + kyochon())
+                         + ediya() + baskin_robbins() + paris_baguette() + kyochon() + bbq())
     frame = frame.dropna(subset=["calories", "protein", "fat", "carbs", "sodium"]).drop_duplicates(["brand", "menu"])
     frame["source_date"] = frame["source_date"].map(normalize_source_date)
     frame["source_date_type"] = frame["brand"].map({
         "맥도날드": "official_updated", "롯데리아": "official_published", "KFC": "official_version",
     }).fillna("collected_on")
     frame["collection_method"] = frame["brand"].map({
-        "맥도날드": "official_api", "버거킹": "official_api", "스타벅스": "official_api",
+        "맥도날드": "official_api", "버거킹": "official_api", "스타벅스": "official_api", "BBQ치킨": "official_api",
         "KFC": "manual_official_image",
     }).fillna("official_html")
     frame["collected_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -425,6 +487,18 @@ if __name__ == "__main__":
     frame["allergy_source_url"] = frame["allergy_source_url"].fillna("")
     known_without_url = frame["allergen_known"].astype(bool) & frame["allergy_source_url"].eq("")
     frame.loc[known_without_url, "allergy_source_url"] = frame.loc[known_without_url, "source_url"]
+    price_defaults = {
+        "price_krw": "", "price_type": "unavailable", "price_source_url": "",
+        "price_source_date": "", "price_note": "공식 단일 가격 미확인",
+    }
+    for field, default in price_defaults.items():
+        if field not in frame:
+            frame[field] = default
+        else:
+            frame[field] = frame[field].fillna(default)
+    frame["price_krw"] = frame["price_krw"].map(
+        lambda value: int(float(value)) if str(value).strip() else ""
+    )
     frame = frame[REQUIRED_COLUMNS]
 
     report = validate_rows(frame.to_dict(orient="records"), frame.columns)

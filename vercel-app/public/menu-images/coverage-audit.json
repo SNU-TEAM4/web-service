@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "totalMenus": 691,
+  "matchedMenus": 691,
+  "missingMenus": 0,
+  "candidateCount": 860,
+  "matchMethods": {
+    "normalized_exact": 475,
+    "official_family_representative": 39,
+    "official_catalog_representative": 175,
+    "high_confidence_name": 2
+  },
+  "byBrand": {
+    "맥도날드": {
+      "total": 37,
+      "matched": 37,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 18,
+        "official_family_representative": 16,
+        "official_catalog_representative": 3
+      }
+    },
+    "롯데리아": {
+      "total": 100,
+      "matched": 100,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 47,
+        "official_catalog_representative": 33,
+        "official_family_representative": 20
+      }
+    },
+    "버거킹": {
+      "total": 213,
+      "matched": 213,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 86,
+        "official_catalog_representative": 124,
+        "official_family_representative": 3
+      }
+    },
+    "스타벅스": {
+      "total": 192,
+      "matched": 192,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 192
+      }
+    },
+    "KFC": {
+      "total": 17,
+      "matched": 17,
+      "missing": 0,
+      "matchMethods": {
+        "official_catalog_representative": 12,
+        "high_confidence_name": 2,
+        "normalized_exact": 3
+      }
+    },
+    "써브웨이": {
+      "total": 25,
+      "matched": 25,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 25
+      }
+    },
+    "이디야": {
+      "total": 16,
+      "matched": 16,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 16
+      }
+    },
+    "배스킨라빈스": {
+      "total": 30,
+      "matched": 30,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 30
+      }
+    },
+    "파리바게뜨": {
+      "total": 1,
+      "matched": 1,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 1
+      }
+    },
+    "교촌치킨": {
+      "total": 9,
+      "matched": 9,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 6,
+        "official_catalog_representative": 3
+      }
+    },
+    "BBQ치킨": {
+      "total": 51,
+      "matched": 51,
+      "missing": 0,
+      "matchMethods": {
+        "normalized_exact": 51
+      }
+    }
+  },
+  "collectionErrors": [],
+  "failures": []
+}
