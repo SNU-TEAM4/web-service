@@ -35,3 +35,16 @@ export type Store = Place & {
   phone?: string;
   placeUrl?: string;
 };
+
+export type PriceRecord = {
+  id: string;
+  brand: string;
+  menu: string;
+  channel: string;
+  storeName: string;
+  price: number;
+  checkedAt: string;
+  sourceUrl: string;
+  memo: string;
+  updatedAt: string;
+};
