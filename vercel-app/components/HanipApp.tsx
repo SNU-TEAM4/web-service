@@ -6,7 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Check, ChevronLeft, ChevronRight, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_LOGOS } from "@/lib/brands";
-import type { Menu, Place, Store } from "@/lib/types";
+import { mergeAdminPrices } from "@/lib/merge-admin-prices";
+import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
 
 type Tab = "menus" | "cart" | "map" | "compare" | "about";
@@ -132,7 +133,12 @@ export default function HanipApp() {
   const [drinkChoice, setDrinkChoice] = useState("코카 콜라® 미디엄");
 
   useEffect(() => {
-    fetch("/data/menus.csv").then((response) => response.text()).then((csv) => {
+    Promise.all([
+      fetch("/data/menus.csv").then((response) => response.text()),
+      fetch("/api/prices", { cache: "no-store" })
+        .then((response) => response.ok ? response.json() as Promise<PriceRecord[]> : [])
+        .catch(() => [] as PriceRecord[]),
+    ]).then(([csv, managedPrices]) => {
       const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true }).data;
       const data = parsed.map((row, id) => ({
         id, brand: row.brand, menu: row.menu, category: row.category,
@@ -145,8 +151,9 @@ export default function HanipApp() {
         priceSourceUrl: row.price_source_url || "", priceCheckedAt: row.price_checked_at || "",
         mediaSourceUrl: row.media_source_url || "", mediaCheckedAt: row.media_checked_at || ""
       }));
-      setMenus(data);
-      setBrands(Array.from(new Set(data.map((menu) => menu.brand))));
+      const merged = mergeAdminPrices(data, managedPrices);
+      setMenus(merged);
+      setBrands(Array.from(new Set(merged.map((menu) => menu.brand))));
     });
     const saved = localStorage.getItem("hanip-cart");
     if (saved) {
