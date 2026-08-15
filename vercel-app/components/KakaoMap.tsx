@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { BRAND_LOGOS } from "@/lib/brands";
+import { BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
 import type { Store } from "@/lib/types";
 
 declare global {
@@ -9,8 +9,6 @@ declare global {
 }
 
 type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[] };
-const PIN_COLORS: Record<string, string> = { "맥도날드": "#ffcc00", "롯데리아": "#f00028", "버거킹": "#ed7800", "스타벅스": "#00754a", "KFC": "#c8102e", "써브웨이": "#008c45", "이디야": "#172f70", "배스킨라빈스": "#f45b9d", "파리바게뜨": "#112e67" };
-
 export default function KakaoMap({ center, radiusKm, stores }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +36,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         const pin = document.createElement("button");
         pin.className = "store-pin";
         pin.dataset.brand = store.brand;
-        pin.style.setProperty("--pin-color", PIN_COLORS[store.brand] || "#287653");
+        pin.style.setProperty("--pin-color", BRAND_COLORS[store.brand] || "#287653");
         const positionKey = `${store.lat.toFixed(3)}:${store.lon.toFixed(3)}`;
         const positionOrder = nearbyPositions.get(positionKey) || 0;
         nearbyPositions.set(positionKey, positionOrder + 1);
@@ -54,7 +52,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
         shape.setAttribute("d", "M30 2C14.5 2 3 13.8 3 29.5C3 46.5 18.8 59.4 30 70C41.2 59.4 57 46.5 57 29.5C57 13.8 45.5 2 30 2Z");
         shape.setAttribute("fill", "white");
-        shape.setAttribute("stroke", PIN_COLORS[store.brand] || "#287653");
+        shape.setAttribute("stroke", BRAND_COLORS[store.brand] || "#287653");
         shape.setAttribute("stroke-width", "3");
         const logo = document.createElementNS("http://www.w3.org/2000/svg", "image");
         logo.setAttribute("href", BRAND_LOGOS[store.brand] || "");

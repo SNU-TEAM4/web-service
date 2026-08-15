@@ -4,8 +4,8 @@ import Image from "next/image";
 import Papa from "papaparse";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Check, ChevronLeft, ChevronRight, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_LOGOS } from "@/lib/brands";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
 import { mergeAdminPrices } from "@/lib/merge-admin-prices";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
@@ -351,12 +351,17 @@ function CartPanel({ items, cart, setCart, totals, targetCalories, allergens }: 
   </section>;
 }
 
+function BrandAxisTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value?: string } }) {
+  const brand = payload?.value || "";
+  return <g transform={`translate(${x},${y})`}><text textAnchor="middle" fill="#626b65" fontSize={12}>{brand === "배스킨라빈스" ? <><tspan x="0" dy="16">배스킨</tspan><tspan x="0" dy="15">라빈스</tspan></> : <tspan x="0" dy="16">{brand}</tspan>}</text></g>;
+}
+
 function ComparePanel({ menus, brands, allergens }: { menus: Menu[]; brands: string[]; allergens: string[] }) {
   const selectableMenus = allergens.length
     ? menus.filter((menu) => !allergens.some((allergen) => menu.allergens.includes(allergen)))
     : menus;
   const data = brands.map((brand) => ({ brand, count: selectableMenus.filter((menu) => menu.brand === brand).length })).filter((row) => row.count);
-  return <section className="panel"><h2>브랜드별 선택 가능한 메뉴</h2><p>{allergens.length ? `선택한 알레르기(${allergens.join(", ")})가 포함된 메뉴를 제외한 결과예요.` : "현재 영양 조건을 만족하는 메뉴 수예요."}</p><div className="chart"><ResponsiveContainer width="100%" height={360}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="brand" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" name="메뉴 수" fill="#287653" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer></div></section>;
+  return <section className="panel"><h2>브랜드별 선택 가능한 메뉴</h2><p>{allergens.length ? `선택한 알레르기(${allergens.join(", ")})가 포함된 메뉴를 제외한 결과예요.` : "현재 영양 조건을 만족하는 메뉴 수예요."}</p><div className="chart"><ResponsiveContainer width="100%" height={370}><BarChart data={data} margin={{ bottom: 12 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="brand" interval={0} height={48} tick={<BrandAxisTick />} /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" name="메뉴 수" radius={[8, 8, 0, 0]}>{data.map((row) => <Cell key={row.brand} fill={BRAND_COLORS[row.brand] || "#287653"} />)}</Bar></BarChart></ResponsiveContainer></div></section>;
 }
 
 const DETAIL_COLORS = ["#287653", "#2e7bd8", "#ef6552", "#a268d5"];

@@ -10,6 +10,19 @@ export const BRAND_LOGOS: Record<string, string> = {
   "파리바게뜨": "/logos/parisbaguette.png"
 };
 
+// 지도 핀과 차트에서 같은 브랜드 대표색을 사용합니다.
+export const BRAND_COLORS: Record<string, string> = {
+  "맥도날드": "#ffcc00",
+  "롯데리아": "#f00028",
+  "버거킹": "#ed7800",
+  "스타벅스": "#00754a",
+  "KFC": "#c8102e",
+  "써브웨이": "#008c45",
+  "이디야": "#172f70",
+  "배스킨라빈스": "#f45b9d",
+  "파리바게뜨": "#112e67"
+};
+
 // 국내 식품 알레르기 의무표시 대상을 앱 데이터의 표기 방식에 맞춰 정규화했습니다.
 export const ALLERGENS = [
   "계란", "우유", "메밀", "땅콩", "대두", "밀", "고등어", "게", "새우",
