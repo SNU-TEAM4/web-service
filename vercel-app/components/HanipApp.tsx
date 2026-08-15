@@ -327,7 +327,7 @@ export default function HanipApp() {
 
         {tab === "cart" && <div className="meal-workspace"><CartPanel items={cartItems} cart={cart} setCart={setCart} totals={totals} targetCalories={profileOn ? targetCalories : 2000} allergens={allergens} /><DetailComparePanel menus={menus} selection={detailSelection} setSelection={setDetailSelection} cartIds={cartMenuIds} /></div>}
         {tab === "map" && <MapPanel brands={brands} />}
-        {tab === "compare" && <ComparePanel menus={filtered} brands={brandOptions} />}
+        {tab === "compare" && <ComparePanel menus={filtered} brands={brandOptions} allergens={allergens} />}
         {tab === "about" && <section className="panel prose"><h2>알레르기 표시 기준과 데이터 안내</h2><div className="law-card"><b>대한민국 · 의무표시</b><p><strong>근거법령</strong> 식품 등의 표시·광고에 관한 법률 시행규칙</p><p><strong>소관기관</strong> 식품의약품안전처</p><p><strong>표시 대상</strong> 알류(가금류), 우유, 메밀, 땅콩, 대두, 밀, 고등어, 게, 새우, 돼지고기, 복숭아, 토마토, 아황산류(최종제품 이산화황 10mg/kg 이상), 호두, 닭고기, 쇠고기, 오징어, 조개류(굴·전복·홍합 포함), 잣 및 이들 식품에서 추출한 성분을 원재료로 사용한 식품(젤라틴·새우엑기스 등)</p><p><strong>혼입 우려 표시 예시</strong> “○○ 혼입 가능”</p></div><p>영양·알레르기 정보는 각 브랜드 공식 자료를 기반으로 정리했습니다. ‘표시 알레르기 없음’은 알레르기 위험이 절대 없다는 뜻이 아닙니다. 교차오염 가능성과 원재료 변경이 있으므로 심한 알레르기가 있다면 반드시 주문 전 매장에 확인하세요.</p><p>매장 위치·검색은 카카오맵과 카카오 로컬 API를 사용합니다. 가격은 매장·배달 채널별로 달라질 수 있어 실시간 가격으로 제공하지 않습니다.</p></section>}
       </section>
     </main>
@@ -351,9 +351,12 @@ function CartPanel({ items, cart, setCart, totals, targetCalories, allergens }: 
   </section>;
 }
 
-function ComparePanel({ menus, brands }: { menus: Menu[]; brands: string[] }) {
-  const data = brands.map((brand) => ({ brand, count: menus.filter((menu) => menu.brand === brand).length })).filter((row) => row.count);
-  return <section className="panel"><h2>브랜드별 선택 가능한 메뉴</h2><div className="chart"><ResponsiveContainer width="100%" height={360}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="brand" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" name="메뉴 수" fill="#287653" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer></div></section>;
+function ComparePanel({ menus, brands, allergens }: { menus: Menu[]; brands: string[]; allergens: string[] }) {
+  const selectableMenus = allergens.length
+    ? menus.filter((menu) => !allergens.some((allergen) => menu.allergens.includes(allergen)))
+    : menus;
+  const data = brands.map((brand) => ({ brand, count: selectableMenus.filter((menu) => menu.brand === brand).length })).filter((row) => row.count);
+  return <section className="panel"><h2>브랜드별 선택 가능한 메뉴</h2><p>{allergens.length ? `선택한 알레르기(${allergens.join(", ")})가 포함된 메뉴를 제외한 결과예요.` : "현재 영양 조건을 만족하는 메뉴 수예요."}</p><div className="chart"><ResponsiveContainer width="100%" height={360}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="brand" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" name="메뉴 수" fill="#287653" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer></div></section>;
 }
 
 const DETAIL_COLORS = ["#287653", "#2e7bd8", "#ef6552", "#a268d5"];
