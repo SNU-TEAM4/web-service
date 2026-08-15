@@ -12,6 +12,23 @@ import KakaoMap from "./KakaoMap";
 
 type Tab = "menus" | "cart" | "map" | "compare" | "about";
 type Cart = Record<number, number>;
+
+function normalizeCart(value: unknown): Cart {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.entries(value as Record<string, unknown>).reduce<Cart>((next, [rawId, rawValue]) => {
+    const id = Number(rawId);
+    const legacyQuantity = rawValue && typeof rawValue === "object" && "quantity" in rawValue
+      ? (rawValue as { quantity?: unknown }).quantity
+      : rawValue;
+    const quantity = Number(legacyQuantity);
+
+    if (Number.isInteger(id) && Number.isFinite(quantity) && quantity > 0) {
+      next[id] = Math.min(10, Math.floor(quantity));
+    }
+    return next;
+  }, {});
+}
 type SafetyMode = "all" | "danger" | "safe";
 type SortMode = "recommended" | "protein" | "calories" | "sodium";
 
@@ -152,7 +169,15 @@ export default function HanipApp() {
       setBrands(Array.from(new Set(merged.map((menu) => menu.brand))));
     });
     const saved = localStorage.getItem("hanip-cart");
-    if (saved) setCart(JSON.parse(saved));
+    if (saved) {
+      try {
+        const normalized = normalizeCart(JSON.parse(saved));
+        setCart(normalized);
+        localStorage.setItem("hanip-cart", JSON.stringify(normalized));
+      } catch {
+        localStorage.removeItem("hanip-cart");
+      }
+    }
   }, []);
 
   useEffect(() => { localStorage.setItem("hanip-cart", JSON.stringify(cart)); }, [cart]);
