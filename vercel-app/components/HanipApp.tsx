@@ -404,15 +404,15 @@ export default function HanipApp() {
       <section className="trust-shell">
         <Reveal><section className="data-trust" id="trust" aria-labelledby="trust-title">
           <div className="trust-copy">
-            <span>{tr(language, "데이터를 숨기지 않고 보여드립니다", "SEE WHAT DATA IS AVAILABLE")}</span>
-            <h2 id="trust-title">{tr(language, "확인한 정보와", "Verified and pending data,")}<br />{tr(language, "확인 중인 정보를 구분합니다.", "clearly separated.")}</h2>
-            <p>{tr(language, "확보율은 현재 불러온 메뉴 데이터를 기준으로 자동 계산됩니다. 가격은 실시간 매장가가 아니라 표시된 기준일의 요기요 가격이며, 출처 자료명과 실제 연결 가능한 링크는 구분합니다.", "Coverage is calculated from the currently loaded menu data. Prices are dated Yogiyo reference prices, not live in-store prices. Source labels and direct source links are shown separately.")}</p>
-            <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 자세히 보기", "View data standards")} <ChevronRight size={16} /></button>
+            <span>{tr(language, "한입안심의 데이터 원칙", "OUR DATA PRINCIPLES")}</span>
+            <h2 id="trust-title">{tr(language, "확인된 만큼만,", "Only what we've verified,")}<br />{tr(language, "정확하게 보여드려요.", "shown clearly and accurately.")}</h2>
+            <p>{tr(language, "공식 자료로 확인된 정보와 아직 확인 중인 정보를 구분해 표시합니다. 가격은 실시간 매장가가 아닌 기준일의 요기요 가격이며, 확보율은 현재 등록된 메뉴를 기준으로 자동 계산됩니다.", "Information verified from official sources is shown separately from information still under review. Prices are dated Yogiyo reference prices, not live in-store prices, and coverage is calculated automatically from currently registered menus.")}</p>
+            <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 확인하기", "View data standards")} <ChevronRight size={16} /></button>
           </div>
           <div className="trust-metrics">
-            <CoverageMetric label={tr(language, "출처 자료명 표기", "Named sources")} value={coverage(sourceNamedCount)} detail={`${formatNumber(language, sourceNamedCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "알레르기 상태 확인", "Allergen status known")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "기준 가격 제공", "Reference prices")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
+            <CoverageMetric label={tr(language, "공식 출처 표기율", "Official source coverage")} value={coverage(sourceNamedCount)} detail={`${formatNumber(language, sourceNamedCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
+            <CoverageMetric label={tr(language, "알레르기 정보 확인율", "Allergen information coverage")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
+            <CoverageMetric label={tr(language, "기준 가격 확보율", "Reference price coverage")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
           </div>
         </section></Reveal>
       </section>
