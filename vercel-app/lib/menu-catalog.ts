@@ -1,14 +1,9 @@
 import type { Menu } from "@/lib/types";
 
 const BRAND_ALIASES: Record<string, string> = {
-  "BBQ": "bbq",
   "베스킨라빈스": "배스킨라빈스",
   "서브웨이": "써브웨이",
   "파리바게트": "파리바게뜨",
-  "컴포즈커피": "컴포즈 커피",
-  "반올림피자": "반올림 피자",
-  "멕시카나치킨": "멕시카나 치킨",
-  "후라이드참잘하는집": "후라이드 참 잘하는 집",
 };
 
 export function canonicalBrandName(brand: string) {
