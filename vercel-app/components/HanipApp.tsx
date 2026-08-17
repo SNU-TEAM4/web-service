@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Papa from "papaparse";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Check, ChevronLeft, ChevronRight, ExternalLink, Languages, LocateFixed, MapPin, Menu as MenuIcon, RefreshCw, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { ArrowDown, Check, ChevronLeft, ChevronRight, Languages, LocateFixed, MapPin, Menu as MenuIcon, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_DISPLAY_ORDER_BY_CATEGORY, BRAND_LOGOS } from "@/lib/brands";
 import { mergeAdminPrices } from "@/lib/merge-admin-prices";
-import { inferMenuSection, isMealRecommendationCandidate, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
+import { inferMenuSection, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
 import { allergenLabel, categoryLabel, formatNumber, formatPrice, menuSectionLabel, tr, type Language } from "@/lib/i18n";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
@@ -33,24 +33,6 @@ function normalizeCart(value: unknown): Cart {
 }
 type SafetyMode = "all" | "danger" | "safe";
 type SortMode = "recommended" | "protein" | "calories" | "sodium";
-type NutritionPreset = "default" | "light" | "protein" | "sodium" | "custom";
-
-const NUTRITION_PRESETS: Array<{
-  id: Exclude<NutritionPreset, "custom">;
-  title: string;
-  titleEn: string;
-  detail: string;
-  detailEn: string;
-  maxCalories: number;
-  minProtein: number;
-  maxSodium: number;
-}> = [
-  { id: "default", title: "기본 균형", titleEn: "Balanced", detail: "600kcal · 나트륨 1,500mg", detailEn: "600 kcal · Sodium 1,500 mg", maxCalories: 600, minProtein: 0, maxSodium: 1500 },
-  { id: "light", title: "가벼운 한 끼", titleEn: "Light Meal", detail: "450kcal · 단백질 10g", detailEn: "450 kcal · Protein 10 g", maxCalories: 450, minProtein: 10, maxSodium: 1000 },
-  { id: "protein", title: "고단백 탐색", titleEn: "High Protein", detail: "단백질 20g · 700kcal", detailEn: "Protein 20 g · 700 kcal", maxCalories: 700, minProtein: 20, maxSodium: 1800 },
-  { id: "sodium", title: "저나트륨 우선", titleEn: "Lower Sodium", detail: "나트륨 600mg 이하", detailEn: "Sodium 600 mg or less", maxCalories: 700, minProtein: 0, maxSodium: 600 },
-];
-
 const parseNumber = (value: unknown) => Number(value || 0);
 const hasNumericValue = (value: unknown) => {
   if (value === null || value === undefined) return false;
@@ -58,7 +40,6 @@ const hasNumericValue = (value: unknown) => {
   return normalized !== "" && Number.isFinite(Number(normalized));
 };
 const calorieLabel = (menu: Menu, language: Language) => menu.caloriesKnown ? `${menu.calories.toFixed(0)} kcal` : tr(language, "칼로리 정보 없음", "Calories unavailable");
-const isHttpUrl = (value?: string) => Boolean(value && /^https?:\/\//i.test(value));
 const BRAND_ALIASES: Record<string, string> = {
   "서브웨이": "써브웨이",
   "베스킨라빈스": "배스킨라빈스",
@@ -78,24 +59,6 @@ function compareBrandDisplayOrder(category: string, a: string, b: string) {
   return (aRank < 0 ? Number.MAX_SAFE_INTEGER : aRank) - (bRank < 0 ? Number.MAX_SAFE_INTEGER : bRank)
     || a.localeCompare(b, "ko");
 }
-function interleaveMenusByBrand(menus: Menu[], category: string) {
-  const byBrand = new Map<string, Menu[]>();
-  for (const menu of menus) {
-    const brandMenus = byBrand.get(menu.brand);
-    if (brandMenus) brandMenus.push(menu);
-    else byBrand.set(menu.brand, [menu]);
-  }
-  const orderedBrands = [...byBrand.keys()].sort((a, b) => compareBrandDisplayOrder(category, a, b));
-  const interleaved: Menu[] = [];
-  for (let index = 0; interleaved.length < menus.length; index += 1) {
-    for (const brand of orderedBrands) {
-      const menu = byBrand.get(brand)?.[index];
-      if (menu) interleaved.push(menu);
-    }
-  }
-  return interleaved;
-}
-
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
   return "";
@@ -163,8 +126,6 @@ export default function HanipApp() {
   const [maxCalories, setMaxCalories] = useState(600);
   const [minProtein, setMinProtein] = useState(0);
   const [maxSodium, setMaxSodium] = useState(1500);
-  const [nutritionPreset, setNutritionPreset] = useState<NutritionPreset>("default");
-  const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [profileOn, setProfileOn] = useState(false);
   const [profile, setProfile] = useState({ sex: "여성", age: 25, height: 165, weight: 60, goal: "감량" });
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
@@ -267,16 +228,6 @@ export default function HanipApp() {
     return Math.round(bmr * 1.35 * mealFactor[profile.goal]);
   }, [profile]);
 
-  const applyNutritionPreset = (preset: Exclude<NutritionPreset, "custom">) => {
-    const next = NUTRITION_PRESETS.find((item) => item.id === preset);
-    if (!next) return;
-    setNutritionPreset(preset);
-    setMaxCalories(next.maxCalories);
-    setMinProtein(next.minProtein);
-    setMaxSodium(next.maxSodium);
-    setSpotlightIndex(0);
-  };
-
   const compareMenus = (a: Menu, b: Menu) => {
     if (sortMode === "protein") return b.protein - a.protein;
     if (sortMode === "calories") return Number(b.caloriesKnown) - Number(a.caloriesKnown) || a.calories - b.calories;
@@ -335,22 +286,6 @@ export default function HanipApp() {
   const sourceNamedCount = dataMenus.filter((menu) => menu.sourceUrl?.trim()).length;
   const pricedCount = dataMenus.filter((menu) => menu.price).length;
   const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
-  const spotlightCandidates = useMemo(() => filtered.filter((menu) => (
-    !menu.catalogOnly
-    && menu.caloriesKnown
-    && menu.proteinKnown
-    && menu.sodiumKnown
-    && menu.allergenKnown
-    && isMealRecommendationCandidate(menu)
-    && !allergens.some((allergen) => menu.allergens.includes(allergen))
-  )), [filtered, allergens]);
-  const spotlightPool = useMemo(() => {
-    const spotlightMenusWithImages = spotlightCandidates.filter((menu) => menu.imageUrl);
-    return interleaveMenusByBrand(spotlightMenusWithImages.length ? spotlightMenusWithImages : spotlightCandidates, brandCategory);
-  }, [spotlightCandidates, brandCategory]);
-  const spotlightMenu = spotlightPool.length ? spotlightPool[spotlightIndex % spotlightPool.length] : null;
-  const spotlightOfficialUrl = spotlightMenu && isHttpUrl(spotlightMenu.sourceUrl) ? spotlightMenu.sourceUrl : "";
-
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setAdded({ id, nonce: Date.now() });
@@ -391,7 +326,7 @@ export default function HanipApp() {
         <div className="quick-group"><h3>{tr(language, "알레르기", "Allergens")}</h3><div className="chips"><button className={allergens.length === 0 ? "chip active no-allergy" : "chip no-allergy"} onClick={() => setAllergens([])}>{tr(language, "알레르기 없음", "No allergens")}</button>{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{allergenLabel(language, item)}</button>)}</div></div>
         <div className="quick-group"><h3>{tr(language, "안전 상태", "Allergen status")}</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>{tr(language, "모두", "All")}</button><button disabled={!allergens.length} className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>{tr(language, "안전", "No match")}</button><button disabled={!allergens.length} className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>{tr(language, "위험", "Contains")}</button></div></div>
         <div className="quick-group"><h3>{tr(language, "카테고리", "Category")}</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item} value={item}>{categoryLabel(language, item)}</option>)}</select></div>
-        <div className="quick-group quick-ranges"><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={(value) => { setMaxCalories(value); setNutritionPreset("custom"); }} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={60} step={5} unit="g" onChange={(value) => { setMinProtein(value); setNutritionPreset("custom"); }} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={(value) => { setMaxSodium(value); setNutritionPreset("custom"); }} /></div>
+        <div className="quick-group quick-ranges"><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label={tr(language, "닫기", "Close")} onClick={() => setQuickFiltersOpen(false)} />}
       {mealFlight && <div key={mealFlight.nonce} className="meal-flight" style={{ left: mealFlight.x, top: mealFlight.y, "--flight-x": `${mealFlight.dx}px`, "--flight-y": `${mealFlight.dy}px` } as React.CSSProperties}><UtensilsCrossed size={16} /><span>+1</span></div>}
@@ -417,49 +352,6 @@ export default function HanipApp() {
         </section></Reveal>
       </section>
 
-      <section className="quick-start-shell" id="quick-start">
-        <Reveal><section className="quick-start">
-          <div className="preset-copy">
-            <span>{tr(language, "내 기준에 맞춰 보기", "MATCH MY PREFERENCES")}</span>
-            <h2>{tr(language, "먹고 싶은 메뉴를,", "What you want to eat,")}<br />{tr(language, "내 조건에 맞게.", "matched to your needs.")}</h2>
-            <p>{tr(language, "빠른 조건은 영양 범위만 바꿉니다. 선택한 브랜드와 확인할 알레르기 성분은 그대로 유지됩니다.", "Quick presets only change nutrition ranges. Your selected brands and allergens stay the same.")}</p>
-            <div className="preset-grid">
-              {NUTRITION_PRESETS.map((preset) => <button key={preset.id} className={nutritionPreset === preset.id ? "active" : ""} onClick={() => applyNutritionPreset(preset.id)}><b>{language === "en" ? preset.titleEn : preset.title}</b><small>{language === "en" ? preset.detailEn : preset.detail}</small></button>)}
-            </div>
-          </div>
-
-          <article className="spotlight-card">
-            {spotlightMenu ? <>
-              <div className="spotlight-copy">
-                <span>{spotlightMenu.brand} · {menuSectionLabel(language, menuSection(spotlightMenu))}</span>
-                <h3
-                  className={spotlightMenu.menu.length > 28 ? "very-long" : spotlightMenu.menu.length > 18 ? "long" : ""}
-                  title={spotlightMenu.menu}
-                >
-                  {spotlightMenu.menu}
-                </h3>
-                <p>{tr(language, `단백질 ${spotlightMenu.protein.toFixed(0)}g을 포함해 현재 조건을 통과했습니다.`, `Matches your current filters with ${spotlightMenu.protein.toFixed(0)} g of protein.`)}</p>
-                <dl className="spotlight-nutrition">
-                  <div><dt>{spotlightMenu.calories.toFixed(0)}</dt><dd>kcal</dd></div>
-                  <div><dt>{spotlightMenu.protein.toFixed(0)}</dt><dd>{tr(language, "단백질 g", "Protein g")}</dd></div>
-                  <div><dt>{spotlightMenu.sodium.toFixed(0)}</dt><dd>{tr(language, "나트륨 mg", "Sodium mg")}</dd></div>
-                </dl>
-                <div className="spotlight-price"><b>{spotlightMenu.price ? formatPrice(language, spotlightMenu.price) : tr(language, "가격 확인 중", "Price pending")}</b><small>{spotlightMenu.price ? tr(language, spotlightMenu.priceNote || "기준 가격", "Reference price") : tr(language, "매장·주문 채널에 따라 달라질 수 있어요", "May vary by store and order channel")}{spotlightMenu.priceCheckedAt ? ` · ${spotlightMenu.priceCheckedAt}` : ""}</small></div>
-              </div>
-              <div className="spotlight-media">
-                <div className="spotlight-brand-logo"><BrandLogo brand={spotlightMenu.brand} size={54} language={language} /></div>
-                <img src={spotlightMenu.imageUrl || brandFallbackImage(spotlightMenu.brand)} alt={`${spotlightMenu.menu} ${tr(language, "메뉴 이미지", "menu image")}`} onError={(event) => { event.currentTarget.src = brandFallbackImage(spotlightMenu.brand); }} />
-              </div>
-              <div className="spotlight-actions">
-                <button onClick={() => setSpotlightIndex((current) => current + 1)}><RefreshCw size={17} /> {tr(language, "다른 메뉴", "Another menu")}</button>
-                <button className="primary" onClick={(event) => addToCart(spotlightMenu.id, event)}><UtensilsCrossed size={17} /> {tr(language, "한 끼에 담기", "Add to my meal")}</button>
-                {spotlightOfficialUrl ? <a href={spotlightOfficialUrl} target="_blank" rel="noreferrer"><ExternalLink size={17} /> {tr(language, "공식 정보", "Official info")}</a> : <button onClick={() => changeTab("about")}><ExternalLink size={17} /> {tr(language, "데이터 기준", "Data standards")}</button>}
-              </div>
-            </> : <div className="spotlight-empty"><UtensilsCrossed size={34} /><h3>{tr(language, "조건에 맞는 한 끼를 찾고 있어요", "Looking for a meal that matches")}</h3><p>{tr(language, "브랜드나 영양 조건을 조금 넓히면 추천 메뉴를 보여드릴게요.", "Try selecting more brands or widening your nutrition ranges.")}</p></div>}
-          </article>
-        </section></Reveal>
-      </section>
-
       <section className="content" id="explorer">
         <Reveal><header className="section-intro"><span>{tr(language, "01 · 내 조건", "01 · MY PREFERENCES")}</span><h2>{tr(language, "나에게 맞는 기준부터 선택해요", "Start with what works for you")}</h2><p>{tr(language, "선택한 정보는 브라우저 안에서 메뉴를 찾는 데만 사용됩니다.", "Your selections are used only in this browser to find matching menus.")}</p></header></Reveal>
         <div ref={filtersAnchorRef}><Reveal><section className="horizontal-filters">
@@ -470,7 +362,7 @@ export default function HanipApp() {
             <button disabled={!allergens.length} className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>{tr(language, "위험한 것만", "Contains selected")}</button>
           </div></div>
           <div className="filter-block profile-block"><h3>{tr(language, "맞춤 프로필", "Personal profile")}</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> {tr(language, "신체·다이어트 목표 반영", "Use body profile and goal")}</label><div className={`profile-grid profile-preview ${profileOn ? "enabled" : "disabled"}`}><select disabled={!profileOn} value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option value="여성">{tr(language, "여성", "Female")}</option><option value="남성">{tr(language, "남성", "Male")}</option></select><select disabled={!profileOn} value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option value="감량">{tr(language, "감량", "Lose weight")}</option><option value="유지">{tr(language, "유지", "Maintain")}</option><option value="증량">{tr(language, "증량", "Gain weight")}</option></select><NumberField disabled={!profileOn} label={tr(language, "나이", "Age")} value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField disabled={!profileOn} label={tr(language, "키(cm)", "Height (cm)")} value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField disabled={!profileOn} label={tr(language, "체중(kg)", "Weight (kg)")} value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">{tr(language, "하루 참고 목표", "Daily reference")} <b>{formatNumber(language, targetCalories)} kcal</b></div></div>{!profileOn && <button className="profile-enable-hint" onClick={() => setProfileOn(true)}>{tr(language, "체크하고 맞춤 추천 사용하기 →", "Enable personalized recommendations →")}</button>}</div>
-          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={(value) => { setMaxCalories(value); setNutritionPreset("custom"); }} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={60} step={5} unit="g" onChange={(value) => { setMinProtein(value); setNutritionPreset("custom"); }} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={(value) => { setMaxSodium(value); setNutritionPreset("custom"); }} /></div>
+          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
         </section></Reveal></div>
 
         <Reveal><section className="category-section"><div className="section-intro compact"><span>{tr(language, "02 · 카테고리", "02 · CATEGORY")}</span><h2>{tr(language, "어떤 종류를 찾고 있나요?", "What are you looking for?")}</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{categoryLabel(language, category)}</b><small>{category === "전체" ? tr(language, "모든 브랜드", "All brands") : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length} ${tr(language, "개 브랜드", "brands")}`}</small></button>)}</div><div className="brand-picker">{displayedBrandOptions.map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} language={language} /><span>{brand}</span></button>)}</div></section></Reveal>
