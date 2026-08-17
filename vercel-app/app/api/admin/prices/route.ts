@@ -4,6 +4,7 @@ import {
   PriceRow,
   PriceStoreConfigurationError,
   PriceStoreRequestError,
+  loadAllPriceRows,
   priceStoreRequest,
   toPublicPrice,
 } from "@/lib/price-store";
@@ -81,7 +82,7 @@ function databaseError(error: unknown) {
 export async function GET(request: NextRequest) {
   if (!hasAdminSession(request)) return unauthorized();
   try {
-    const rows = await priceStoreRequest<PriceRow[]>("menu_prices?select=*&order=checked_at.desc,updated_at.desc&limit=5000");
+    const rows = await loadAllPriceRows();
     return NextResponse.json(rows.map(toPublicPrice));
   } catch (error) {
     return databaseError(error);
@@ -154,4 +155,3 @@ export async function DELETE(request: NextRequest) {
     return databaseError(error);
   }
 }
-

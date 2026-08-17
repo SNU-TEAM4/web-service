@@ -54,14 +54,28 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         shape.setAttribute("fill", "white");
         shape.setAttribute("stroke", BRAND_COLORS[store.brand] || "#287653");
         shape.setAttribute("stroke-width", "3");
-        const logo = document.createElementNS("http://www.w3.org/2000/svg", "image");
-        logo.setAttribute("href", BRAND_LOGOS[store.brand] || "");
-        logo.setAttribute("x", "11");
-        logo.setAttribute("y", "9");
-        logo.setAttribute("width", "38");
-        logo.setAttribute("height", "38");
-        logo.setAttribute("preserveAspectRatio", "xMidYMid meet");
-        svg.append(shape, logo);
+        svg.appendChild(shape);
+        const logoPath = BRAND_LOGOS[store.brand];
+        if (logoPath) {
+          const logo = document.createElementNS("http://www.w3.org/2000/svg", "image");
+          logo.setAttribute("href", logoPath);
+          logo.setAttribute("x", "11");
+          logo.setAttribute("y", "9");
+          logo.setAttribute("width", "38");
+          logo.setAttribute("height", "38");
+          logo.setAttribute("preserveAspectRatio", "xMidYMid meet");
+          svg.appendChild(logo);
+        } else {
+          const initials = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          initials.setAttribute("x", "30");
+          initials.setAttribute("y", "34");
+          initials.setAttribute("text-anchor", "middle");
+          initials.setAttribute("fill", BRAND_COLORS[store.brand] || "#287653");
+          initials.setAttribute("font-size", store.brand.length > 4 ? "10" : "13");
+          initials.setAttribute("font-weight", "900");
+          initials.textContent = store.brand.length > 4 ? store.brand.slice(0, 4) : store.brand;
+          svg.appendChild(initials);
+        }
         pin.appendChild(svg);
         pin.setAttribute("aria-label", `${store.brand} ${store.name}`);
         const storePosition = new kakao.maps.LatLng(store.lat, store.lon);

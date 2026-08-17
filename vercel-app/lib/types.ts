@@ -19,6 +19,7 @@ export type Menu = {
   priceCheckedAt?: string;
   mediaSourceUrl?: string;
   mediaCheckedAt?: string;
+  catalogOnly?: boolean;
 };
 
 export type Place = {

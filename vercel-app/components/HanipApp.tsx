@@ -7,6 +7,7 @@ import { ArrowDown, Check, ChevronLeft, ChevronRight, LocateFixed, MapPin, Menu 
 import { Bar, BarChart, CartesianGrid, Cell, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
 import { mergeAdminPrices } from "@/lib/merge-admin-prices";
+import { inferMenuSection, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
 
@@ -35,68 +36,8 @@ type SortMode = "recommended" | "protein" | "calories" | "sodium";
 const parseNumber = (value: unknown) => Number(value || 0);
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 
-function menuSection(menu: Menu) {
-  const category = menu.category.trim();
-  const name = menu.menu.trim();
-
-  // 공통 키워드 추측보다 브랜드가 공개한 원본 카테고리를 먼저 사용한다.
-  if (menu.brand === "써브웨이") {
-    if (/샌드위치|아침메뉴/.test(category)) return "샌드위치";
-    if (/샐러드/.test(category)) return "샐러드";
-    if (/랩/.test(category)) return "랩";
-    if (/커피|아메리카노|라떼|콜라|사이다|주스|음료/.test(name)) return "음료";
-    return "사이드";
-  }
-  if (menu.brand === "맥도날드") {
-    if (category === "버거") return "버거";
-    if (category === "단품") return "맥모닝";
-    if (category === "음료") return "음료";
-    return "사이드·디저트";
-  }
-  if (menu.brand === "롯데리아") {
-    if (category === "버거메뉴") return "버거";
-    if (category === "드링크 메뉴") return "음료";
-    if (category === "아이스샷") return "사이드·디저트";
-    if (/소스|토핑/.test(category)) return "소스·추가";
-    return "사이드·디저트";
-  }
-  if (menu.brand === "KFC") {
-    if (category === "추가 메뉴") return "소스·추가";
-    return category || "기타";
-  }
-  if (menu.brand === "이디야") return category === "음료" ? "음료" : "베이커리·푸드";
-  if (menu.brand === "스타벅스") {
-    return category || "기타 음료";
-  }
-  if (menu.brand === "배스킨라빈스") return "아이스크림";
-  if (menu.brand === "파리바게뜨") return category || "기타";
-  if (menu.brand === "버거킹") {
-    if (/추가|시즈닝|패티|^슬라이스치즈|^롱베이컨/.test(name) || (/소스$/.test(name) && !/[+&]/.test(name))) return "소스·추가";
-    if (/버거|와퍼|스태커/.test(name)) return "버거";
-    if (/콜라|사이다|환타|주스|아메리카노|커피|라떼|에이드|미닛메이드|아이스초코|핫초코/.test(name)) return "음료";
-    return "사이드·디저트";
-  }
-  return category || "기타";
-}
-
-const DEFAULT_MENU_SECTION_ORDER = ["버거", "치킨", "샌드위치", "샐러드", "랩", "맥모닝", "빵", "케이크", "사이드", "사이드·디저트", "디저트·스낵", "베이커리·푸드", "음료", "소스·추가", "기타"];
-const BRAND_MENU_SECTION_ORDER: Record<string, string[]> = {
-  "써브웨이": ["샌드위치", "샐러드", "랩", "사이드"],
-  "맥도날드": ["버거", "맥모닝", "사이드·디저트", "음료"],
-  "롯데리아": ["버거", "사이드·디저트", "음료", "소스·추가"],
-  "버거킹": ["버거", "사이드·디저트", "음료", "소스·추가"],
-  "KFC": ["치킨", "버거", "사이드", "음료", "소스", "소스·추가", "기타"],
-  "이디야": ["음료", "베이커리·푸드"],
-  "스타벅스": ["에스프레소", "콜드 브루", "브루드 커피", "프라푸치노", "블렌디드", "리프레셔", "피지오", "티", "기타 음료", "병음료"],
-  "배스킨라빈스": ["아이스크림"],
-  "파리바게뜨": ["빵", "케이크", "샌드위치·샐러드", "디저트·스낵", "간편식", "커피·음료", "선물", "기타"]
-};
-
-function menuSectionRank(brand: string, section: string) {
-  const order = BRAND_MENU_SECTION_ORDER[brand] || DEFAULT_MENU_SECTION_ORDER;
-  const rank = order.indexOf(section);
-  return rank < 0 ? 999 : rank;
-}
+const menuSection = inferMenuSection;
+function menuSectionRank(_brand: string, section: string) { return catalogSectionRank(section); }
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
@@ -115,6 +56,18 @@ function servingLabel(menu: Menu) {
   if (menu.brand === "써브웨이" && menuSection(menu) === "샌드위치") return "15cm · 기본 레시피 기준";
   if (menu.brand === "배스킨라빈스") return "싱글레귤러 115g 기준";
   return "";
+}
+
+function BrandLogo({ brand, size = 44 }: { brand: string; size?: number }) {
+  const logo = BRAND_LOGOS[brand];
+  if (logo) return <Image src={logo} alt={`${brand} 로고`} width={size} height={size} />;
+  return <span className="brand-initial" style={{ width: size, height: size }}>{brand.slice(0, 2)}</span>;
+}
+
+function brandFallbackImage(brand: string) {
+  if (BRAND_LOGOS[brand]) return BRAND_LOGOS[brand];
+  const label = encodeURIComponent(brand.slice(0, 2));
+  return `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%23edf3eb'/%3E%3Ctext x='90' y='104' text-anchor='middle' font-family='Arial,sans-serif' font-size='48' font-weight='700' fill='%23287653'%3E${label}%3C/text%3E%3C/svg%3E`;
 }
 
 export default function HanipApp() {
@@ -214,7 +167,8 @@ export default function HanipApp() {
     const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item));
     const safetyMatch = safetyMode === "all" || (safetyMode === "danger" ? danger : menu.allergenKnown && !danger);
     const categoryMatch = brandCategory === "전체" || BRAND_CATEGORIES[menu.brand]?.includes(brandCategory);
-    return brands.includes(menu.brand) && categoryMatch && safetyMatch && menu.calories <= maxCalories && menu.protein >= minProtein && menu.sodium <= maxSodium
+    const nutritionMatch = menu.catalogOnly || (menu.calories <= maxCalories && menu.protein >= minProtein && menu.sodium <= maxSodium);
+    return brands.includes(menu.brand) && categoryMatch && safetyMatch && nutritionMatch
       && (!query.trim() || menu.brand.toLowerCase().includes(query.trim().toLowerCase()) || menu.menu.toLowerCase().includes(query.trim().toLowerCase()));
   }).sort(compareMenus), [menus, allergens, brands, brandCategory, safetyMode, maxCalories, minProtein, maxSodium, query, profileOn, targetCalories, sortMode]);
 
@@ -303,7 +257,7 @@ export default function HanipApp() {
           <div className="filter-block nutrition-block"><h3>영양 조건</h3><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
         </section></Reveal></div>
 
-        <Reveal><section className="category-section"><div className="section-intro compact"><span>02 · 카테고리</span><h2>어떤 종류를 찾고 있나요?</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{category}</b><small>{category === "전체" ? "모든 브랜드" : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length}개 브랜드`}</small></button>)}</div><div className="brand-picker">{brandOptions.filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory)).map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><Image src={BRAND_LOGOS[brand]} alt="" width={44} height={44} /><span>{brand}</span></button>)}</div></section></Reveal>
+        <Reveal><section className="category-section"><div className="section-intro compact"><span>02 · 카테고리</span><h2>어떤 종류를 찾고 있나요?</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{category}</b><small>{category === "전체" ? "모든 브랜드" : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length}개 브랜드`}</small></button>)}</div><div className="brand-picker">{brandOptions.filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory)).map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} /><span>{brand}</span></button>)}</div></section></Reveal>
 
         <nav className="tabs">
           <TabButton active={tab === "menus"} onClick={() => changeTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
@@ -316,11 +270,11 @@ export default function HanipApp() {
 
         {tab === "menus" && <Reveal><section className="panel">
           <div className="panel-head"><div><h2>조건에 맞는 메뉴</h2><p>브랜드와 메뉴 종류를 고르면 오늘의 한 끼를 빠르게 찾을 수 있어요.</p></div><div className="menu-tools"><label className="sort-select"><span>정렬</span><select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}><option value="recommended">맞춤 추천순</option><option value="protein">단백질 높은 순</option><option value="calories">열량 낮은 순</option><option value="sodium">나트륨 낮은 순</option></select></label><label className="search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="브랜드 또는 메뉴 검색" /></label></div></div>
-          <div className="brand-browser"><div className="brand-folders">{grouped.map(([brand, items]) => { if (!items) return null; const safeCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length : items.length; const dangerCount = allergens.length ? items.filter((menu) => allergens.some((item) => menu.allergens.includes(item))).length : 0; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""}`} key={brand} onClick={() => { setOpenBrands(activeBrand === brand ? {} : { [brand]: true }); setMenuSectionFilter("전체"); }}>
-            <Image src={BRAND_LOGOS[brand]} alt={brand} width={78} height={78} /><span><b>{brand}</b><small><strong>안전 추천 {safeCount}개</strong>{allergens.length > 0 && dangerCount > 0 && <em>위험 {dangerCount}개</em>}</small></span>{activeBrand === brand ? <Check /> : <ChevronRight />}
+          <div className="brand-browser"><div className="brand-folders">{grouped.map(([brand, items]) => { if (!items) return null; const safeCount = items.filter((menu) => !menu.catalogOnly && menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length; const dangerCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.some((item) => menu.allergens.includes(item))).length : 0; const pendingCount = items.filter((menu) => menu.catalogOnly || !menu.allergenKnown).length; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""}`} key={brand} onClick={() => { setOpenBrands(activeBrand === brand ? {} : { [brand]: true }); setMenuSectionFilter("전체"); }}>
+            <BrandLogo brand={brand} size={78} /><span><b>{brand}</b><small><em className="safe-count">{allergens.length ? `안전 추천 ${safeCount}개` : `검증 메뉴 ${safeCount}개`}</em>{dangerCount > 0 && <em className="danger-count">위험 {dangerCount}개</em>}{pendingCount > 0 && <em className="pending">정보 확인 중 {pendingCount}개</em>}</small></span>{activeBrand === brand ? <Check /> : <ChevronRight />}
           </button>; })}</div>
-          {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 종류별로 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); return <article className={`menu-card ${danger ? "risk-card" : "safe-card"}`} key={menu.id}>
-            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || BRAND_LOGOS[menu.brand]} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = BRAND_LOGOS[menu.brand]; event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)} · {menu.category}</span><h3>{menu.menu}</h3>{servingLabel(menu) && <span className="serving-label">{servingLabel(menu)}</span>}<MenuDescription menu={menu} /><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} 확인` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">가격 출처 보기</a>}</div><p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p><div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div><button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>
+          {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>조건에 맞는 {activeItems.length}개 메뉴를 종류별로 확인하세요.</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); const pending = menu.catalogOnly || !menu.allergenKnown; return <article className={`menu-card ${pending ? "unknown-card" : danger ? "risk-card" : "safe-card"}`} key={menu.id}>
+            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || brandFallbackImage(menu.brand)} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = brandFallbackImage(menu.brand); event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)}{menu.category !== menuSection(menu) ? ` · ${menu.category}` : ""}</span><h3>{menu.menu}</h3>{servingLabel(menu) && <span className="serving-label">{servingLabel(menu)}</span>}<MenuDescription menu={menu} /><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} 확인` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">가격 출처 보기</a>}</div>{menu.catalogOnly ? <p className="pending-copy">영양·알레르기 정보 확인 중</p> : <p>{menu.calories.toFixed(0)} kcal · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p>}<div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div>{menu.catalogOnly ? <button className="add-button" disabled>정보 확인 후 담기 가능</button> : <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>}
           </article>; })}</div></div> : <div className="brand-menu-placeholder"><MenuIcon size={34} /><h3>브랜드를 선택해 주세요</h3><p>왼쪽 카드를 누르면 이곳에서 메뉴를 바로 비교할 수 있어요.</p></div>}</div>
           {!filtered.length && <div className="empty">조건을 만족하는 메뉴가 없어요. 조건을 조금 넓혀보세요.</div>}
         </section></Reveal>}
@@ -357,10 +311,15 @@ function BrandAxisTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payl
 }
 
 function ComparePanel({ menus, brands, allergens }: { menus: Menu[]; brands: string[]; allergens: string[] }) {
+  const verifiedMenus = menus.filter((menu) => !menu.catalogOnly && menu.allergenKnown);
   const selectableMenus = allergens.length
-    ? menus.filter((menu) => !allergens.some((allergen) => menu.allergens.includes(allergen)))
-    : menus;
-  const data = brands.map((brand) => ({ brand, count: selectableMenus.filter((menu) => menu.brand === brand).length })).filter((row) => row.count);
+    ? verifiedMenus.filter((menu) => !allergens.some((allergen) => menu.allergens.includes(allergen)))
+    : verifiedMenus;
+  const data = brands
+    .map((brand) => ({ brand, count: selectableMenus.filter((menu) => menu.brand === brand).length }))
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count || a.brand.localeCompare(b.brand, "ko"))
+    .slice(0, 10);
   return <section className="panel"><h2>브랜드별 선택 가능한 메뉴</h2><p>{allergens.length ? `선택한 알레르기(${allergens.join(", ")})가 포함된 메뉴를 제외한 결과예요.` : "현재 영양 조건을 만족하는 메뉴 수예요."}</p><div className="chart"><ResponsiveContainer width="100%" height={370}><BarChart data={data} margin={{ bottom: 12 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="brand" interval={0} height={48} tick={<BrandAxisTick />} /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" name="메뉴 수" radius={[8, 8, 0, 0]}>{data.map((row) => <Cell key={row.brand} fill={BRAND_COLORS[row.brand] || "#287653"} />)}</Bar></BarChart></ResponsiveContainer></div></section>;
 }
 
@@ -412,6 +371,6 @@ function MapPanel({ brands }: { brands: string[] }) {
   return <section className="panel"><div className="panel-head map-panel-head"><div><h2>내 주변 매장</h2><p>카카오맵에서 선택한 브랜드의 매장을 찾아요.</p></div><label className="radius-slider"><span>검색 반경 <b>{radius} km</b></span><input type="range" min="1" max="10" step="1" value={radius} onChange={(e) => setRadius(Number(e.target.value))} /><small><i>1km</i><i>10km</i></small></label></div>
     <div className="mode-switch"><button className={mode === "search" ? "active" : ""} onClick={() => setMode("search")}><Search size={17} />장소 검색</button><button className={mode === "gps" ? "active" : ""} onClick={() => { setMode("gps"); locate(); }}><LocateFixed size={17} />현재 위치</button></div>
     {mode === "search" && <div className="location-search"><label className="search"><Search size={18} /><input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="성수역, 서울시청처럼 입력하세요" /></label>{places.length > 0 && <div className="suggestions">{places.map((place) => <button key={place.id} onClick={() => { setTerm(place.name); setPlaces([]); findStores(place); }}><MapPin size={17} /><span><b>{place.name}</b><small>{place.address}</small></span></button>)}</div>}</div>}
-    {loading && <div className="map-empty">주변 매장을 찾고 있어요…</div>}{center && !loading && <><KakaoMap center={center} radiusKm={radius} stores={stores} /><div className="store-summary"><b>{center.name}</b> 기준 {stores.length}개 매장</div><div className="store-list">{stores.slice(0, 20).map((store) => <a href={store.placeUrl || "#"} target="_blank" rel="noopener" key={store.id}><Image src={BRAND_LOGOS[store.brand]} alt="" width={34} height={34} /><span><b>{store.name}</b><small>{store.distance.toFixed(2)}km · 도보 약 {Math.ceil(store.distance * 1.25 / 4.5 * 60)}분 · {store.address}</small></span></a>)}</div></>}
+    {loading && <div className="map-empty">주변 매장을 찾고 있어요…</div>}{center && !loading && <><KakaoMap center={center} radiusKm={radius} stores={stores} /><div className="store-summary"><b>{center.name}</b> 기준 {stores.length}개 매장</div><div className="store-list">{stores.slice(0, 20).map((store) => <a href={store.placeUrl || "#"} target="_blank" rel="noopener" key={store.id}><BrandLogo brand={store.brand} size={34} /><span><b>{store.name}</b><small>{store.distance.toFixed(2)}km · 도보 약 {Math.ceil(store.distance * 1.25 / 4.5 * 60)}분 · {store.address}</small></span></a>)}</div></>}
   </section>;
 }

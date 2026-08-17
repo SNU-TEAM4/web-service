@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import {
-  PriceRow,
   PriceStoreConfigurationError,
   PriceStoreRequestError,
-  priceStoreRequest,
+  loadAllPriceRows,
   toPublicPrice,
 } from "@/lib/price-store";
 
 export async function GET() {
   try {
-    const rows = await priceStoreRequest<PriceRow[]>(
-      "menu_prices?select=*&order=checked_at.desc,updated_at.desc&limit=5000",
-    );
+    const rows = await loadAllPriceRows();
     return NextResponse.json(rows.map(toPublicPrice), {
       headers: { "Cache-Control": "no-store", "X-Hanip-Price-Store": "connected" },
     });
@@ -29,4 +26,3 @@ export async function GET() {
     });
   }
 }
-

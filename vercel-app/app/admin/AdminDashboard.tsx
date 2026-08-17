@@ -168,12 +168,17 @@ export default function AdminDashboard() {
     clearMessages();
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/prices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: importItems }),
-      });
-      await readResponse(response);
+      const chunkSize = 500;
+      for (let start = 0; start < importItems.length; start += chunkSize) {
+        const chunk = importItems.slice(start, start + chunkSize);
+        setNotice(`${Math.min(start + chunk.length, importItems.length).toLocaleString()} / ${importItems.length.toLocaleString()}개 반영 중...`);
+        const response = await fetch("/api/admin/prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: chunk }),
+        });
+        await readResponse(response);
+      }
       setNotice(`${importItems.length.toLocaleString()}개의 가격을 반영했습니다.`);
       setImportItems([]);
       setImportFileName("");
@@ -259,4 +264,3 @@ export default function AdminDashboard() {
     </main>
   );
 }
-

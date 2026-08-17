@@ -56,6 +56,21 @@ export async function priceStoreRequest<T>(path: string, init: RequestInit = {})
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+export async function loadAllPriceRows() {
+  const pageSize = 1000;
+  const allRows: PriceRow[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const rows = await priceStoreRequest<PriceRow[]>(
+      `menu_prices?select=*&order=checked_at.desc,updated_at.desc&limit=${pageSize}&offset=${offset}`,
+    );
+    allRows.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+
+  return allRows;
+}
+
 export function toPublicPrice(row: PriceRow) {
   return {
     id: row.id,
@@ -70,4 +85,3 @@ export function toPublicPrice(row: PriceRow) {
     updatedAt: row.updated_at,
   };
 }
-
