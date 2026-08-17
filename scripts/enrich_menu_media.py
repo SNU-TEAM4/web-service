@@ -161,6 +161,72 @@ def subway() -> dict[str, dict]:
     return result
 
 
+def kfc() -> dict[str, dict]:
+    """KFC 공식 전체메뉴 API에서 단품 이미지와 설명을 연결한다."""
+    page_url = "https://www.kfckorea.com/allmenu/recommend"
+    session = requests.Session()
+    html = session.get(page_url, timeout=30).text
+    match = re.search(r"window\.__INITIAL_VUEX_STATE__ = (.*?);\s*</script>", html, re.S)
+    if not match:
+        return {}
+    csrf = json.loads(match.group(1))["sessionInfo"]["csrf"]
+    headers = {csrf["headerName"]: csrf["token"], "Referer": page_url, "X-Requested-With": "XMLHttpRequest"}
+    result = {}
+    for code in ["CHKN", "BEGR", "SIDE", "DRNK"]:
+        response = session.post(
+            "https://www.kfckorea.com/kfc/interface/selectDeliveryList",
+            data={"product_ordertype": "D", "delivery_subGroupCd": code, csrf["parameterName"]: csrf["token"]},
+            headers=headers,
+            timeout=30,
+        ).json()
+        for row in response.get("kfcs", {}).get("data", {}).get("list", []):
+            name = clean(row.get("menuNm", "")).replace("_KEP_", "켚").replace("_CHIK_", "칰")
+            if not name or "세트" in name or "팩" in name or row.get("merchantUseYn") != "Y":
+                continue
+            result[key(name)] = {
+                "image_url": urljoin("https://www.kfckorea.com/nas/", row.get("menuImgUrl", "")),
+                "description": clean(row.get("menuDesc", "")),
+                "price": re.sub(r"\D", "", str(row.get("price") or "")),
+                "price_note": "KFC 공식 표시가",
+                "price_source_url": page_url,
+                "price_checked_at": TODAY,
+                "media_source_url": page_url,
+            }
+    return result
+
+
+def ediya() -> dict[str, dict]:
+    """이디야 공식 음료·푸드 페이지의 제품 ID로 이미지와 설명을 연결한다."""
+    result = {}
+    for route in ["drink", "bakery"]:
+        url = f"https://www.ediya.com/contents/{route}.html"
+        soup = BeautifulSoup(requests.get(url, timeout=30).text, "lxml")
+        images = {}
+        for link in soup.select("a[onclick*='show_nutri']"):
+            id_match = re.search(r"show_nutri\(['\"]?(\d+)", link.get("onclick", ""))
+            image = link.find("img")
+            if id_match and image:
+                images[id_match.group(1)] = urljoin(url, image.get("src", ""))
+        for detail in soup.select("div.pro_detail[id^='nutri_']"):
+            product_id = detail.get("id", "").removeprefix("nutri_")
+            title = detail.find("h2")
+            if not title:
+                continue
+            english = title.find("span")
+            if english:
+                english.extract()
+            name = clean(title.get_text(" ", strip=True))
+            description = detail.find("p")
+            if name:
+                result[key(name)] = {
+                    "image_url": images.get(product_id, ""),
+                    "description": clean(description.get_text(" ", strip=True)) if description else "",
+                    "price_note": "매장별 확인",
+                    "media_source_url": url,
+                }
+    return result
+
+
 def baskin() -> dict[str, dict]:
     url = "https://www.baskinrobbins.co.kr/menu/list.php?top=A"
     soup = BeautifulSoup(requests.get(url, timeout=30).text, "lxml")
@@ -188,7 +254,7 @@ def paris_baguette() -> dict[str, dict]:
 
 
 def apply() -> None:
-    sources = {"맥도날드": mcdonalds(), "롯데리아": lotteria(), "스타벅스": starbucks(), "써브웨이": subway(), "배스킨라빈스": baskin(), "파리바게뜨": paris_baguette()}
+    sources = {"맥도날드": mcdonalds(), "롯데리아": lotteria(), "스타벅스": starbucks(), "써브웨이": subway(), "KFC": kfc(), "이디야": ediya(), "배스킨라빈스": baskin(), "파리바게뜨": paris_baguette()}
     for path in CSV_PATHS:
         frame = pd.read_csv(path).fillna("")
         for column in ["image_url", "description", "price", "price_note", "price_source_url", "price_checked_at", "media_source_url", "media_checked_at"]:
