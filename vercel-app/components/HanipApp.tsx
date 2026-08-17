@@ -137,13 +137,17 @@ export default function HanipApp() {
           .split(/[|,]/)
           .map((item) => item.trim())
           .filter(Boolean);
+        const explicitAllergenKnown = row.allergen_known?.trim().toLowerCase();
 
         return {
           id, brand: normalizeBrand(row.brand), menu: row.menu, category: row.category,
           calories: parseNumber(row.calories), protein: parseNumber(row.protein), fat: parseNumber(row.fat),
           carbs: parseNumber(row.carbs), sodium: parseNumber(row.sodium),
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
-          allergenKnown: flagColumnsPresent || row.allergen_known?.toLowerCase() === "true", sourceUrl: row.source_url,
+          allergenKnown: explicitAllergenKnown
+            ? explicitAllergenKnown === "true"
+            : flagColumnsPresent,
+          sourceUrl: row.source_url,
           imageUrl: row.image_url || "", description: row.description || "",
           price: row.price ? parseNumber(row.price) : undefined, priceNote: row.price_note || "매장별 확인",
           priceSourceUrl: row.price_source_url || "", priceCheckedAt: row.price_checked_at || "",
