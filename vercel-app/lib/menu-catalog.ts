@@ -105,6 +105,17 @@ export function inferMenuSection(menu: Pick<Menu, "brand" | "menu" | "category" 
 const MEAL_RECOMMENDATION_EXCLUDED_SECTIONS = new Set([
   "케이크",
   "아이스크림 케이크",
+  "아이스크림",
+  "빙수",
+  "디저트·스낵",
+  "푸드·디저트",
+  "수프·디저트",
+  "음료·디저트",
+  "사이드",
+  "사이드·디저트",
+  "디저트·사이드",
+  "반찬",
+  "소스",
   "커피",
   "콜드 브루",
   "라떼",
@@ -116,7 +127,7 @@ const MEAL_RECOMMENDATION_EXCLUDED_SECTIONS = new Set([
 ]);
 const CAKE_NAME = /케이크|케익/;
 const DRINK_NAME = /아메리카노|에스프레소|콜드\s*브루|커피|라떼|모카|콜라|사이다|환타|탄산|생수|주스|에이드|스무디|쉐이크|프라페|프라푸치노|블라스트|밀크티|(?:티|차)\s*$/;
-const NON_MEAL_CATEGORY = /케이크|케익|음료|드링크|커피|에이드|주스|스무디|쉐이크|프라페|블렌디드|소스|시즈닝|드레싱/;
+const NON_MEAL_CATEGORY = /케이크|케익|디저트|아이스크림|빙수|스낵|음료|드링크|커피|에이드|주스|스무디|쉐이크|프라페|블렌디드|사이드|추가\s*메뉴|반찬|소스|시즈닝|드레싱/;
 const CONDIMENT_NAME = /(?:소스|시즈닝|드레싱|케첩|머스타드|디핑|딥핑)(?:\s*(?:추가|별도|단품|\d+\s*(?:g|개|ea)))?\s*$/i;
 
 // 이 기준은 빠른 추천 카드에만 적용하며 전체 메뉴 탐색 데이터는 그대로 둡니다.

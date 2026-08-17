@@ -68,6 +68,13 @@ const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES).filter((brand) => !EXCLUDED
 
 const menuSection = inferMenuSection;
 function menuSectionRank(_brand: string, section: string) { return catalogSectionRank(section); }
+function compareBrandDisplayOrder(category: string, a: string, b: string) {
+  const displayOrder = BRAND_DISPLAY_ORDER_BY_CATEGORY[category] || [];
+  const aRank = displayOrder.indexOf(a);
+  const bRank = displayOrder.indexOf(b);
+  return (aRank < 0 ? Number.MAX_SAFE_INTEGER : aRank) - (bRank < 0 ? Number.MAX_SAFE_INTEGER : bRank)
+    || a.localeCompare(b, "ko");
+}
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
@@ -219,13 +226,9 @@ export default function HanipApp() {
   }, []);
 
   const brandOptions = useMemo(() => Array.from(new Set([...CATALOG_BRANDS, ...menus.map((menu) => menu.brand)])), [menus]);
-  const displayedBrandOptions = useMemo(() => {
-    const displayOrder = BRAND_DISPLAY_ORDER_BY_CATEGORY[brandCategory] || [];
-    const rank = new Map(displayOrder.map((brand, index) => [brand, index]));
-    return brandOptions
-      .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
-      .sort((a, b) => (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER) || a.localeCompare(b, "ko"));
-  }, [brandOptions, brandCategory]);
+  const displayedBrandOptions = useMemo(() => brandOptions
+    .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
+    .sort((a, b) => compareBrandDisplayOrder(brandCategory, a, b)), [brandOptions, brandCategory]);
   const targetCalories = useMemo(() => {
     const bmr = profile.sex === "남성"
       ? 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5
@@ -270,7 +273,7 @@ export default function HanipApp() {
       .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
       .map((brand) => [brand, filtered.filter((menu) => menu.brand === brand).sort(compareMenus)] as [string, Menu[]])
       .filter(([brand, items]) => !normalizedQuery || brand.toLowerCase().includes(normalizedQuery) || items.length > 0)
-      .sort(([, a], [, b]) => a.length && b.length ? compareMenus(a[0], b[0]) : b.length - a.length);
+      .sort(([brandA], [brandB]) => compareBrandDisplayOrder(brandCategory, brandA, brandB));
   }, [brandOptions, brands, brandCategory, filtered, query, sortMode, profileOn, targetCalories]);
   const activeBrand = Object.keys(openBrands).find((brand) => openBrands[brand]) || "";
   const activeItems = grouped.find(([brand]) => brand === activeBrand)?.[1] || [];
