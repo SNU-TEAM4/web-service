@@ -75,6 +75,23 @@ function compareBrandDisplayOrder(category: string, a: string, b: string) {
   return (aRank < 0 ? Number.MAX_SAFE_INTEGER : aRank) - (bRank < 0 ? Number.MAX_SAFE_INTEGER : bRank)
     || a.localeCompare(b, "ko");
 }
+function interleaveMenusByBrand(menus: Menu[], category: string) {
+  const byBrand = new Map<string, Menu[]>();
+  for (const menu of menus) {
+    const brandMenus = byBrand.get(menu.brand);
+    if (brandMenus) brandMenus.push(menu);
+    else byBrand.set(menu.brand, [menu]);
+  }
+  const orderedBrands = [...byBrand.keys()].sort((a, b) => compareBrandDisplayOrder(category, a, b));
+  const interleaved: Menu[] = [];
+  for (let index = 0; interleaved.length < menus.length; index += 1) {
+    for (const brand of orderedBrands) {
+      const menu = byBrand.get(brand)?.[index];
+      if (menu) interleaved.push(menu);
+    }
+  }
+  return interleaved;
+}
 
 function menuDescription(menu: Menu) {
   if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
@@ -174,8 +191,9 @@ export default function HanipApp() {
         return {
           id, brand: normalizeBrand(row.brand), menu: row.menu, category: row.category,
           yogiyoCategory: row.yogiyo_category || "",
-          calories: parseNumber(row.calories), caloriesKnown: hasNumericValue(row.calories), protein: parseNumber(row.protein), fat: parseNumber(row.fat),
-          carbs: parseNumber(row.carbs), sodium: parseNumber(row.sodium),
+          calories: parseNumber(row.calories), caloriesKnown: hasNumericValue(row.calories),
+          protein: parseNumber(row.protein), proteinKnown: hasNumericValue(row.protein), fat: parseNumber(row.fat),
+          carbs: parseNumber(row.carbs), sodium: parseNumber(row.sodium), sodiumKnown: hasNumericValue(row.sodium),
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
           allergenKnown: explicitAllergenKnown
             ? explicitAllergenKnown === "true"
@@ -306,13 +324,17 @@ export default function HanipApp() {
   const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
   const spotlightCandidates = useMemo(() => filtered.filter((menu) => (
     !menu.catalogOnly
-    && menu.verified
+    && menu.caloriesKnown
+    && menu.proteinKnown
+    && menu.sodiumKnown
     && menu.allergenKnown
     && isMealRecommendationCandidate(menu)
     && !allergens.some((allergen) => menu.allergens.includes(allergen))
   )), [filtered, allergens]);
-  const spotlightMenusWithImages = spotlightCandidates.filter((menu) => menu.imageUrl);
-  const spotlightPool = spotlightMenusWithImages.length ? spotlightMenusWithImages : spotlightCandidates;
+  const spotlightPool = useMemo(() => {
+    const spotlightMenusWithImages = spotlightCandidates.filter((menu) => menu.imageUrl);
+    return interleaveMenusByBrand(spotlightMenusWithImages.length ? spotlightMenusWithImages : spotlightCandidates, brandCategory);
+  }, [spotlightCandidates, brandCategory]);
   const spotlightMenu = spotlightPool.length ? spotlightPool[spotlightIndex % spotlightPool.length] : null;
   const spotlightOfficialUrl = spotlightMenu && isHttpUrl(spotlightMenu.sourceUrl) ? spotlightMenu.sourceUrl : "";
 

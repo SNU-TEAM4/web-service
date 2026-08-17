@@ -7,9 +7,11 @@ export type Menu = {
   calories: number;
   caloriesKnown: boolean;
   protein: number;
+  proteinKnown: boolean;
   fat: number;
   carbs: number;
   sodium: number;
+  sodiumKnown: boolean;
   allergens: string[];
   allergenKnown: boolean;
   verified?: boolean;
