@@ -7,8 +7,17 @@ const BRAND_ALIASES: Record<string, string> = {
 };
 
 export function canonicalBrandName(brand: string) {
-  const trimmed = brand.trim();
+  const trimmed = brand.normalize("NFKC").trim().replace(/\s+/g, " ");
   return BRAND_ALIASES[trimmed] || trimmed;
+}
+
+export function canonicalMenuName(menu: string) {
+  return menu.normalize("NFKC").trim().replace(/\s+/g, " ");
+}
+
+// 가격 CSV에서 실수로 들어간 띄어쓰기 차이는 같은 메뉴로 취급합니다.
+export function menuIdentityKey(brand: string, menu: string) {
+  return `${canonicalBrandName(brand)}\u0000${canonicalMenuName(menu).replace(/\s/g, "").toLocaleLowerCase("ko")}`;
 }
 
 const DRINK = /콜라|사이다|환타|탄산|생수|주스|에이드|커피|아메리카노|라떼|모카|티|차|스무디|쉐이크|프라페|프라푸치노|음료/;
