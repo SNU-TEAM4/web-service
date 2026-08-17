@@ -73,3 +73,11 @@ html{scroll-behavior:smooth}.landing{position:relative;display:flex;min-height:1
 /* 추천 메뉴명이 길어져도 카드 높이와 주변 레이아웃을 유지합니다. */
 @media(min-width:701px){.spotlight-card{height:500px;min-height:500px;grid-template-rows:minmax(0,1fr) auto}.spotlight-copy{padding:40px 12px 24px 36px}.spotlight-copy h3{display:-webkit-box;min-height:2.16em;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;text-wrap:balance}.spotlight-copy h3.long{font-size:clamp(27px,2.7vw,40px)}.spotlight-copy h3.very-long{font-size:clamp(24px,2.4vw,34px)}.spotlight-nutrition{margin-top:26px}.spotlight-price{margin-top:18px}}
 @media(max-width:700px){.spotlight-card{height:auto}.spotlight-copy h3{display:-webkit-box;min-height:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;text-wrap:balance}.spotlight-copy h3.long{font-size:28px}.spotlight-copy h3.very-long{font-size:25px}}
+
+/* Public Korean / English interface control */
+.language-switcher{position:fixed;right:20px;top:18px;z-index:57;display:flex;align-items:center;gap:4px;padding:5px 6px 5px 10px;color:#496057;border:1px solid #cad8cc;border-radius:999px;background:rgba(255,255,255,.92);box-shadow:0 8px 24px #173b2320;backdrop-filter:blur(14px)}
+.language-switcher>svg{flex:0 0 auto;margin-right:2px;color:var(--green)}
+.language-switcher button{height:30px;padding:0 11px;border:0;border-radius:999px;background:transparent;cursor:pointer;font-size:11px;font-weight:850;transition:color .18s,background .18s}
+.language-switcher button.active{color:#fff;background:var(--green)}
+.language-switcher button:focus-visible{outline:3px solid #28765335;outline-offset:2px}
+@media(max-width:700px){.language-switcher{right:10px;top:10px;padding:4px 5px 4px 8px}.language-switcher button{height:29px;padding:0 9px;font-size:10px}}

@@ -2,14 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
+import { tr, type Language } from "@/lib/i18n";
 import type { Store } from "@/lib/types";
 
 declare global {
   interface Window { kakao?: any; }
 }
 
-type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[] };
-export default function KakaoMap({ center, radiusKm, stores }: Props) {
+type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[]; language: Language };
+export default function KakaoMap({ center, radiusKm, stores, language }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,11 +98,11 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
           const safeName = document.createElement("b");
           safeName.textContent = `${store.brand} · ${store.name}`;
           card.appendChild(safeName);
-          [ `${store.distance.toFixed(2)}km · 도보 약 ${Math.ceil(store.distance * 1.25 / 4.5 * 60)}분`, store.address, store.phone || "" ].filter(Boolean).forEach((text) => {
+          [ `${store.distance.toFixed(2)}km · ${tr(language, `도보 약 ${Math.ceil(store.distance * 1.25 / 4.5 * 60)}분`, `About ${Math.ceil(store.distance * 1.25 / 4.5 * 60)} min walk`)}`, store.address, store.phone || "" ].filter(Boolean).forEach((text) => {
             const line = document.createElement("div"); line.textContent = text; card.appendChild(line);
           });
           if (store.placeUrl) {
-            const link = document.createElement("a"); link.href = store.placeUrl; link.target = "_blank"; link.rel = "noopener"; link.textContent = "카카오맵에서 보기 →"; card.appendChild(link);
+            const link = document.createElement("a"); link.href = store.placeUrl; link.target = "_blank"; link.rel = "noopener"; link.textContent = tr(language, "카카오맵에서 보기 →", "View on Kakao Map →"); card.appendChild(link);
           }
           opened = new kakao.maps.CustomOverlay({ map, position: storePosition, content: card, xAnchor: .5, yAnchor: 1.35, zIndex: 1000 });
         };
@@ -120,8 +121,8 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         document.head.appendChild(script);
       }
     }
-  }, [center, radiusKm, stores]);
+  }, [center, radiusKm, stores, language]);
 
-  if (!process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY) return <div className="map-empty">Vercel 환경변수에 카카오 JavaScript 키를 등록해 주세요.</div>;
+  if (!process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY) return <div className="map-empty">{tr(language, "Vercel 환경변수에 카카오 JavaScript 키를 등록해 주세요.", "Add the Kakao JavaScript key to the Vercel environment variables.")}</div>;
   return <div ref={mapRef} className="kakao-map" />;
 }
