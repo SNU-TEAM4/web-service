@@ -63,7 +63,8 @@ const BRAND_ALIASES: Record<string, string> = {
 };
 const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?.trim();
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
-const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES);
+const EXCLUDED_BRANDS = new Set(["스타벅스"]);
+const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES).filter((brand) => !EXCLUDED_BRANDS.has(brand));
 
 const menuSection = inferMenuSection;
 function menuSectionRank(_brand: string, section: string) { return catalogSectionRank(section); }
@@ -180,7 +181,7 @@ export default function HanipApp() {
           mediaSourceUrl: row.media_source_url || "", mediaCheckedAt: row.media_checked_at || ""
         };
       });
-      const merged = mergeAdminPrices(data, managedPrices);
+      const merged = mergeAdminPrices(data, managedPrices).filter((menu) => !EXCLUDED_BRANDS.has(menu.brand));
       setMenus(merged);
       setBrands(Array.from(new Set([...CATALOG_BRANDS, ...merged.map((menu) => menu.brand)])));
     });
@@ -197,6 +198,10 @@ export default function HanipApp() {
   }, []);
 
   useEffect(() => { localStorage.setItem("hanip-cart", JSON.stringify(cart)); }, [cart]);
+
+  useEffect(() => {
+    if (!allergens.length && safetyMode !== "all") setSafetyMode("all");
+  }, [allergens.length, safetyMode]);
 
   useEffect(() => {
     const anchor = filtersAnchorRef.current;
@@ -231,11 +236,17 @@ export default function HanipApp() {
     setSpotlightIndex(0);
   };
 
-  const compareMenus = (a: Menu, b: Menu) => sortMode === "protein" ? b.protein - a.protein
-    : sortMode === "calories" ? Number(b.caloriesKnown) - Number(a.caloriesKnown) || a.calories - b.calories
-    : sortMode === "sodium" ? a.sodium - b.sodium
-    : profileOn ? Number(b.caloriesKnown) - Number(a.caloriesKnown) || Math.abs(a.calories - targetCalories * .32) - Math.abs(b.calories - targetCalories * .32) || b.protein - a.protein
-    : b.protein - a.protein;
+  const compareMenus = (a: Menu, b: Menu) => {
+    if (sortMode === "protein") return b.protein - a.protein;
+    if (sortMode === "calories") return Number(b.caloriesKnown) - Number(a.caloriesKnown) || a.calories - b.calories;
+    if (sortMode === "sodium") return a.sodium - b.sodium;
+
+    const brandPriority = Number(a.brand === "백억커피") - Number(b.brand === "백억커피");
+    if (brandPriority) return brandPriority;
+    return profileOn
+      ? Number(b.caloriesKnown) - Number(a.caloriesKnown) || Math.abs(a.calories - targetCalories * .32) - Math.abs(b.calories - targetCalories * .32) || b.protein - a.protein
+      : b.protein - a.protein;
+  };
   const filtered = useMemo(() => menus.filter((menu) => {
     const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item));
     const safetyMatch = safetyMode === "all" || (safetyMode === "danger" ? danger : menu.allergenKnown && !danger);
@@ -264,9 +275,10 @@ export default function HanipApp() {
     .sort((a, b) => menuSectionFilter === "전체"
       ? menuSectionRank(activeBrand, menuSection(a)) - menuSectionRank(activeBrand, menuSection(b)) || compareMenus(a, b)
       : compareMenus(a, b)), [activeBrand, activeItems, menuSectionFilter, sortMode, profileOn, targetCalories]);
+  const menuById = useMemo(() => new Map(menus.map((menu) => [menu.id, menu])), [menus]);
   const cartItems = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
-    const menu = menus[Number(id)]; return menu ? [{ menu, quantity }] : [];
-  }), [cart, menus]);
+    const menu = menuById.get(Number(id)); return menu ? [{ menu, quantity }] : [];
+  }), [cart, menuById]);
   const cartMenuIds = useMemo(() => cartItems.map(({ menu }) => menu.id), [cartItems]);
   useEffect(() => {
     setDetailSelection(cartMenuIds.slice(0, 4));
@@ -326,7 +338,7 @@ export default function HanipApp() {
         <button className="quick-filter-minimize" onClick={() => setQuickFiltersMinimized(true)} aria-label="조건 패널 접기"><ChevronLeft size={18} /><span>접기</span></button>
         <div className="quick-filter-title"><span>QUICK FILTER</span><b>조건 바로 바꾸기</b></div>
         <div className="quick-group"><h3>알레르기</h3><div className="chips"><button className={allergens.length === 0 ? "chip active no-allergy" : "chip no-allergy"} onClick={() => setAllergens([])}>알레르기 없음</button>{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div></div>
-        <div className="quick-group"><h3>안전 상태</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>모두</button><button className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>안전</button><button className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>위험</button></div></div>
+        <div className="quick-group"><h3>안전 상태</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>모두</button><button disabled={!allergens.length} className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>안전</button><button disabled={!allergens.length} className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>위험</button></div></div>
         <div className="quick-group"><h3>카테고리</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item}>{item}</option>)}</select></div>
         <div className="quick-group quick-ranges"><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={(value) => { setMaxCalories(value); setNutritionPreset("custom"); }} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={(value) => { setMinProtein(value); setNutritionPreset("custom"); }} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={(value) => { setMaxSodium(value); setNutritionPreset("custom"); }} /></div>
       </aside>
@@ -398,8 +410,8 @@ export default function HanipApp() {
           <div className="filter-block allergy-block"><h3>피해야 할 알레르기</h3><p>대한민국 의무표시 대상 기준</p><div className="chips"><button className={allergens.length === 0 ? "chip active no-allergy" : "chip no-allergy"} onClick={() => setAllergens([])}>알레르기 없음</button>{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{item}</button>)}</div></div>
           <div className="filter-block"><h3>메뉴 안전 상태</h3><p>{allergens.length ? "선택한 알레르기 기준" : "표시 성분 유무 기준"}</p><div className="safety-options">
             <button className={`all-option ${safetyMode === "all" ? "active" : ""}`} onClick={() => setSafetyMode("all")}>모두 보기</button>
-            <button className={`safe-option ${safetyMode === "safe" ? "active" : ""}`} onClick={() => setSafetyMode("safe")}>안전한 것만</button>
-            <button className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>위험한 것만</button>
+            <button disabled={!allergens.length} className={`safe-option ${safetyMode === "safe" ? "active" : ""}`} onClick={() => setSafetyMode("safe")}>안전한 것만</button>
+            <button disabled={!allergens.length} className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>위험한 것만</button>
           </div></div>
           <div className="filter-block profile-block"><h3>맞춤 프로필</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> 신체·다이어트 목표 반영</label><div className={`profile-grid profile-preview ${profileOn ? "enabled" : "disabled"}`}><select disabled={!profileOn} value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option>여성</option><option>남성</option></select><select disabled={!profileOn} value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option>감량</option><option>유지</option><option>증량</option></select><NumberField disabled={!profileOn} label="나이" value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField disabled={!profileOn} label="키(cm)" value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField disabled={!profileOn} label="체중(kg)" value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">하루 참고 목표 <b>{targetCalories.toLocaleString()} kcal</b></div></div>{!profileOn && <button className="profile-enable-hint" onClick={() => setProfileOn(true)}>체크하고 맞춤 추천 사용하기 →</button>}</div>
           <div className="filter-block nutrition-block"><h3>영양 조건</h3><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={(value) => { setMaxCalories(value); setNutritionPreset("custom"); }} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={(value) => { setMinProtein(value); setNutritionPreset("custom"); }} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={(value) => { setMaxSodium(value); setNutritionPreset("custom"); }} /></div>
@@ -418,8 +430,8 @@ export default function HanipApp() {
 
         {tab === "menus" && <Reveal><section className="panel">
           <div className="panel-head"><div><h2>조건에 맞는 메뉴</h2><p>브랜드와 메뉴 종류를 고르면 오늘의 한 끼를 빠르게 찾을 수 있어요.</p></div><div className="menu-tools"><label className="sort-select"><span>정렬</span><select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}><option value="recommended">맞춤 추천순</option><option value="protein">단백질 높은 순</option><option value="calories">열량 낮은 순</option><option value="sodium">나트륨 낮은 순</option></select></label><label className="search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="브랜드 또는 메뉴 검색" /></label></div></div>
-          <div className="brand-browser"><div className="brand-folders">{grouped.map(([brand, items]) => { const safeCount = items.filter((menu) => !menu.catalogOnly && menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length; const dangerCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.some((item) => menu.allergens.includes(item))).length : 0; const pendingCount = items.filter((menu) => menu.catalogOnly || !menu.allergenKnown).length; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""} ${items.length ? "" : "data-pending"}`} key={brand} onClick={() => { setOpenBrands(activeBrand === brand ? {} : { [brand]: true }); setMenuSectionFilter("전체"); }}>
-            <BrandLogo brand={brand} size={78} /><span><b>{brand}</b><small>{items.length ? <><em className="safe-count">안전 {safeCount}개</em>{dangerCount > 0 && <em className="danger-count">위험 {dangerCount}개</em>}{pendingCount > 0 && <em className="pending">정보 확인 중 {pendingCount}개</em>}</> : <em className="pending">메뉴 데이터 준비 중</em>}</small></span>{activeBrand === brand ? <Check /> : <ChevronRight />}
+          <div className="brand-browser"><div className="brand-folders">{grouped.map(([brand, items]) => { const safeCount = items.filter((menu) => !menu.catalogOnly && menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length; const dangerCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.some((item) => menu.allergens.includes(item))).length : 0; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""} ${items.length ? "" : "data-pending"}`} key={brand} onClick={() => { setOpenBrands(activeBrand === brand ? {} : { [brand]: true }); setMenuSectionFilter("전체"); }}>
+            <BrandLogo brand={brand} size={78} /><span><b>{brand}</b>{items.length > 0 && <small><em className="safe-count">안전 {safeCount}개</em>{dangerCount > 0 && <em className="danger-count">위험 {dangerCount}개</em>}</small>}</span>{activeBrand === brand ? <Check /> : <ChevronRight />}
           </button>; })}</div>
           {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} 메뉴</h3><p>{activeItems.length ? `조건에 맞는 ${activeItems.length}개 메뉴를 종류별로 확인하세요.` : "메뉴·영양·알레르기 데이터를 준비하고 있어요."}</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> 닫기</button></div>{activeItems.length > 0 ? <><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{section}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); const pending = menu.catalogOnly || !menu.allergenKnown; return <article className={`menu-card ${pending ? "unknown-card" : danger ? "risk-card" : "safe-card"}`} key={menu.id}>
             <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || brandFallbackImage(menu.brand)} alt={menu.imageUrl ? `${menu.menu} 공식 메뉴 이미지` : `${menu.brand} 로고`} loading="lazy" onError={(event) => { event.currentTarget.src = brandFallbackImage(menu.brand); event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>공식 이미지</span>}</div><span className="category">{menuSection(menu)}{menu.category !== menuSection(menu) ? ` · ${menu.category}` : ""}</span><h3>{menu.menu}</h3>{servingLabel(menu) && <span className="serving-label">{servingLabel(menu)}</span>}<MenuDescription menu={menu} /><div className="menu-price"><b>{menu.price ? `${menu.price.toLocaleString()}원` : "가격은 매장별 확인"}</b><small>{menu.price ? menu.priceNote : "매장·주문 채널에 따라 달라질 수 있어요"}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} 확인` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} 확인` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">가격 출처 보기</a>}</div>{menu.catalogOnly ? <p className="pending-copy">영양·알레르기 정보 확인 중</p> : <p>{calorieLabel(menu)} · 단백질 {menu.protein.toFixed(0)}g · 나트륨 {menu.sodium.toFixed(0)}mg</p>}<div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{item}</span>) : <span className="safe">표시 알레르기 없음</span>) : <span>알레르기 정보 미표기</span>}</div>{menu.catalogOnly ? <button className="add-button" disabled>정보 확인 후 담기 가능</button> : <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> 담았어요!</> : <><UtensilsCrossed size={18} /> 한 끼에 담기</>}</button>}
@@ -478,7 +490,8 @@ const DETAIL_COLORS = ["#287653", "#2e7bd8", "#ef6552", "#a268d5"];
 
 function DetailComparePanel({ menus, selection, setSelection, cartIds }: { menus: Menu[]; selection: number[]; setSelection: React.Dispatch<React.SetStateAction<number[]>>; cartIds: number[] }) {
   const [search, setSearch] = useState("");
-  const selected = selection.flatMap((id) => menus[id] ? [menus[id]] : []);
+  const byId = new Map(menus.map((menu) => [menu.id, menu]));
+  const selected = selection.flatMap((id) => byId.get(id) ? [byId.get(id)!] : []);
   const choices = menus.filter((menu) => !selection.includes(menu.id) && (!search.trim() || `${menu.brand} ${menu.menu}`.toLowerCase().includes(search.trim().toLowerCase()))).slice(0, 80);
   const radarData = [
     { subject: "칼로리", max: 800, key: "calories" },
@@ -501,7 +514,7 @@ function DetailComparePanel({ menus, selection, setSelection, cartIds }: { menus
 }
 
 function MapPanel({ brands }: { brands: string[] }) {
-  const [mode, setMode] = useState<"search" | "gps">("search"); const [term, setTerm] = useState(""); const [places, setPlaces] = useState<Place[]>([]); const [center, setCenter] = useState<Place | null>(null); const [stores, setStores] = useState<Store[]>([]); const [radius, setRadius] = useState(3); const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"search" | "gps">("search"); const [term, setTerm] = useState(""); const [places, setPlaces] = useState<Place[]>([]); const [center, setCenter] = useState<Place | null>(null); const [stores, setStores] = useState<Store[]>([]); const [radius, setRadius] = useState(1); const [loading, setLoading] = useState(false);
   useEffect(() => { if (term.trim().length < 2) { setPlaces([]); return; } const controller = new AbortController(); const timer = window.setTimeout(() => fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((r) => r.json()).then((data) => Array.isArray(data) && setPlaces(data)).catch(() => {}), 400); return () => { window.clearTimeout(timer); controller.abort(); }; }, [term]);
   useEffect(() => {
     if (!center) return;

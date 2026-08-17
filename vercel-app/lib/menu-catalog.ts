@@ -19,11 +19,41 @@ const PIZZA_BRANDS = new Set(["도미노피자", "반올림 피자", "파파존�
 const CAFE_BRANDS = new Set(["스타벅스", "이디야", "더벤티", "메가커피", "백억커피", "컴포즈 커피"]);
 const BAKERY_BRANDS = new Set(["파리바게뜨", "뚜레쥬르", "던킨도너츠"]);
 
-export function inferMenuSection(menu: Pick<Menu, "brand" | "menu" | "category">) {
+export function inferMenuSection(menu: Pick<Menu, "brand" | "menu" | "category" | "yogiyoCategory">) {
   const brand = canonicalBrandName(menu.brand);
   const category = (menu.category || "").trim();
+  const yogiyoCategory = (menu.yogiyoCategory || "").normalize("NFKC").trim();
   const name = menu.menu.trim();
-  const text = `${category} ${name}`;
+  const text = `${category} ${yogiyoCategory} ${name}`;
+
+  if (brand === "포케올데이") {
+    if (/소스/.test(yogiyoCategory) || /소스\s*$/.test(name)) return "소스";
+    if (/세트/.test(yogiyoCategory) || /세트/.test(name)) return "세트";
+    if (/제조음료|RTD\s*음료/.test(yogiyoCategory) || DRINK.test(name)) return "음료";
+    if (/밸런스박스/.test(text)) return "밸런스박스";
+    if (/덮밥/.test(name)) return "덮밥";
+    if (/메밀면|샐러드/.test(text)) return "메밀면·샐러드";
+    if (/랩|타코|두부볼|사이드/.test(text)) return "사이드·랩";
+    if (/스프|아사이볼|디저트/.test(text)) return "수프·디저트";
+    return "포케";
+  }
+  if (brand === "본죽&비빔밥") {
+    if (/비빔밥|비빔면/.test(name)) return "비빔밥·면";
+    if (/본죽반찬가게/.test(yogiyoCategory) || /장조림|젓갈|동치미/.test(name)) return "반찬";
+    if (/사이드메뉴/.test(yogiyoCategory) || /계란찜|만두|철판소불고기|고추장/.test(name)) return "사이드";
+    if (/음료/.test(yogiyoCategory) || DRINK.test(name)) return "음료";
+    if (/뜨끈\s*뚝배기/.test(yogiyoCategory) || /뚝배기/.test(name)) return "뚝배기";
+    return "죽";
+  }
+  if (brand === "본도시락") {
+    if (/추가 메뉴|계란후라이 추가/.test(yogiyoCategory)) return "사이드";
+    if (/음료|제로\s*콜라|디저트/.test(yogiyoCategory) || /콜라|사이다|생수|식혜|아이스홍시/.test(name)) return "음료·디저트";
+    if (/쌈밥/.test(text)) return "쌈밥";
+    if (/샐러드|스프/.test(text)) return "샐러드·스프";
+    if (/찌개\s*집밥/.test(yogiyoCategory)) return "국·찌개";
+    if (/한상|반상|한정식/.test(text)) return "반상·한상";
+    return "도시락·덮밥";
+  }
 
   if (brand === "써브웨이") {
     if (/샌드위치|아침메뉴/.test(text)) return "샌드위치";
@@ -68,10 +98,7 @@ export function inferMenuSection(menu: Pick<Menu, "brand" | "menu" | "category">
     return category || "기타 음료";
   }
   if (brand === "설빙") return /빙수/.test(text) ? "빙수" : DRINK.test(text) ? "음료" : "디저트·사이드";
-  if (brand === "본도시락") return "도시락";
-  if (brand === "본죽&비빔밥") return /비빔밥/.test(text) ? "비빔밥" : "죽";
   if (brand === "샐러디") return /랩|웜볼/.test(text) ? "랩·웜볼" : "샐러드";
-  if (brand === "포케올데이") return /샐러드/.test(text) ? "샐러드" : "포케";
   return category || "기타";
 }
 
@@ -108,7 +135,7 @@ export function isMealRecommendationCandidate(menu: Pick<Menu, "brand" | "menu" 
     && !CONDIMENT_NAME.test(name);
 }
 
-export const DEFAULT_MENU_SECTION_ORDER = ["버거", "치킨", "샌드위치", "샐러드", "랩", "피자", "파스타", "도시락", "죽", "비빔밥", "포케", "맥모닝", "빵", "케이크", "아이스크림", "빙수", "사이드", "사이드·디저트", "디저트·스낵", "푸드·디저트", "커피", "콜드 브루", "라떼", "티", "에이드·주스", "블렌디드", "음료", "기타"];
+export const DEFAULT_MENU_SECTION_ORDER = ["버거", "치킨", "샌드위치", "샐러드", "랩", "피자", "파스타", "포케", "덮밥", "메밀면·샐러드", "밸런스박스", "세트", "도시락·덮밥", "쌈밥", "반상·한상", "국·찌개", "죽", "비빔밥·면", "뚝배기", "반찬", "샐러드·스프", "사이드·랩", "수프·디저트", "맥모닝", "빵", "케이크", "아이스크림", "빙수", "사이드", "사이드·디저트", "디저트·스낵", "푸드·디저트", "음료·디저트", "커피", "콜드 브루", "라떼", "티", "에이드·주스", "블렌디드", "음료", "소스", "기타"];
 
 export function menuSectionRank(section: string) {
   const rank = DEFAULT_MENU_SECTION_ORDER.indexOf(section);
