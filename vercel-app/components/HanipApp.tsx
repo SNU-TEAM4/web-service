@@ -7,7 +7,7 @@ import { ArrowDown, Check, ChevronLeft, ChevronRight, ExternalLink, LocateFixed,
 import { Bar, BarChart, CartesianGrid, Cell, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
 import { mergeAdminPrices } from "@/lib/merge-admin-prices";
-import { inferMenuSection, menuIdentityKey, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
+import { inferMenuSection, isMealRecommendationCandidate, menuIdentityKey, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
 
@@ -165,7 +165,7 @@ export default function HanipApp() {
         const explicitAllergenKnown = row.allergen_known?.trim().toLowerCase();
 
         return {
-          id, brand: normalizeBrand(row.brand), menu: row.menu, category: row.category,
+          id, brand: normalizeBrand(row.brand), menu: row.menu, category: row.category, yogiyoCategory: row.yogiyo_category || "",
           calories: parseNumber(row.calories), caloriesKnown: hasNumericValue(row.calories), protein: parseNumber(row.protein), fat: parseNumber(row.fat),
           carbs: parseNumber(row.carbs), sodium: parseNumber(row.sodium),
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
@@ -305,7 +305,7 @@ export default function HanipApp() {
   const pricedCount = dataMenus.filter((menu) => menu.price).length;
   const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
   const latestSourceDate = dataMenus.reduce((latest, menu) => (menu.sourceDate || "") > latest ? menu.sourceDate || "" : latest, "");
-  const spotlightCandidates = useMemo(() => filtered.filter((menu) => !menu.catalogOnly && menu.verified && menu.allergenKnown
+  const spotlightCandidates = useMemo(() => filtered.filter((menu) => !menu.catalogOnly && menu.verified && menu.allergenKnown && isMealRecommendationCandidate(menu)
     && !allergens.some((allergen) => menu.allergens.includes(allergen))), [filtered, allergens]);
   const spotlightWithImages = spotlightCandidates.filter((menu) => menu.imageUrl);
   const spotlightPool = spotlightWithImages.length ? spotlightWithImages : spotlightCandidates;

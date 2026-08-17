@@ -84,6 +84,40 @@ export function inferMenuSection(menu: Pick<Menu, "brand" | "menu" | "category">
   return category || "기타";
 }
 
+const MEAL_RECOMMENDATION_EXCLUDED_SECTIONS = new Set([
+  "케이크",
+  "아이스크림 케이크",
+  "커피",
+  "콜드 브루",
+  "라떼",
+  "티",
+  "에이드·주스",
+  "블렌디드",
+  "음료",
+  "기타 음료",
+]);
+const CAKE_NAME = /케이크|케익/;
+const DRINK_NAME = /아메리카노|에스프레소|콜드\s*브루|커피|라떼|모카|콜라|사이다|환타|탄산|생수|주스|에이드|스무디|쉐이크|프라페|프라푸치노|블라스트|밀크티|(?:티|차)\s*$/;
+const NON_MEAL_CATEGORY = /케이크|케익|음료|드링크|커피|에이드|주스|스무디|쉐이크|프라페|블렌디드|소스|시즈닝|드레싱/;
+const CONDIMENT_NAME = /(?:소스|시즈닝|드레싱|케첩|머스타드|디핑|딥핑)(?:\s*(?:추가|별도|단품|\d+\s*(?:g|개|ea)))?\s*$/i;
+
+// 한 끼 추천 카드에서는 식사 후보가 아닌 케이크·음료·소스류만 제외합니다.
+// 전체 메뉴 탐색과 비교 데이터에는 이 항목들을 그대로 유지합니다.
+export function isMealRecommendationCandidate(menu: Pick<Menu, "brand" | "menu" | "category" | "yogiyoCategory">) {
+  const section = inferMenuSection(menu);
+  const category = `${menu.category} ${menu.yogiyoCategory || ""}`.normalize("NFKC").trim();
+  const name = menu.menu
+    .normalize("NFKC")
+    .replace(/\([^)]*(?:소스|시즈닝|드레싱)[^)]*\)|\[[^\]]*(?:소스|시즈닝|드레싱)[^\]]*\]|（[^）]*(?:소스|시즈닝|드레싱)[^）]*）/g, " ")
+    .trim();
+
+  return !MEAL_RECOMMENDATION_EXCLUDED_SECTIONS.has(section)
+    && !NON_MEAL_CATEGORY.test(category)
+    && !CAKE_NAME.test(name)
+    && !DRINK_NAME.test(name)
+    && !CONDIMENT_NAME.test(name);
+}
+
 export const DEFAULT_MENU_SECTION_ORDER = ["버거", "치킨", "샌드위치", "샐러드", "랩", "피자", "파스타", "도시락", "죽", "비빔밥", "포케", "맥모닝", "빵", "케이크", "아이스크림", "빙수", "사이드", "사이드·디저트", "디저트·스낵", "푸드·디저트", "커피", "콜드 브루", "라떼", "티", "에이드·주스", "블렌디드", "음료", "기타"];
 
 export function menuSectionRank(section: string) {

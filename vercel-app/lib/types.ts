@@ -3,6 +3,7 @@ export type Menu = {
   brand: string;
   menu: string;
   category: string;
+  yogiyoCategory?: string;
   calories: number;
   caloriesKnown: boolean;
   protein: number;
