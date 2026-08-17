@@ -32,7 +32,7 @@ function normalizeCart(value: unknown): Cart {
 }
 type SafetyMode = "all" | "danger" | "safe";
 type SortMode = "recommended" | "protein" | "calories" | "sodium";
-type NutritionPreset = "default" | "light" | "hearty" | "protein" | "sodium" | "custom";
+type NutritionPreset = "default" | "light" | "protein" | "sodium" | "custom";
 
 const nutritionPresets: Array<{
   id: Exclude<NutritionPreset, "custom">;
@@ -42,11 +42,10 @@ const nutritionPresets: Array<{
   minProtein: number;
   maxSodium: number;
 }> = [
-  { id: "default", label: "기본 기준", description: "600kcal · 나트륨 1,500mg", maxCalories: 600, minProtein: 0, maxSodium: 1500 },
+  { id: "default", label: "기본 균형", description: "600kcal · 나트륨 1,500mg", maxCalories: 600, minProtein: 0, maxSodium: 1500 },
   { id: "light", label: "가벼운 한 끼", description: "450kcal · 단백질 10g", maxCalories: 450, minProtein: 10, maxSodium: 1000 },
-  { id: "hearty", label: "든든한 한 끼", description: "800kcal · 단백질 20g", maxCalories: 800, minProtein: 20, maxSodium: 2000 },
-  { id: "protein", label: "단백질 중심", description: "단백질 25g 이상", maxCalories: 750, minProtein: 25, maxSodium: 1800 },
-  { id: "sodium", label: "나트륨 살피기", description: "나트륨 900mg 이하", maxCalories: 700, minProtein: 10, maxSodium: 900 },
+  { id: "protein", label: "고단백 탐색", description: "단백질 20g · 700kcal", maxCalories: 700, minProtein: 20, maxSodium: 1800 },
+  { id: "sodium", label: "저나트륨 우선", description: "나트륨 600mg 이하", maxCalories: 700, minProtein: 0, maxSodium: 600 },
 ];
 
 const parseNumber = (value: unknown) => Number(value || 0);
@@ -301,7 +300,6 @@ export default function HanipApp() {
   const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
   const allergenKnownCount = dataMenus.filter((menu) => menu.allergenKnown).length;
   const sourceNamedCount = dataMenus.filter((menu) => menu.sourceUrl?.trim()).length;
-  const verifiedCount = dataMenus.filter((menu) => menu.verified).length;
   const pricedCount = dataMenus.filter((menu) => menu.price).length;
   const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
   const latestSourceDate = dataMenus.reduce((latest, menu) => (menu.sourceDate || "") > latest ? menu.sourceDate || "" : latest, "");
@@ -310,6 +308,9 @@ export default function HanipApp() {
   const spotlightWithImages = spotlightCandidates.filter((menu) => menu.imageUrl);
   const spotlightPool = spotlightWithImages.length ? spotlightWithImages : spotlightCandidates;
   const spotlightMenu = spotlightPool.length ? spotlightPool[spotlightIndex % spotlightPool.length] : null;
+  const spotlightOfficialUrl = spotlightMenu
+    ? [spotlightMenu.sourceUrl, spotlightMenu.allergySourceUrl].find((url) => isHttpUrl(url)) || ""
+    : "";
 
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
@@ -366,14 +367,13 @@ export default function HanipApp() {
             <CoverageMetric label="출처 자료명 표기" value={coverage(sourceNamedCount)} detail={`${sourceNamedCount.toLocaleString()} / ${dataMenus.length.toLocaleString()}개`} />
             <CoverageMetric label="알레르기 상태 확인" value={coverage(allergenKnownCount)} detail={`${allergenKnownCount.toLocaleString()} / ${dataMenus.length.toLocaleString()}개`} />
             <CoverageMetric label="기준 가격 제공" value={coverage(pricedCount)} detail={`요기요 기준 · ${pricedCount.toLocaleString()}개`} />
-            <CoverageMetric label="검증 완료 표시" value={coverage(verifiedCount)} detail={`${verifiedCount.toLocaleString()} / ${dataMenus.length.toLocaleString()}개`} />
           </div>
         </section></Reveal>
 
         <Reveal><section className="quick-start" id="quick-start" aria-labelledby="quick-start-title">
-          <div className="preset-copy"><span>빠른 영양 설정</span><h2 id="quick-start-title">내가 살필 기준부터<br />간단하게 맞춰보세요.</h2><p>프리셋은 영양 범위만 바꿉니다. 선택한 브랜드와 알레르기 성분은 그대로 유지됩니다.</p><div className="preset-grid">{nutritionPresets.map((preset) => <button key={preset.id} className={nutritionPreset === preset.id ? "active" : ""} onClick={() => applyNutritionPreset(preset.id)}><b>{preset.label}</b><small>{preset.description}</small></button>)}</div></div>
+          <div className="preset-copy"><span>내 기준에 맞춰 보기</span><h2 id="quick-start-title">먹고 싶은 메뉴를,<br />내 조건에 맞게.</h2><p>빠른 조건은 영양 범위만 바꿉니다. 선택한 브랜드와 확인할 알레르기 성분은 그대로 유지됩니다.</p><div className="preset-grid">{nutritionPresets.map((preset) => <button key={preset.id} className={nutritionPreset === preset.id ? "active" : ""} onClick={() => applyNutritionPreset(preset.id)}><b>{preset.label}</b><small>{preset.description}</small></button>)}</div></div>
           <article className="spotlight-card">
-            {spotlightMenu ? <><div className="spotlight-copy"><span>현재 조건에 맞는 메뉴</span><h3>{spotlightMenu.menu}</h3><p>{spotlightMenu.brand} · {menuSection(spotlightMenu)} · 공식 공개자료에 표시된 알레르기 성분 기준</p><div className="spotlight-nutrients"><b>{spotlightMenu.caloriesKnown ? spotlightMenu.calories.toFixed(0) : "—"}<small>kcal</small></b><b>{spotlightMenu.protein.toFixed(0)}<small>단백질 g</small></b><b>{spotlightMenu.sodium.toFixed(0)}<small>나트륨 mg</small></b></div><div className="spotlight-price"><strong>{spotlightMenu.price ? `${spotlightMenu.price.toLocaleString()}원` : "가격 미확인"}</strong><small>{spotlightMenu.price ? `${spotlightMenu.priceNote || "기준 가격"}${spotlightMenu.priceCheckedAt ? ` · ${spotlightMenu.priceCheckedAt}` : ""}` : "확인된 가격이 없습니다"}</small></div></div><div className="spotlight-media"><img src={spotlightMenu.imageUrl || brandFallbackImage(spotlightMenu.brand)} alt={`${spotlightMenu.menu} 메뉴 이미지`} /></div><div className="spotlight-actions"><button disabled={spotlightPool.length < 2} onClick={() => setSpotlightIndex((current) => current + 1)}><RefreshCw size={16} /> 다른 메뉴</button><button className="primary" onClick={(event) => addToCart(spotlightMenu.id, event)}><UtensilsCrossed size={16} /> 한 끼에 담기</button>{isHttpUrl(spotlightMenu.priceSourceUrl) && <a href={spotlightMenu.priceSourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} /> 가격 출처</a>}</div></> : <div className="spotlight-empty"><h3>조건에 맞는 확인 메뉴가 없습니다.</h3><p>브랜드를 선택하거나 영양 범위를 조금 넓혀주세요.</p></div>}
+            {spotlightMenu ? <><div className="spotlight-copy"><span>{spotlightMenu.brand} · {menuSection(spotlightMenu)}</span><h3>{spotlightMenu.menu}</h3><p>{spotlightMenu.protein > 0 ? `단백질 ${spotlightMenu.protein.toFixed(0)}g을 포함해 현재 조건을 통과했습니다.` : "현재 설정한 영양 범위와 알레르기 조건을 통과했습니다."}</p><div className="spotlight-nutrients"><b>{spotlightMenu.caloriesKnown ? spotlightMenu.calories.toFixed(0) : "—"}<small>kcal</small></b><b>{spotlightMenu.protein.toFixed(0)}<small>단백질 g</small></b><b>{spotlightMenu.sodium.toFixed(0)}<small>나트륨 mg</small></b></div><div className="spotlight-price"><strong>{spotlightMenu.price ? `${spotlightMenu.price.toLocaleString()}원` : "가격 미확인"}</strong><small>{spotlightMenu.price ? `${spotlightMenu.priceNote || "기준 가격"}${spotlightMenu.priceCheckedAt ? ` · ${spotlightMenu.priceCheckedAt}` : ""}` : "확인된 가격이 없습니다"}</small></div></div><div className="spotlight-media"><div className="spotlight-brand-logo"><BrandLogo brand={spotlightMenu.brand} size={48} /></div><img src={spotlightMenu.imageUrl || brandFallbackImage(spotlightMenu.brand)} alt={`${spotlightMenu.menu} 메뉴 이미지`} /></div><div className="spotlight-actions"><button disabled={spotlightPool.length < 2} onClick={() => setSpotlightIndex((current) => current + 1)}><RefreshCw size={16} /> 다른 메뉴</button><button className="primary" onClick={(event) => addToCart(spotlightMenu.id, event)}><UtensilsCrossed size={16} /> 한 끼에 담기</button>{spotlightOfficialUrl ? <a href={spotlightOfficialUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} /> 공식 정보</a> : <button onClick={() => changeTab("about")}><ExternalLink size={15} /> 데이터 기준</button>}</div></> : <div className="spotlight-empty"><h3>조건에 맞는 확인 메뉴가 없습니다.</h3><p>브랜드를 선택하거나 영양 범위를 조금 넓혀주세요.</p></div>}
           </article>
         </section></Reveal>
       </section>
