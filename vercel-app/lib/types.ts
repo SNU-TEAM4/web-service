@@ -12,10 +12,8 @@ export type Menu = {
   sodium: number;
   allergens: string[];
   allergenKnown: boolean;
-  verified: boolean;
+  verified?: boolean;
   sourceUrl: string;
-  sourceDate?: string;
-  allergySourceUrl?: string;
   imageUrl?: string;
   description?: string;
   price?: number;

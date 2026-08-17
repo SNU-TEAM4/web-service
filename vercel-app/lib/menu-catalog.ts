@@ -7,17 +7,8 @@ const BRAND_ALIASES: Record<string, string> = {
 };
 
 export function canonicalBrandName(brand: string) {
-  const trimmed = brand.normalize("NFKC").trim().replace(/\s+/g, " ");
+  const trimmed = brand.trim();
   return BRAND_ALIASES[trimmed] || trimmed;
-}
-
-export function canonicalMenuName(menu: string) {
-  return menu.normalize("NFKC").trim().replace(/\s+/g, " ");
-}
-
-// 가격 CSV에서 실수로 들어간 띄어쓰기 차이는 같은 메뉴로 취급합니다.
-export function menuIdentityKey(brand: string, menu: string) {
-  return `${canonicalBrandName(brand)}\u0000${canonicalMenuName(menu).replace(/\s/g, "").toLocaleLowerCase("ko")}`;
 }
 
 const DRINK = /콜라|사이다|환타|탄산|생수|주스|에이드|커피|아메리카노|라떼|모카|티|차|스무디|쉐이크|프라페|프라푸치노|음료/;
@@ -101,8 +92,7 @@ const DRINK_NAME = /아메리카노|에스프레소|콜드\s*브루|커피|라�
 const NON_MEAL_CATEGORY = /케이크|케익|음료|드링크|커피|에이드|주스|스무디|쉐이크|프라페|블렌디드|소스|시즈닝|드레싱/;
 const CONDIMENT_NAME = /(?:소스|시즈닝|드레싱|케첩|머스타드|디핑|딥핑)(?:\s*(?:추가|별도|단품|\d+\s*(?:g|개|ea)))?\s*$/i;
 
-// 한 끼 추천 카드에서는 식사 후보가 아닌 케이크·음료·소스류만 제외합니다.
-// 전체 메뉴 탐색과 비교 데이터에는 이 항목들을 그대로 유지합니다.
+// 이 기준은 빠른 추천 카드에만 적용하며 전체 메뉴 탐색 데이터는 그대로 둡니다.
 export function isMealRecommendationCandidate(menu: Pick<Menu, "brand" | "menu" | "category" | "yogiyoCategory">) {
   const section = inferMenuSection(menu);
   const category = `${menu.category} ${menu.yogiyoCategory || ""}`.normalize("NFKC").trim();

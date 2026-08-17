@@ -1,8 +1,8 @@
 import type { Menu, PriceRecord } from "@/lib/types";
-import { canonicalBrandName, inferMenuSection, menuIdentityKey } from "@/lib/menu-catalog";
+import { canonicalBrandName, inferMenuSection } from "@/lib/menu-catalog";
 
 function menuKey(brand: string, menu: string) {
-  return menuIdentityKey(brand, menu);
+  return `${canonicalBrandName(brand)}\u0000${menu.trim()}`;
 }
 
 export function mergeAdminPrices(menus: Menu[], prices: PriceRecord[]): Menu[] {
@@ -20,8 +20,6 @@ export function mergeAdminPrices(menus: Menu[], prices: PriceRecord[]): Menu[] {
   const merged = menus.map((menu) => {
     const managed = latestByMenu.get(menuKey(menu.brand, menu.menu));
     if (!managed) return menu;
-    // CSV에 더 최근 가격이 있으면 오래된 관리자 입력으로 되돌리지 않습니다.
-    if (menu.price && menu.priceCheckedAt && managed.checkedAt < menu.priceCheckedAt) return menu;
     return {
       ...menu,
       price: managed.price,
@@ -42,7 +40,7 @@ export function mergeAdminPrices(menus: Menu[], prices: PriceRecord[]): Menu[] {
     return {
       id: -(index + 1), brand, menu: record.menu, category,
       calories: 0, caloriesKnown: false, protein: 0, fat: 0, carbs: 0, sodium: 0,
-      allergens: [], allergenKnown: false, verified: false, sourceUrl: record.sourceUrl,
+      allergens: [], allergenKnown: false, sourceUrl: record.sourceUrl,
       price: record.price, priceCheckedAt: record.checkedAt,
       priceSourceUrl: record.sourceUrl,
       priceNote: [record.storeName, record.channel].filter(Boolean).join(" · ") || "관리자 확인 가격",

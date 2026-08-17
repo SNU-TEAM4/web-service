@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const radius = Math.min(10000, Math.max(1000, Number(request.nextUrl.searchParams.get("radius") || 3000)));
   const brands = Array.from(new Set(
     (request.nextUrl.searchParams.get("brands") || "").split(",").map((brand) => brand.trim()).filter(Boolean)
-  )).slice(0, 8);
+  )).slice(0, 50);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !brands.length) return NextResponse.json([]);
 
   const searchBrand = async (brand: string) => {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
     return found;
   };
-  // 한 번의 사용자 검색이 카카오 API를 과도하게 소비하지 않도록 최대 8개 브랜드만 조회한다.
+  // 카카오 로컬 API에 37개 브랜드를 한꺼번에 몰아 보내지 않도록 작은 묶음으로 조회한다.
   const brandRows: Array<Array<Record<string, unknown>>> = [];
   for (let index = 0; index < brands.length; index += 6) {
     brandRows.push(...await Promise.all(brands.slice(index, index + 6).map(searchBrand)));

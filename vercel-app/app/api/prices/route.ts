@@ -9,7 +9,7 @@ import {
 export async function GET() {
   try {
     const rows = await loadAllPriceRows();
-    return NextResponse.json(rows.map((row) => ({ ...toPublicPrice(row), memo: "" })), {
+    return NextResponse.json(rows.map(toPublicPrice), {
       headers: { "Cache-Control": "no-store", "X-Hanip-Price-Store": "connected" },
     });
   } catch (error) {
