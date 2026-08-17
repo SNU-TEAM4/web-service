@@ -7,7 +7,7 @@ import { ArrowDown, Check, ChevronLeft, ChevronRight, Languages, LocateFixed, Ma
 import { Bar, BarChart, CartesianGrid, Cell, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_DISPLAY_ORDER_BY_CATEGORY, BRAND_LOGOS } from "@/lib/brands";
 import { mergeAdminPrices } from "@/lib/merge-admin-prices";
-import { inferMenuSection, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
+import { canonicalBrandName, inferMenuSection, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
 import { allergenLabel, categoryLabel, formatNumber, formatPrice, menuSectionLabel, tr, type Language } from "@/lib/i18n";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
@@ -40,15 +40,9 @@ const hasNumericValue = (value: unknown) => {
   return normalized !== "" && Number.isFinite(Number(normalized));
 };
 const calorieLabel = (menu: Menu, language: Language) => menu.caloriesKnown ? `${menu.calories.toFixed(0)} kcal` : tr(language, "칼로리 정보 없음", "Calories unavailable");
-const BRAND_ALIASES: Record<string, string> = {
-  "서브웨이": "써브웨이",
-  "베스킨라빈스": "배스킨라빈스",
-  "파리바게트": "파리바게뜨",
-};
-const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?.trim();
+const normalizeBrand = canonicalBrandName;
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
-const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES).filter((brand) => !EXCLUDED_BRANDS.has(brand));
 
 const menuSection = inferMenuSection;
 function menuSectionRank(_brand: string, section: string) { return catalogSectionRank(section); }
@@ -182,7 +176,7 @@ export default function HanipApp() {
       });
       const merged = mergeAdminPrices(data, managedPrices).filter((menu) => !EXCLUDED_BRANDS.has(menu.brand));
       setMenus(merged);
-      setBrands(Array.from(new Set([...CATALOG_BRANDS, ...merged.map((menu) => menu.brand)])));
+      setBrands(Array.from(new Set(merged.map((menu) => menu.brand))));
     });
     const saved = localStorage.getItem("hanip-cart");
     if (saved) {
@@ -217,7 +211,7 @@ export default function HanipApp() {
     return () => window.removeEventListener("scroll", update);
   }, []);
 
-  const brandOptions = useMemo(() => Array.from(new Set([...CATALOG_BRANDS, ...menus.map((menu) => menu.brand)])), [menus]);
+  const brandOptions = useMemo(() => Array.from(new Set(menus.map((menu) => menu.brand))), [menus]);
   const displayedBrandOptions = useMemo(() => brandOptions
     .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
     .sort((a, b) => compareBrandDisplayOrder(brandCategory, a, b)), [brandOptions, brandCategory]);
