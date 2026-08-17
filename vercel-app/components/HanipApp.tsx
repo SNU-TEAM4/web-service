@@ -5,7 +5,7 @@ import Papa from "papaparse";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Check, ChevronLeft, ChevronRight, ExternalLink, LocateFixed, MapPin, Menu as MenuIcon, RefreshCw, Search, SlidersHorizontal, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
+import { ALLERGENS, BRAND_CATEGORIES, BRAND_CATEGORY_ORDER, BRAND_COLORS, BRAND_DISPLAY_ORDER_BY_CATEGORY, BRAND_LOGOS } from "@/lib/brands";
 import { mergeAdminPrices } from "@/lib/merge-admin-prices";
 import { inferMenuSection, isMealRecommendationCandidate, menuSectionRank as catalogSectionRank } from "@/lib/menu-catalog";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
@@ -219,6 +219,13 @@ export default function HanipApp() {
   }, []);
 
   const brandOptions = useMemo(() => Array.from(new Set([...CATALOG_BRANDS, ...menus.map((menu) => menu.brand)])), [menus]);
+  const displayedBrandOptions = useMemo(() => {
+    const displayOrder = BRAND_DISPLAY_ORDER_BY_CATEGORY[brandCategory] || [];
+    const rank = new Map(displayOrder.map((brand, index) => [brand, index]));
+    return brandOptions
+      .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
+      .sort((a, b) => (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER) || a.localeCompare(b, "ko"));
+  }, [brandOptions, brandCategory]);
   const targetCalories = useMemo(() => {
     const bmr = profile.sex === "남성"
       ? 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5
@@ -422,7 +429,7 @@ export default function HanipApp() {
           <div className="filter-block nutrition-block"><h3>영양 조건</h3><Range label="최대 칼로리" value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={(value) => { setMaxCalories(value); setNutritionPreset("custom"); }} /><Range label="최소 단백질" value={minProtein} min={0} max={60} step={5} unit="g" onChange={(value) => { setMinProtein(value); setNutritionPreset("custom"); }} /><Range label="최대 나트륨" value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={(value) => { setMaxSodium(value); setNutritionPreset("custom"); }} /></div>
         </section></Reveal></div>
 
-        <Reveal><section className="category-section"><div className="section-intro compact"><span>02 · 카테고리</span><h2>어떤 종류를 찾고 있나요?</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{category}</b><small>{category === "전체" ? "모든 브랜드" : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length}개 브랜드`}</small></button>)}</div><div className="brand-picker">{brandOptions.filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory)).map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} /><span>{brand}</span></button>)}</div></section></Reveal>
+        <Reveal><section className="category-section"><div className="section-intro compact"><span>02 · 카테고리</span><h2>어떤 종류를 찾고 있나요?</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{category}</b><small>{category === "전체" ? "모든 브랜드" : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length}개 브랜드`}</small></button>)}</div><div className="brand-picker">{displayedBrandOptions.map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} /><span>{brand}</span></button>)}</div></section></Reveal>
 
         <nav className="tabs">
           <TabButton active={tab === "menus"} onClick={() => changeTab("menus")} icon={<MenuIcon size={17} />} label="추천 메뉴" />
