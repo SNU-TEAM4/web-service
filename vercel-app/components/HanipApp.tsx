@@ -381,7 +381,12 @@ export default function HanipApp() {
             {spotlightMenu ? <>
               <div className="spotlight-copy">
                 <span>{spotlightMenu.brand} · {menuSection(spotlightMenu)}</span>
-                <h3>{spotlightMenu.menu}</h3>
+                <h3
+                  className={spotlightMenu.menu.length > 28 ? "very-long" : spotlightMenu.menu.length > 18 ? "long" : ""}
+                  title={spotlightMenu.menu}
+                >
+                  {spotlightMenu.menu}
+                </h3>
                 <p>단백질 {spotlightMenu.protein.toFixed(0)}g을 포함해 현재 조건을 통과했습니다.</p>
                 <dl className="spotlight-nutrition">
                   <div><dt>{spotlightMenu.calories.toFixed(0)}</dt><dd>kcal</dd></div>
