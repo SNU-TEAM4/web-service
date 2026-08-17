@@ -277,6 +277,11 @@ export default function HanipApp() {
     fat: sum.fat + menu.fat * quantity, carbs: sum.carbs + menu.carbs * quantity, sodium: sum.sodium + menu.sodium * quantity
   }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
 
+  const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
+  const allergenKnownCount = dataMenus.filter((menu) => menu.allergenKnown).length;
+  const sourceNamedCount = dataMenus.filter((menu) => menu.sourceUrl?.trim()).length;
+  const pricedCount = dataMenus.filter((menu) => menu.price).length;
+  const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
   const spotlightCandidates = useMemo(() => filtered.filter((menu) => (
     !menu.catalogOnly
     && menu.verified
@@ -332,6 +337,22 @@ export default function HanipApp() {
         <div className="landing-copy"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><p className="landing-brand">🍽️ 한입안심</p><h1>오늘의 한 끼,<br />안심하고 고르세요.</h1><p>알레르기와 영양 목표를 한 번 설정하면<br />여러 프랜차이즈 메뉴를 한곳에서 찾아드려요.</p><a href="#explorer">내 메뉴 찾아보기 <ArrowDown size={18} /></a></div>
         <div className="landing-note"><span>ALLERGY</span><span>NUTRITION</span><span>NEARBY</span></div>
       </header>
+
+      <section className="trust-shell">
+        <Reveal><section className="data-trust" id="trust" aria-labelledby="trust-title">
+          <div className="trust-copy">
+            <span>데이터를 숨기지 않고 보여드립니다</span>
+            <h2 id="trust-title">확인한 정보와<br />확인 중인 정보를 구분합니다.</h2>
+            <p>확보율은 현재 불러온 메뉴 데이터를 기준으로 자동 계산됩니다. 가격은 실시간 매장가가 아니라 표시된 기준일의 요기요 가격이며, 출처 자료명과 실제 연결 가능한 링크는 구분합니다.</p>
+            <button onClick={() => changeTab("about")}>데이터 기준 자세히 보기 <ChevronRight size={16} /></button>
+          </div>
+          <div className="trust-metrics">
+            <CoverageMetric label="출처 자료명 표기" value={coverage(sourceNamedCount)} detail={`${sourceNamedCount.toLocaleString()} / ${dataMenus.length.toLocaleString()}개`} />
+            <CoverageMetric label="알레르기 상태 확인" value={coverage(allergenKnownCount)} detail={`${allergenKnownCount.toLocaleString()} / ${dataMenus.length.toLocaleString()}개`} />
+            <CoverageMetric label="기준 가격 제공" value={coverage(pricedCount)} detail={`요기요 기준 · ${pricedCount.toLocaleString()}개`} />
+          </div>
+        </section></Reveal>
+      </section>
 
       <section className="quick-start-shell" id="quick-start">
         <Reveal><section className="quick-start">
@@ -416,6 +437,7 @@ export default function HanipApp() {
 }
 
 function Reveal({ children }: { children: React.ReactNode }) { const ref = useRef<HTMLDivElement>(null); useEffect(() => { const node = ref.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && node.classList.add("visible"), { threshold: .12 }); observer.observe(node); return () => observer.disconnect(); }, []); return <div ref={ref} className="reveal">{children}</div>; }
+function CoverageMetric({ label, value, detail }: { label: string; value: number; detail: string }) { return <div className="coverage-metric"><span><b>{label}</b><strong>{value}%</strong></span><div><i style={{ width: `${value}%` }} /></div><small>{detail}</small></div>; }
 function TabButton({ active, onClick, label, icon, mealTarget = false, receiving = false }: { active: boolean; onClick: () => void; label: string; icon?: React.ReactNode; mealTarget?: boolean; receiving?: boolean }) { return <button data-meal-tab={mealTarget ? "true" : undefined} className={`${active ? "active" : ""} ${receiving ? "meal-tab-receiving" : ""}`} onClick={onClick}>{icon}{label}</button>; }
 function NumberField({ label, value, onChange, disabled = false }: { label: string; value: number; onChange: (value: number) => void; disabled?: boolean }) { return <label><span>{label}</span><input disabled={disabled} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { return <label className="range"><span>{label}<b>{value} {unit}</b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
