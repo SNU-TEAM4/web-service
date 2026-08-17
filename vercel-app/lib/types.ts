@@ -4,6 +4,7 @@ export type Menu = {
   menu: string;
   category: string;
   calories: number;
+  caloriesKnown: boolean;
   protein: number;
   fat: number;
   carbs: number;
