@@ -11,6 +11,7 @@ import { inferMenuSection, menuSectionRank as catalogSectionRank } from "@/lib/m
 import { allergenLabel, categoryLabel, formatNumber, formatPrice, menuSectionLabel, tr, type Language } from "@/lib/i18n";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
+import { FloatingFoodHero, type FloatingFoodImage } from "./ui/floating-food-hero";
 
 type Tab = "menus" | "cart" | "map" | "compare" | "about";
 type Cart = Record<number, number>;
@@ -49,6 +50,18 @@ const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
 const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES).filter((brand) => !EXCLUDED_BRANDS.has(brand));
+const HERO_IMAGES: FloatingFoodImage[] = [
+  { src: "https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png", alt: "", position: "burger" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png", alt: "", position: "burger-secondary" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/b4f62434088b0ddfa9b370991f58ca601743060218.png", alt: "", position: "dumplings" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/b4f62434088b0ddfa9b370991f58ca601743060218.png", alt: "", position: "dumplings-secondary" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/316495f4ba2a9c9d9aa97fed9fe61cf71743059024.png", alt: "", position: "pizza" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/316495f4ba2a9c9d9aa97fed9fe61cf71743059024.png", alt: "", position: "pizza-secondary" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png", alt: "", position: "leaf" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png", alt: "", position: "leaf-secondary" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png", alt: "", position: "tomato" },
+  { src: "https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png", alt: "", position: "tomato-secondary" },
+];
 
 const menuSection = inferMenuSection;
 function menuSectionRank(_brand: string, section: string) { return catalogSectionRank(section); }
@@ -330,11 +343,11 @@ export default function HanipApp() {
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label={tr(language, "닫기", "Close")} onClick={() => setQuickFiltersOpen(false)} />}
       {mealFlight && <div key={mealFlight.nonce} className="meal-flight" style={{ left: mealFlight.x, top: mealFlight.y, "--flight-x": `${mealFlight.dx}px`, "--flight-y": `${mealFlight.dy}px` } as React.CSSProperties}><UtensilsCrossed size={16} /><span>+1</span></div>}
-      <header className="landing">
+      <FloatingFoodHero images={HERO_IMAGES}>
         <div className="landing-orb orb-one" /><div className="landing-orb orb-two" />
         <div className="landing-copy"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><p className="landing-brand">🍽️ {tr(language, "한입안심", "Hanip Ansim")}</p><h1>{tr(language, "오늘의 한 끼,", "Choose your meal,")}<br />{tr(language, "안심하고 고르세요.", "with confidence.")}</h1><p>{tr(language, "알레르기와 영양 목표를 한 번 설정하면", "Set your allergens and nutrition goals once,")}<br />{tr(language, "여러 프랜차이즈 메뉴를 한곳에서 찾아드려요.", "then explore franchise menus all in one place.")}</p><a href="#explorer">{tr(language, "내 메뉴 찾아보기", "Find my menu")} <ArrowDown size={18} /></a></div>
         <div className="landing-note"><span>ALLERGY</span><span>NUTRITION</span><span>NEARBY</span></div>
-      </header>
+      </FloatingFoodHero>
 
       <section className="trust-shell">
         <Reveal><section className="data-trust" id="trust" aria-labelledby="trust-title">
