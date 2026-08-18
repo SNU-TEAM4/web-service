@@ -9,7 +9,9 @@ export type Menu = {
   protein: number;
   proteinKnown: boolean;
   fat: number;
+  fatKnown: boolean;
   carbs: number;
+  carbsKnown: boolean;
   sodium: number;
   sodiumKnown: boolean;
   allergens: string[];

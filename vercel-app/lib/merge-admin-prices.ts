@@ -40,7 +40,7 @@ export function mergeAdminPrices(menus: Menu[], prices: PriceRecord[]): Menu[] {
     return {
       id: -(index + 1), brand, menu: record.menu, category,
       calories: 0, caloriesKnown: false, protein: 0, proteinKnown: false,
-      fat: 0, carbs: 0, sodium: 0, sodiumKnown: false,
+      fat: 0, fatKnown: false, carbs: 0, carbsKnown: false, sodium: 0, sodiumKnown: false,
       allergens: [], allergenKnown: false, sourceUrl: record.sourceUrl,
       price: record.price, priceCheckedAt: record.checkedAt,
       priceSourceUrl: record.sourceUrl,
