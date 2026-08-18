@@ -3,13 +3,18 @@ export type Menu = {
   brand: string;
   menu: string;
   category: string;
+  yogiyoCategory?: string;
   calories: number;
+  caloriesKnown: boolean;
   protein: number;
+  proteinKnown: boolean;
   fat: number;
   carbs: number;
   sodium: number;
+  sodiumKnown: boolean;
   allergens: string[];
   allergenKnown: boolean;
+  verified?: boolean;
   sourceUrl: string;
   imageUrl?: string;
   description?: string;
@@ -19,6 +24,7 @@ export type Menu = {
   priceCheckedAt?: string;
   mediaSourceUrl?: string;
   mediaCheckedAt?: string;
+  catalogOnly?: boolean;
 };
 
 export type Place = {
@@ -34,4 +40,17 @@ export type Store = Place & {
   distance: number;
   phone?: string;
   placeUrl?: string;
+};
+
+export type PriceRecord = {
+  id: string;
+  brand: string;
+  menu: string;
+  channel: string;
+  storeName: string;
+  price: number;
+  checkedAt: string;
+  sourceUrl: string;
+  memo: string;
+  updatedAt: string;
 };

@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { BRAND_LOGOS } from "@/lib/brands";
+import { BRAND_COLORS, BRAND_LOGOS } from "@/lib/brands";
+import { tr, type Language } from "@/lib/i18n";
 import type { Store } from "@/lib/types";
 
 declare global {
   interface Window { kakao?: any; }
 }
 
-type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[] };
-const PIN_COLORS: Record<string, string> = { "맥도날드": "#ffcc00", "롯데리아": "#f00028", "버거킹": "#ed7800", "스타벅스": "#00754a", "KFC": "#c8102e", "써브웨이": "#008c45", "이디야": "#172f70", "배스킨라빈스": "#f45b9d", "파리바게뜨": "#112e67" };
-
-export default function KakaoMap({ center, radiusKm, stores }: Props) {
+type Props = { center: { lat: number; lon: number }; radiusKm: number; stores: Store[]; language: Language };
+export default function KakaoMap({ center, radiusKm, stores, language }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +37,7 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         const pin = document.createElement("button");
         pin.className = "store-pin";
         pin.dataset.brand = store.brand;
-        pin.style.setProperty("--pin-color", PIN_COLORS[store.brand] || "#287653");
+        pin.style.setProperty("--pin-color", BRAND_COLORS[store.brand] || "#287653");
         const positionKey = `${store.lat.toFixed(3)}:${store.lon.toFixed(3)}`;
         const positionOrder = nearbyPositions.get(positionKey) || 0;
         nearbyPositions.set(positionKey, positionOrder + 1);
@@ -54,16 +53,30 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
         shape.setAttribute("d", "M30 2C14.5 2 3 13.8 3 29.5C3 46.5 18.8 59.4 30 70C41.2 59.4 57 46.5 57 29.5C57 13.8 45.5 2 30 2Z");
         shape.setAttribute("fill", "white");
-        shape.setAttribute("stroke", PIN_COLORS[store.brand] || "#287653");
+        shape.setAttribute("stroke", BRAND_COLORS[store.brand] || "#287653");
         shape.setAttribute("stroke-width", "3");
-        const logo = document.createElementNS("http://www.w3.org/2000/svg", "image");
-        logo.setAttribute("href", BRAND_LOGOS[store.brand] || "");
-        logo.setAttribute("x", "11");
-        logo.setAttribute("y", "9");
-        logo.setAttribute("width", "38");
-        logo.setAttribute("height", "38");
-        logo.setAttribute("preserveAspectRatio", "xMidYMid meet");
-        svg.append(shape, logo);
+        svg.appendChild(shape);
+        const logoPath = BRAND_LOGOS[store.brand];
+        if (logoPath) {
+          const logo = document.createElementNS("http://www.w3.org/2000/svg", "image");
+          logo.setAttribute("href", logoPath);
+          logo.setAttribute("x", "11");
+          logo.setAttribute("y", "9");
+          logo.setAttribute("width", "38");
+          logo.setAttribute("height", "38");
+          logo.setAttribute("preserveAspectRatio", "xMidYMid meet");
+          svg.appendChild(logo);
+        } else {
+          const initials = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          initials.setAttribute("x", "30");
+          initials.setAttribute("y", "34");
+          initials.setAttribute("text-anchor", "middle");
+          initials.setAttribute("fill", BRAND_COLORS[store.brand] || "#287653");
+          initials.setAttribute("font-size", store.brand.length > 4 ? "10" : "13");
+          initials.setAttribute("font-weight", "900");
+          initials.textContent = store.brand.length > 4 ? store.brand.slice(0, 4) : store.brand;
+          svg.appendChild(initials);
+        }
         pin.appendChild(svg);
         pin.setAttribute("aria-label", `${store.brand} ${store.name}`);
         const storePosition = new kakao.maps.LatLng(store.lat, store.lon);
@@ -85,11 +98,11 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
           const safeName = document.createElement("b");
           safeName.textContent = `${store.brand} · ${store.name}`;
           card.appendChild(safeName);
-          [ `${store.distance.toFixed(2)}km · 도보 약 ${Math.ceil(store.distance * 1.25 / 4.5 * 60)}분`, store.address, store.phone || "" ].filter(Boolean).forEach((text) => {
+          [ `${store.distance.toFixed(2)}km · ${tr(language, `도보 약 ${Math.ceil(store.distance * 1.25 / 4.5 * 60)}분`, `About ${Math.ceil(store.distance * 1.25 / 4.5 * 60)} min walk`)}`, store.address, store.phone || "" ].filter(Boolean).forEach((text) => {
             const line = document.createElement("div"); line.textContent = text; card.appendChild(line);
           });
           if (store.placeUrl) {
-            const link = document.createElement("a"); link.href = store.placeUrl; link.target = "_blank"; link.rel = "noopener"; link.textContent = "카카오맵에서 보기 →"; card.appendChild(link);
+            const link = document.createElement("a"); link.href = store.placeUrl; link.target = "_blank"; link.rel = "noopener"; link.textContent = tr(language, "카카오맵에서 보기 →", "View on Kakao Map →"); card.appendChild(link);
           }
           opened = new kakao.maps.CustomOverlay({ map, position: storePosition, content: card, xAnchor: .5, yAnchor: 1.35, zIndex: 1000 });
         };
@@ -108,8 +121,8 @@ export default function KakaoMap({ center, radiusKm, stores }: Props) {
         document.head.appendChild(script);
       }
     }
-  }, [center, radiusKm, stores]);
+  }, [center, radiusKm, stores, language]);
 
-  if (!process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY) return <div className="map-empty">Vercel 환경변수에 카카오 JavaScript 키를 등록해 주세요.</div>;
+  if (!process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY) return <div className="map-empty">{tr(language, "Vercel 환경변수에 카카오 JavaScript 키를 등록해 주세요.", "Add the Kakao JavaScript key to the Vercel environment variables.")}</div>;
   return <div ref={mapRef} className="kakao-map" />;
 }
