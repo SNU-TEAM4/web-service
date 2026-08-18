@@ -14,6 +14,7 @@ export type Menu = {
   carbsKnown: boolean;
   sodium: number;
   sodiumKnown: boolean;
+  nutritionMatch?: string;
   allergens: string[];
   allergenKnown: boolean;
   verified?: boolean;

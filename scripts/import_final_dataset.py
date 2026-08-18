@@ -34,7 +34,7 @@ HEADER = [
     "brand", "menu", "category", "yogiyo_category", "calories", "protein", "fat", "carbs", "sodium",
     "allergens", "source_url", "source_date", "verified", "allergen_known", "image_url", "description",
     "media_source_url", "media_checked_at", "allergy_source_url", "price", "price_note", "price_source_url",
-    "price_checked_at", "allergy_notice", "allergy_confidence",
+    "price_checked_at", "allergy_notice", "allergy_confidence", "_nutrition_match", "_nutrition_score",
 ] + [f"al_{allergen}" for allergen in ALLERGENS]
 
 
@@ -92,6 +92,8 @@ def to_row(source: dict[str, str], imported_at: str) -> dict[str, str]:
         "price_checked_at": imported_at,
         "allergy_notice": text(source.get("알레르기_안내문구")),
         "allergy_confidence": confidence,
+        "_nutrition_match": "",
+        "_nutrition_score": "",
     }
     row.update({f"al_{allergen}": str(allergen in allergens) for allergen in ALLERGENS})
     return row
@@ -110,6 +112,19 @@ def main() -> None:
 
     imported_at = date.today().isoformat()
     rows = [to_row(row, imported_at) for row in source_rows if text(row.get("브랜드")) and text(row.get("메뉴명"))]
+    # 이전 수집 과정에서 검증한 영양정보 매칭 상태는 같은 브랜드·메뉴에 대해 다음 갱신에도 보존한다.
+    previous_matches: dict[tuple[str, str], dict[str, str]] = {}
+    if OUTPUTS[0].exists():
+        with OUTPUTS[0].open(encoding="utf-8-sig", newline="") as file:
+            for previous in csv.DictReader(file):
+                key = (text(previous.get("brand")), text(previous.get("menu")))
+                if key[0] and key[1]:
+                    previous_matches[key] = previous
+    for row in rows:
+        previous = previous_matches.get((row["brand"], row["menu"]))
+        if previous:
+            row["_nutrition_match"] = text(previous.get("_nutrition_match"))
+            row["_nutrition_score"] = text(previous.get("_nutrition_score"))
     for output in OUTPUTS:
         with output.open("w", encoding="utf-8-sig", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=HEADER, lineterminator="\n")

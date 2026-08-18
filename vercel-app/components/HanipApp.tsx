@@ -49,7 +49,7 @@ const BRAND_ALIASES: Record<string, string> = {
 const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?.trim();
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
-const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES).filter((brand) => !EXCLUDED_BRANDS.has(brand));
+const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
 const HERO_IMAGES: FloatingFoodImage[] = [
   { src: "https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png", alt: "", position: "burger" },
   { src: "https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png", alt: "", position: "burger-secondary" },
@@ -186,6 +186,7 @@ export default function HanipApp() {
           calories: parseNumber(row.calories), caloriesKnown: hasNumericValue(row.calories),
           protein: parseNumber(row.protein), proteinKnown: hasNumericValue(row.protein), fat: parseNumber(row.fat), fatKnown: hasNumericValue(row.fat),
           carbs: parseNumber(row.carbs), carbsKnown: hasNumericValue(row.carbs), sodium: parseNumber(row.sodium), sodiumKnown: hasNumericValue(row.sodium),
+          nutritionMatch: row._nutrition_match || "",
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
           allergenKnown: explicitAllergenKnown
             ? explicitAllergenKnown === "true"
@@ -200,7 +201,7 @@ export default function HanipApp() {
       });
       const merged = mergeAdminPrices(data, managedPrices).filter((menu) => !EXCLUDED_BRANDS.has(menu.brand));
       setMenus(merged);
-      setBrands(Array.from(new Set([...CATALOG_BRANDS, ...merged.map((menu) => menu.brand)])));
+      setBrands(Array.from(new Set(data.map((menu) => menu.brand).filter((brand) => !EXCLUDED_BRANDS.has(brand)))));
     });
     const saved = localStorage.getItem("hanip-cart");
     if (saved) {
@@ -235,7 +236,8 @@ export default function HanipApp() {
     return () => window.removeEventListener("scroll", update);
   }, []);
 
-  const brandOptions = useMemo(() => Array.from(new Set([...CATALOG_BRANDS, ...menus.map((menu) => menu.brand)])), [menus]);
+  // 실제 최종 데이터셋에 메뉴가 있는 브랜드만 노출한다. 관리자 가격만 있는 임시 항목은 목록을 늘리지 않는다.
+  const brandOptions = useMemo(() => Array.from(new Set(menus.filter((menu) => !menu.catalogOnly).map((menu) => menu.brand))), [menus]);
   const displayedBrandOptions = useMemo(() => brandOptions
     .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
     .sort((a, b) => compareBrandDisplayOrder(brandCategory, a, b)), [brandOptions, brandCategory]);
@@ -306,8 +308,23 @@ export default function HanipApp() {
   }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
 
   const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
+  // 새 CSV가 들어와도 슬라이더 상한과 기본값이 실제 데이터 범위를 항상 포함하도록 계산한다.
+  const nutritionLimits = useMemo(() => ({
+    calories: roundedLimit(dataMenus.filter((menu) => menu.caloriesKnown).map((menu) => menu.calories), 100, 1200),
+    protein: roundedLimit(dataMenus.filter((menu) => menu.proteinKnown).map((menu) => menu.protein), 5, 60),
+    fat: roundedLimit(dataMenus.filter((menu) => menu.fatKnown).map((menu) => menu.fat), 10, 50),
+    carbs: roundedLimit(dataMenus.filter((menu) => menu.carbsKnown).map((menu) => menu.carbs), 10, 100),
+    sodium: roundedLimit(dataMenus.filter((menu) => menu.sodiumKnown).map((menu) => menu.sodium), 250, 2000),
+  }), [dataMenus]);
+  useEffect(() => {
+    if (!dataMenus.length) return;
+    setMaxCalories(nutritionLimits.calories);
+    setMaxFat(nutritionLimits.fat);
+    setMaxCarbs(nutritionLimits.carbs);
+    setMaxSodium(nutritionLimits.sodium);
+  }, [dataMenus.length, nutritionLimits]);
   const allergenKnownCount = dataMenus.filter((menu) => menu.allergenKnown).length;
-  const nutritionKnownCount = dataMenus.filter((menu) => menu.caloriesKnown && menu.proteinKnown && menu.sodiumKnown).length;
+  const nutritionMatchedCount = dataMenus.filter((menu) => ["정확일치", "일치", "유사매칭", "정규화일치"].includes(menu.nutritionMatch || "")).length;
   const pricedCount = dataMenus.filter((menu) => menu.price).length;
   const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
@@ -350,7 +367,7 @@ export default function HanipApp() {
         <div className="quick-group"><h3>{tr(language, "알레르기", "Allergens")}</h3><div className="chips"><button className={allergens.length === 0 ? "chip active no-allergy" : "chip no-allergy"} onClick={() => setAllergens([])}>{tr(language, "알레르기 없음", "No allergens")}</button>{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{allergenLabel(language, item)}</button>)}</div></div>
         <div className="quick-group"><h3>{tr(language, "안전 상태", "Allergen status")}</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>{tr(language, "모두", "All")}</button><button disabled={!allergens.length} className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>{tr(language, "안전", "No match")}</button><button disabled={!allergens.length} className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>{tr(language, "위험", "Contains")}</button></div></div>
         <div className="quick-group"><h3>{tr(language, "카테고리", "Category")}</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item} value={item}>{categoryLabel(language, item)}</option>)}</select></div>
-        <div className="quick-group quick-ranges"><Range label={tr(language, "최소 칼로리", "Min calories")} value={minCalories} min={0} max={5000} step={100} unit="kcal" onChange={(value) => { setMinCalories(value); if (value > maxCalories) setMaxCalories(value); }} /><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={0} max={5000} step={100} unit="kcal" onChange={(value) => { setMaxCalories(value); if (value < minCalories) setMinCalories(value); }} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={350} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 지방", "Max fat")} value={maxFat} min={0} max={200} step={10} unit="g" onChange={setMaxFat} /><Range label={tr(language, "최대 탄수화물", "Max carbs")} value={maxCarbs} min={0} max={500} step={10} unit="g" onChange={setMaxCarbs} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={0} max={8500} step={250} unit="mg" onChange={setMaxSodium} /></div>
+        <div className="quick-group quick-ranges"><Range label={tr(language, "최소 칼로리", "Min calories")} value={minCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={(value) => { setMinCalories(value); if (value > maxCalories) setMaxCalories(value); }} /><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={(value) => { setMaxCalories(value); if (value < minCalories) setMinCalories(value); }} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 지방", "Max fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} /><Range label={tr(language, "최대 탄수화물", "Max carbs")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} /></div>
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label={tr(language, "닫기", "Close")} onClick={() => setQuickFiltersOpen(false)} />}
       {mealFlight && <div key={mealFlight.nonce} className="meal-flight" style={{ left: mealFlight.x, top: mealFlight.y, "--flight-x": `${mealFlight.dx}px`, "--flight-y": `${mealFlight.dy}px` } as React.CSSProperties}><UtensilsCrossed size={16} /><span>+1</span></div>}
@@ -370,7 +387,7 @@ export default function HanipApp() {
           </div>
           <div className="trust-metrics">
             <CoverageMetric label={tr(language, "알레르기 정보 확인율", "Allergen information coverage")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "영양정보 확인율", "Nutrition information coverage")} value={coverage(nutritionKnownCount)} detail={`${formatNumber(language, nutritionKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
+            <CoverageMetric label={tr(language, "영양정보 매칭율", "Nutrition information match rate")} value={coverage(nutritionMatchedCount)} detail={`${formatNumber(language, nutritionMatchedCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
             <CoverageMetric label={tr(language, "기준 가격 확보율", "Reference price coverage")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
           </div>
         </section></Reveal>
@@ -386,7 +403,7 @@ export default function HanipApp() {
             <button disabled={!allergens.length} className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>{tr(language, "위험한 것만", "Contains selected")}</button>
           </div></div>
           <div className="filter-block profile-block"><h3>{tr(language, "맞춤 프로필", "Personal profile")}</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> {tr(language, "신체·다이어트 목표 반영", "Use body profile and goal")}</label><div className={`profile-grid profile-preview ${profileOn ? "enabled" : "disabled"}`}><select disabled={!profileOn} value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option value="여성">{tr(language, "여성", "Female")}</option><option value="남성">{tr(language, "남성", "Male")}</option></select><select disabled={!profileOn} value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option value="감량">{tr(language, "감량", "Lose weight")}</option><option value="유지">{tr(language, "유지", "Maintain")}</option><option value="증량">{tr(language, "증량", "Gain weight")}</option></select><NumberField disabled={!profileOn} label={tr(language, "나이", "Age")} value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField disabled={!profileOn} label={tr(language, "키(cm)", "Height (cm)")} value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField disabled={!profileOn} label={tr(language, "체중(kg)", "Weight (kg)")} value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">{tr(language, "하루 참고 목표", "Daily reference")} <b>{formatNumber(language, targetCalories)} kcal</b></div></div>{!profileOn && <button className="profile-enable-hint" onClick={() => setProfileOn(true)}>{tr(language, "체크하고 맞춤 추천 사용하기 →", "Enable personalized recommendations →")}</button>}</div>
-          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><div className="nutrition-filter-grid"><Range label={tr(language, "최소 칼로리", "Min calories")} value={minCalories} min={0} max={5000} step={100} unit="kcal" onChange={(value) => { setMinCalories(value); if (value > maxCalories) setMaxCalories(value); }} /><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={0} max={5000} step={100} unit="kcal" onChange={(value) => { setMaxCalories(value); if (value < minCalories) setMinCalories(value); }} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={350} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 지방", "Max fat")} value={maxFat} min={0} max={200} step={10} unit="g" onChange={setMaxFat} /><Range label={tr(language, "최대 탄수화물", "Max carbs")} value={maxCarbs} min={0} max={500} step={10} unit="g" onChange={setMaxCarbs} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={0} max={8500} step={250} unit="mg" onChange={setMaxSodium} /></div></div>
+          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><div className="nutrition-filter-grid"><Range label={tr(language, "최소 칼로리", "Min calories")} value={minCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={(value) => { setMinCalories(value); if (value > maxCalories) setMaxCalories(value); }} /><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={(value) => { setMaxCalories(value); if (value < minCalories) setMinCalories(value); }} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 지방", "Max fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} /><Range label={tr(language, "최대 탄수화물", "Max carbs")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} /></div></div>
         </section></Reveal></div>
 
         <Reveal><section className="category-section"><div className="section-intro compact"><span>{tr(language, "02 · 카테고리", "02 · CATEGORY")}</span><h2>{tr(language, "어떤 종류를 찾고 있나요?", "What are you looking for?")}</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{categoryLabel(language, category)}</b><small>{category === "전체" ? tr(language, "모든 브랜드", "All brands") : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length} ${tr(language, "개 브랜드", "brands")}`}</small></button>)}</div><div className="brand-picker">{displayedBrandOptions.map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} language={language} /><span>{brand}</span></button>)}</div></section></Reveal>
