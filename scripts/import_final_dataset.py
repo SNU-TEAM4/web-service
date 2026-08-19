@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 import sys
 from datetime import date
@@ -54,10 +55,47 @@ def brand_name(value: object) -> str:
 
 
 def normalize_allergens(value: object) -> list[str]:
+    if isinstance(value, dict):
+        value = " ".join(text(part) for part in value.values())
     raw = text(value).replace("알류", "계란").replace("난류", "계란").replace("달걀", "계란")
     if raw in {"", "-", "없음", "해당없음", "표시 성분 없음"}:
         return []
     return [allergen for allergen in ALLERGENS if allergen in raw]
+
+
+def json_source_rows(source: dict[str, object]) -> list[dict[str, str]]:
+    """브랜드별 메뉴 배열 형태의 최신 JSON을 기존 변환 공통 형식으로 맞춘다."""
+    rows: list[dict[str, str]] = []
+    for brand, items in source.items():
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            nutrition = item.get("nutrition") or {}
+            if not isinstance(nutrition, dict):
+                nutrition = {}
+            allergy_info = item.get("allergy_info")
+            if isinstance(allergy_info, dict):
+                allergy_info = " ".join(text(part) for part in allergy_info.values())
+            rows.append({
+                "브랜드": text(brand),
+                "카테고리": text(item.get("category")),
+                "메뉴명": text(item.get("name")),
+                "가격_원": text(item.get("price_won")),
+                "가격_텍스트": text(item.get("price_text")),
+                "이미지URL": text(item.get("image_url")),
+                "설명": text(item.get("description")),
+                "알레르기_정보": text(allergy_info),
+                "알레르기_안내문구": text(item.get("allergy_note")),
+                "알레르기_신뢰도": text(item.get("allergy_confidence")),
+                "열량_kcal": text(nutrition.get("kcal")),
+                "단백질_g": text(nutrition.get("protein_g")),
+                "지방_g": text(nutrition.get("fat_g")) or text(nutrition.get("sat_fat_g")),
+                "탄수화물_g": text(nutrition.get("carbs_g")) or text(nutrition.get("sugar_g")),
+                "나트륨_mg": text(nutrition.get("sodium_mg")),
+            })
+    return rows
 
 
 def to_row(source: dict[str, str], imported_at: str) -> dict[str, str]:
@@ -106,8 +144,12 @@ def main() -> None:
     source_path = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else ROOT / "hanip_ansim_final_dataset.csv"
     if not source_path.is_file():
         raise SystemExit(f"원본 CSV를 찾을 수 없습니다: {source_path}")
-    with source_path.open(encoding="utf-8-sig", newline="") as file:
-        source_rows = list(csv.DictReader(file))
+    if source_path.suffix.lower() == ".json":
+        with source_path.open(encoding="utf-8") as file:
+            source_rows = json_source_rows(json.load(file))
+    else:
+        with source_path.open(encoding="utf-8-sig", newline="") as file:
+            source_rows = list(csv.DictReader(file))
     required = {"브랜드", "카테고리", "메뉴명", "가격_원", "알레르기_정보", "알레르기_신뢰도"}
     missing = required - set(source_rows[0] if source_rows else [])
     if missing:
