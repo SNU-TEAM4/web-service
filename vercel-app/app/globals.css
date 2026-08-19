@@ -110,5 +110,5 @@ textarea{font:inherit}
 @media(max-width:700px){.trust-highlights{grid-template-columns:1fr 1fr}.trust-highlights>div{min-height:108px}.trust-coverage-title{align-items:flex-start;flex-direction:column;gap:4px}.coverage-metric{min-height:0}.trust-copy h2{font-size:36px}}
 
 /* The locally generated drumstick is softly blended into the kitchen hero. */
-.floating-chicken{mix-blend-mode:screen;filter:drop-shadow(0 18px 18px rgba(66,44,16,.2));mask-image:radial-gradient(ellipse 70% 62% at center,black 54%,transparent 76%)}
+.floating-chicken{mix-blend-mode:screen;filter:drop-shadow(0 18px 18px rgba(66,44,16,.2))}
 .trust-dashboard-note{margin:2px 2px 0!important;color:#d5eadb!important;font-size:13px!important;line-height:1.55}
