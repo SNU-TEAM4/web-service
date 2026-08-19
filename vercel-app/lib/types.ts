@@ -1,7 +1,9 @@
 export type Menu = {
   id: number;
   brand: string;
+  brandEn?: string;
   menu: string;
+  menuEn?: string;
   category: string;
   yogiyoCategory?: string;
   calories: number;
@@ -21,6 +23,7 @@ export type Menu = {
   sourceUrl: string;
   imageUrl?: string;
   description?: string;
+  descriptionEn?: string;
   price?: number;
   priceNote?: string;
   priceSourceUrl?: string;

@@ -34,7 +34,7 @@ HEADER = [
     "brand", "menu", "category", "yogiyo_category", "calories", "protein", "fat", "carbs", "sodium",
     "allergens", "source_url", "source_date", "verified", "allergen_known", "image_url", "description",
     "media_source_url", "media_checked_at", "allergy_source_url", "price", "price_note", "price_source_url",
-    "price_checked_at", "allergy_notice", "allergy_confidence", "_nutrition_match", "_nutrition_score",
+    "price_checked_at", "allergy_notice", "allergy_confidence", "_nutrition_match", "_nutrition_score", "brand_en", "menu_en", "description_en",
 ] + [f"al_{allergen}" for allergen in ALLERGENS]
 
 
@@ -94,6 +94,9 @@ def to_row(source: dict[str, str], imported_at: str) -> dict[str, str]:
         "allergy_confidence": confidence,
         "_nutrition_match": "",
         "_nutrition_score": "",
+        "brand_en": "",
+        "menu_en": "",
+        "description_en": "",
     }
     row.update({f"al_{allergen}": str(allergen in allergens) for allergen in ALLERGENS})
     return row
@@ -125,6 +128,9 @@ def main() -> None:
         if previous:
             row["_nutrition_match"] = text(previous.get("_nutrition_match"))
             row["_nutrition_score"] = text(previous.get("_nutrition_score"))
+            row["brand_en"] = text(previous.get("brand_en"))
+            row["menu_en"] = text(previous.get("menu_en"))
+            row["description_en"] = text(previous.get("description_en"))
     for output in OUTPUTS:
         with output.open("w", encoding="utf-8-sig", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=HEADER, lineterminator="\n")
