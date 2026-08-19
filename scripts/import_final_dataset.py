@@ -113,11 +113,12 @@ def normalized_csv_rows(source_rows: list[dict[str, str]]) -> list[dict[str, str
             "알레르기_정보": text(item.get("allergy_info")),
             "알레르기_안내문구": text(item.get("allergy_note")),
             "알레르기_신뢰도": text(item.get("allergy_confidence")),
-            "열량_kcal": text(item.get("kcal")),
-            "단백질_g": text(item.get("protein_g")),
-            "지방_g": text(item.get("fat_g")) or text(item.get("sat_fat_g")),
-            "탄수화물_g": text(item.get("carbs_g")) or text(item.get("sugar_g")),
-            "나트륨_mg": text(item.get("sodium_mg")),
+            # 피자 재검증본은 공식 1회 섭취량을 serving_* 열로 제공한다.
+            "열량_kcal": text(item.get("kcal")) or text(item.get("serving_kcal")),
+            "단백질_g": text(item.get("protein_g")) or text(item.get("serving_protein_g")),
+            "지방_g": text(item.get("fat_g")) or text(item.get("sat_fat_g")) or text(item.get("serving_sat_fat_g")),
+            "탄수화물_g": text(item.get("carbs_g")) or text(item.get("sugar_g")) or text(item.get("serving_sugar_g")),
+            "나트륨_mg": text(item.get("sodium_mg")) or text(item.get("serving_sodium_mg")),
         })
     return rows
 
