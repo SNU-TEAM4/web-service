@@ -382,10 +382,10 @@ export default function HanipApp() {
           </div>
           <div className="trust-dashboard">
             <div className="trust-highlights">
-              <div><strong>{formatNumber(language, brandOptions.length)}</strong><span>{tr(language, "개 프랜차이즈 브랜드", "franchise brands")}</span></div>
-              <div><strong>{formatNumber(language, dataMenus.length)}</strong><span>{tr(language, "개 메뉴 비교", "menus to compare")}</span></div>
-              <div><strong>{ALLERGENS.length}</strong><span>{tr(language, "종 알레르기 정보", "allergen categories")}</span></div>
-              <div><strong>5</strong><span>{tr(language, "가지 영양성분", "nutrition nutrients")}</span></div>
+              <div><strong>{formatNumber(language, brandOptions.length)}<b>{tr(language, "개", "")}</b></strong><span>{tr(language, "프랜차이즈 브랜드", "franchise brands")}</span></div>
+              <div><strong>{formatNumber(language, dataMenus.length)}<b>{tr(language, "개", "")}</b></strong><span>{tr(language, "메뉴 비교", "menus to compare")}</span></div>
+              <div><strong>{ALLERGENS.length}<b>{tr(language, "종", "")}</b></strong><span>{tr(language, "알레르기 정보", "allergen categories")}</span></div>
+              <div><strong>5<b>{tr(language, "가지", "")}</b></strong><span>{tr(language, "영양성분", "nutrition nutrients")}</span></div>
             </div>
             <p className="trust-dashboard-note">{tr(language, "하나의 화면에서 메뉴를 비교하고, 내 조건에 맞는 선택지만 빠르게 확인하세요.", "Compare menus on one screen and quickly focus on the options that fit your needs.")}</p>
           </div>
