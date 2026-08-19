@@ -52,7 +52,7 @@ const EXCLUDED_BRANDS = new Set(["스타벅스"]);
 const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
 const HERO_IMAGES: FloatingFoodImage[] = [
   { src: "https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png", alt: "", position: "burger" },
-  { src: "https://b.zmtcdn.com/data/o2_assets/b4f62434088b0ddfa9b370991f58ca601743060218.png", alt: "", position: "dumplings" },
+  { src: "https://images.yogiyo.co.kr/image/yogiyo/PARTNER_FR_IMG%2F%EA%B5%90%EC%B4%8C%EC%B9%98%ED%82%A8%2F2025-07-22%2F%EC%A0%9C%ED%9C%B4FR_20250718_%EA%B5%90%EC%B4%8C_%EB%B0%98%EB%B0%98%ED%95%9C%EB%A7%88%EB%A6%AC_1080x640.jpg?width=1080&height=640&quality=70", alt: "Kyochon Chicken", position: "chicken" },
   { src: "https://b.zmtcdn.com/data/o2_assets/316495f4ba2a9c9d9aa97fed9fe61cf71743059024.png", alt: "", position: "pizza" },
   { src: "https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png", alt: "", position: "leaf" },
   { src: "https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png", alt: "", position: "tomato" },
@@ -379,15 +379,24 @@ export default function HanipApp() {
       <section className="trust-shell">
         <Reveal><section className="data-trust" id="trust" aria-labelledby="trust-title">
           <div className="trust-copy">
-            <span>{tr(language, "한입안심의 데이터 원칙", "OUR DATA PRINCIPLES")}</span>
-            <h2 id="trust-title">{tr(language, "확인된 만큼만,", "Only what we've verified,")}<br />{tr(language, "정확하게 보여드려요.", "shown clearly and accurately.")}</h2>
-            <p>{tr(language, "공식 자료로 확인된 정보와 아직 확인 중인 정보를 구분해 표시합니다. 가격은 실시간 매장가가 아닌 기준일의 요기요 가격이며, 확보율은 현재 등록된 메뉴를 기준으로 자동 계산됩니다.", "Information verified from official sources is shown separately from information still under review. Prices are dated Yogiyo reference prices, not live in-store prices, and coverage is calculated automatically from currently registered menus.")}</p>
-            <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 확인하기", "View data standards")} <ChevronRight size={16} /></button>
+            <span>{tr(language, "숫자로 증명하는 한입안심", "HANIP ANSIM, BY THE NUMBERS")}</span>
+            <h2 id="trust-title">{tr(language, "메뉴를 고르는 기준,", "A clearer way to choose")}<br />{tr(language, "한곳에 모았어요.", "your next meal.")}</h2>
+            <p>{tr(language, "흩어진 프랜차이즈 메뉴 정보를 한곳에서 비교하고, 알레르기·영양·가격 조건에 맞춰 바로 걸러볼 수 있어요.", "Compare franchise menus in one place, then narrow them down by allergen, nutrition, and price information.")}</p>
+            <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 자세히 보기", "Explore our data standards")} <ChevronRight size={16} /></button>
           </div>
-          <div className="trust-metrics">
-            <CoverageMetric label={tr(language, "알레르기 정보 확인율", "Allergen information coverage")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "영양정보 확인율", "Nutrition information coverage")} value={coverage(nutritionKnownCount)} detail={`${formatNumber(language, nutritionKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "기준 가격 확보율", "Reference price coverage")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
+          <div className="trust-dashboard">
+            <div className="trust-highlights">
+              <div><strong>{formatNumber(language, brandOptions.length)}</strong><span>{tr(language, "개 프랜차이즈 브랜드", "franchise brands")}</span></div>
+              <div><strong>{formatNumber(language, dataMenus.length)}</strong><span>{tr(language, "개 메뉴 비교", "menus to compare")}</span></div>
+              <div><strong>{ALLERGENS.length}</strong><span>{tr(language, "종 알레르기 정보", "allergen categories")}</span></div>
+              <div><strong>5</strong><span>{tr(language, "가지 영양성분", "nutrition nutrients")}</span></div>
+            </div>
+            <div className="trust-coverage-title"><span>{tr(language, "등록 데이터 확인 현황", "DATA COVERAGE AT A GLANCE")}</span><small>{tr(language, "메뉴 등록 현황에 따라 자동 계산", "Automatically calculated from registered menus")}</small></div>
+            <div className="trust-metrics">
+              <CoverageMetric label={tr(language, "알레르기 정보 확인율", "Allergen information coverage")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
+              <CoverageMetric label={tr(language, "영양정보 확인율", "Nutrition information coverage")} value={coverage(nutritionKnownCount)} detail={`${formatNumber(language, nutritionKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
+              <CoverageMetric label={tr(language, "기준 가격 확보율", "Reference price coverage")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
+            </div>
           </div>
         </section></Reveal>
       </section>
