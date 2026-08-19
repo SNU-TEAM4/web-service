@@ -52,7 +52,7 @@ const EXCLUDED_BRANDS = new Set(["스타벅스"]);
 const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
 const HERO_IMAGES: FloatingFoodImage[] = [
   { src: "https://b.zmtcdn.com/data/o2_assets/110a09a9d81f0e5305041c1b507d0f391743058910.png", alt: "", position: "burger" },
-  { src: "https://images.yogiyo.co.kr/image/yogiyo/PARTNER_FR_IMG%2F%EA%B5%90%EC%B4%8C%EC%B9%98%ED%82%A8%2F2025-07-22%2F%EC%A0%9C%ED%9C%B4FR_20250718_%EA%B5%90%EC%B4%8C_%EB%B0%98%EB%B0%98%ED%95%9C%EB%A7%88%EB%A6%AC_1080x640.jpg?width=1080&height=640&quality=70", alt: "Kyochon Chicken", position: "chicken" },
+  { src: "/images/fried-chicken-drumstick-hero.png", alt: "Fried chicken drumstick", position: "chicken" },
   { src: "https://b.zmtcdn.com/data/o2_assets/316495f4ba2a9c9d9aa97fed9fe61cf71743059024.png", alt: "", position: "pizza" },
   { src: "https://b.zmtcdn.com/data/o2_assets/70b50e1a48a82437bfa2bed925b862701742892555.png", alt: "", position: "leaf" },
   { src: "https://b.zmtcdn.com/data/o2_assets/9ef1cc6ecf1d92798507ffad71e9492d1742892584.png", alt: "", position: "tomato" },
@@ -322,10 +322,6 @@ export default function HanipApp() {
     setMaxCarbs(nutritionLimits.carbs);
     setMaxSodium(nutritionLimits.sodium);
   }, [dataMenus.length, nutritionLimits]);
-  const allergenKnownCount = dataMenus.filter((menu) => menu.allergenKnown).length;
-  const nutritionKnownCount = dataMenus.filter((menu) => menu.caloriesKnown || menu.proteinKnown || menu.fatKnown || menu.carbsKnown || menu.sodiumKnown).length;
-  const pricedCount = dataMenus.filter((menu) => menu.price).length;
-  const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setAdded({ id, nonce: Date.now() });
@@ -391,12 +387,7 @@ export default function HanipApp() {
               <div><strong>{ALLERGENS.length}</strong><span>{tr(language, "종 알레르기 정보", "allergen categories")}</span></div>
               <div><strong>5</strong><span>{tr(language, "가지 영양성분", "nutrition nutrients")}</span></div>
             </div>
-            <div className="trust-coverage-title"><span>{tr(language, "등록 데이터 확인 현황", "DATA COVERAGE AT A GLANCE")}</span><small>{tr(language, "메뉴 등록 현황에 따라 자동 계산", "Automatically calculated from registered menus")}</small></div>
-            <div className="trust-metrics">
-              <CoverageMetric label={tr(language, "알레르기 정보 확인율", "Allergen information coverage")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-              <CoverageMetric label={tr(language, "영양정보 확인율", "Nutrition information coverage")} value={coverage(nutritionKnownCount)} detail={`${formatNumber(language, nutritionKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-              <CoverageMetric label={tr(language, "기준 가격 확보율", "Reference price coverage")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
-            </div>
+            <p className="trust-dashboard-note">{tr(language, "하나의 화면에서 메뉴를 비교하고, 내 조건에 맞는 선택지만 빠르게 확인하세요.", "Compare menus on one screen and quickly focus on the options that fit your needs.")}</p>
           </div>
         </section></Reveal>
       </section>
@@ -446,7 +437,6 @@ export default function HanipApp() {
 }
 
 function Reveal({ children }: { children: React.ReactNode }) { const ref = useRef<HTMLDivElement>(null); useEffect(() => { const node = ref.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && node.classList.add("visible"), { threshold: .12 }); observer.observe(node); return () => observer.disconnect(); }, []); return <div ref={ref} className="reveal">{children}</div>; }
-function CoverageMetric({ label, value, detail }: { label: string; value: number; detail: string }) { return <div className="coverage-metric"><span><b>{label}</b><strong>{value}%</strong></span><div><i style={{ width: `${value}%` }} /></div><small>{detail}</small></div>; }
 function TabButton({ active, onClick, label, icon, mealTarget = false, receiving = false }: { active: boolean; onClick: () => void; label: string; icon?: React.ReactNode; mealTarget?: boolean; receiving?: boolean }) { return <button data-meal-tab={mealTarget ? "true" : undefined} className={`${active ? "active" : ""} ${receiving ? "meal-tab-receiving" : ""}`} onClick={onClick}>{icon}{label}</button>; }
 function NumberField({ label, value, onChange, disabled = false }: { label: string; value: number; onChange: (value: number) => void; disabled?: boolean }) { return <label><span>{label}</span><input disabled={disabled} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
 function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { return <label className="range"><span>{label}<b>{value} {unit}</b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} /></label>; }

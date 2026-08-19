@@ -101,10 +101,14 @@ textarea{font:inherit}
 
 /* Use a real franchise food image and keep the hero badges clear of the food artwork. */
 .floating-chicken{top:35%;right:26%;width:clamp(125px,14vw,215px);animation-delay:-1.2s}
-.landing-note{top:clamp(24px,4vw,64px);right:auto;bottom:auto;left:clamp(24px,7vw,110px)}
-@media(max-width:900px){.floating-chicken{right:8%;bottom:13%;top:auto;width:125px}.landing-note{top:auto;bottom:24px;left:22px}}
+.landing-note{top:auto;right:clamp(24px,5vw,76px);bottom:clamp(24px,5vw,76px);left:auto}
+@media(max-width:900px){.floating-chicken{right:8%;bottom:13%;top:auto;width:125px}.landing-note{top:auto;right:22px;bottom:24px;left:auto}}
 
 /* Quantitative product-value dashboard. */
 .data-trust{grid-template-columns:minmax(0,.8fr) minmax(580px,1.2fr);gap:56px;background:linear-gradient(135deg,#113522,#1f6543 62%,#328158)}.trust-copy h2{font-size:clamp(35px,3.7vw,54px);line-height:1.05}.trust-copy p{font-size:15px}.trust-dashboard{display:grid;gap:15px}.trust-highlights{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.trust-highlights>div{display:flex;min-height:132px;padding:18px;flex-direction:column;justify-content:space-between;border:1px solid #9cdbb42b;border-radius:17px;background:linear-gradient(145deg,#0c2b1bd9,#123d28c9)}.trust-highlights strong{color:#a2e7ba;font-size:clamp(31px,3vw,47px);letter-spacing:-.06em;line-height:1}.trust-highlights span{max-width:92px;color:#e3f1e7;font-size:11px;font-weight:800;line-height:1.35}.trust-coverage-title{display:flex;padding:5px 2px 0;align-items:flex-end;justify-content:space-between;gap:12px}.trust-coverage-title span{color:#a7e4bb;font-size:10px;font-weight:900;letter-spacing:.1em}.trust-coverage-title small{color:#c4d8ca;font-size:9px}.trust-metrics{gap:10px}.coverage-metric{min-height:132px;padding:16px;border-color:#a7e4bb2c;background:#0c2b1bc2}.coverage-metric span strong{color:#fff;font-size:27px}.coverage-metric small{color:#bad1c1}
 @media(max-width:1120px){.data-trust{grid-template-columns:1fr}.trust-dashboard{max-width:820px}.trust-highlights{max-width:820px}}
 @media(max-width:700px){.trust-highlights{grid-template-columns:1fr 1fr}.trust-highlights>div{min-height:108px}.trust-coverage-title{align-items:flex-start;flex-direction:column;gap:4px}.coverage-metric{min-height:0}.trust-copy h2{font-size:36px}}
+
+/* The locally generated drumstick is softly blended into the kitchen hero. */
+.floating-chicken{mix-blend-mode:screen;filter:drop-shadow(0 18px 18px rgba(66,44,16,.2));mask-image:radial-gradient(ellipse 70% 62% at center,black 54%,transparent 76%)}
+.trust-dashboard-note{margin:2px 2px 0!important;color:#d5eadb!important;font-size:13px!important;line-height:1.55}
