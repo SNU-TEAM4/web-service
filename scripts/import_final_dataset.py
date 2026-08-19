@@ -98,6 +98,30 @@ def json_source_rows(source: dict[str, object]) -> list[dict[str, str]]:
     return rows
 
 
+def normalized_csv_rows(source_rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """영문 열 이름을 쓰는 최신 내보내기 CSV를 기존 변환 공통 형식으로 맞춘다."""
+    rows: list[dict[str, str]] = []
+    for item in source_rows:
+        rows.append({
+            "브랜드": text(item.get("brand")),
+            "카테고리": text(item.get("category")),
+            "메뉴명": text(item.get("name")),
+            "가격_원": text(item.get("price_won")),
+            "가격_텍스트": text(item.get("price_text")),
+            "이미지URL": text(item.get("image_url")),
+            "설명": text(item.get("description")),
+            "알레르기_정보": text(item.get("allergy_info")),
+            "알레르기_안내문구": text(item.get("allergy_note")),
+            "알레르기_신뢰도": text(item.get("allergy_confidence")),
+            "열량_kcal": text(item.get("kcal")),
+            "단백질_g": text(item.get("protein_g")),
+            "지방_g": text(item.get("fat_g")) or text(item.get("sat_fat_g")),
+            "탄수화물_g": text(item.get("carbs_g")) or text(item.get("sugar_g")),
+            "나트륨_mg": text(item.get("sodium_mg")),
+        })
+    return rows
+
+
 def to_row(source: dict[str, str], imported_at: str) -> dict[str, str]:
     confidence = text(source.get("알레르기_신뢰도"))
     allergens = normalize_allergens(source.get("알레르기_정보"))
@@ -150,6 +174,8 @@ def main() -> None:
     else:
         with source_path.open(encoding="utf-8-sig", newline="") as file:
             source_rows = list(csv.DictReader(file))
+        if source_rows and {"brand", "category", "name"}.issubset(source_rows[0]):
+            source_rows = normalized_csv_rows(source_rows)
     required = {"브랜드", "카테고리", "메뉴명", "가격_원", "알레르기_정보", "알레르기_신뢰도"}
     missing = required - set(source_rows[0] if source_rows else [])
     if missing:
