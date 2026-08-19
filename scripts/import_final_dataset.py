@@ -35,7 +35,10 @@ HEADER = [
     "brand", "menu", "category", "yogiyo_category", "calories", "protein", "fat", "carbs", "sodium",
     "allergens", "source_url", "source_date", "verified", "allergen_known", "image_url", "description",
     "media_source_url", "media_checked_at", "allergy_source_url", "price", "price_note", "price_source_url",
-    "price_checked_at", "allergy_notice", "allergy_confidence", "_nutrition_match", "_nutrition_score", "brand_en", "menu_en", "description_en",
+    "price_checked_at", "allergy_notice", "allergy_confidence", "nutrition_basis", "nutrition_serving_text",
+    "weight_g", "kcal_min", "kcal_max", "nutrition_source_name", "nutrition_source_url",
+    "nutrition_review_status", "nutrition_review_note", "nutrition_name_match_status",
+    "_nutrition_match", "_nutrition_score", "brand_en", "menu_en", "description_en",
 ] + [f"al_{allergen}" for allergen in ALLERGENS]
 
 
@@ -119,6 +122,18 @@ def normalized_csv_rows(source_rows: list[dict[str, str]]) -> list[dict[str, str
             "지방_g": text(item.get("fat_g")) or text(item.get("sat_fat_g")) or text(item.get("serving_sat_fat_g")),
             "탄수화물_g": text(item.get("carbs_g")) or text(item.get("sugar_g")) or text(item.get("serving_sugar_g")),
             "나트륨_mg": text(item.get("sodium_mg")) or text(item.get("serving_sodium_mg")),
+            "영양_기준": text(item.get("nutrition_basis")),
+            "영양_제공량": text(item.get("nutrition_serving_text")) or text(item.get("nutrition_serving_info")) or text(item.get("serving_info")),
+            "중량_g": text(item.get("weight_g")) or text(item.get("serving_weight_g")),
+            "열량_최소": text(item.get("kcal_min")),
+            "열량_최대": text(item.get("kcal_max")),
+            "영양_출처명": text(item.get("nutrition_source_name")),
+            "영양_출처URL": text(item.get("nutrition_source_url")),
+            "영양_매칭방식": text(item.get("nutrition_match_method")),
+            "영양_매칭점수": text(item.get("nutrition_match_score")),
+            "영양_검토상태": text(item.get("nutrition_review_status")),
+            "영양_검토메모": text(item.get("nutrition_review_note")),
+            "영양_이름매칭상태": text(item.get("nutrition_name_match_status")),
         })
     return rows
 
@@ -155,8 +170,18 @@ def to_row(source: dict[str, str], imported_at: str) -> dict[str, str]:
         "price_checked_at": imported_at,
         "allergy_notice": text(source.get("알레르기_안내문구")),
         "allergy_confidence": confidence,
-        "_nutrition_match": "",
-        "_nutrition_score": "",
+        "nutrition_basis": text(source.get("영양_기준")),
+        "nutrition_serving_text": text(source.get("영양_제공량")),
+        "weight_g": number(source.get("중량_g")),
+        "kcal_min": number(source.get("열량_최소")),
+        "kcal_max": number(source.get("열량_최대")),
+        "nutrition_source_name": text(source.get("영양_출처명")),
+        "nutrition_source_url": text(source.get("영양_출처URL")),
+        "nutrition_review_status": text(source.get("영양_검토상태")),
+        "nutrition_review_note": text(source.get("영양_검토메모")),
+        "nutrition_name_match_status": text(source.get("영양_이름매칭상태")),
+        "_nutrition_match": text(source.get("영양_매칭방식")),
+        "_nutrition_score": number(source.get("영양_매칭점수")),
         "brand_en": "",
         "menu_en": "",
         "description_en": "",
@@ -195,8 +220,11 @@ def main() -> None:
     for row in rows:
         previous = previous_matches.get((row["brand"], row["menu"]))
         if previous:
-            row["_nutrition_match"] = text(previous.get("_nutrition_match"))
-            row["_nutrition_score"] = text(previous.get("_nutrition_score"))
+            confidence_is_authoritative = bool(row["nutrition_name_match_status"] or row["nutrition_review_status"] or row["_nutrition_match"])
+            if not confidence_is_authoritative and not row["_nutrition_match"]:
+                row["_nutrition_match"] = text(previous.get("_nutrition_match"))
+            if not confidence_is_authoritative and not row["_nutrition_score"]:
+                row["_nutrition_score"] = text(previous.get("_nutrition_score"))
             row["brand_en"] = text(previous.get("brand_en"))
             row["menu_en"] = text(previous.get("menu_en"))
             row["description_en"] = text(previous.get("description_en"))
