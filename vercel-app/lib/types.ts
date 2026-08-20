@@ -16,6 +16,16 @@ export type Menu = {
   carbsKnown: boolean;
   sodium: number;
   sodiumKnown: boolean;
+  totalCarbs: number;
+  totalCarbsKnown: boolean;
+  totalFat: number;
+  totalFatKnown: boolean;
+  transFat: number;
+  transFatKnown: boolean;
+  cholesterol: number;
+  cholesterolKnown: boolean;
+  caffeine: number;
+  caffeineKnown: boolean;
   nutritionMatch?: string;
   allergens: string[];
   allergenKnown: boolean;
