@@ -34,6 +34,7 @@ function normalizeCart(value: unknown): Cart {
 }
 type SafetyMode = "all" | "danger" | "safe";
 type SortMode = "recommended" | "protein" | "calories" | "sodium";
+type NutritionRange = [number, number];
 const parseNumber = (value: unknown) => Number(value || 0);
 const hasNumericValue = (value: unknown) => {
   if (value === null || value === undefined) return false;
@@ -50,6 +51,9 @@ const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
 const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
+const matchesNutritionRange = (value: number, known: boolean, [minimum, maximum]: NutritionRange, limit: number) => known
+  ? value >= minimum && value <= maximum
+  : minimum === 0 && maximum === limit;
 const HERO_IMAGES: FloatingFoodImage[] = [
   { src: "/images/wellness-salad-hero.png", alt: "", position: "salad" },
   { src: "/images/wellness-yogurt-hero.png", alt: "", position: "yogurt" },
@@ -154,18 +158,17 @@ export default function HanipApp() {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [menuSectionFilter, setMenuSectionFilter] = useState("전체");
-  // 현재 최종 데이터셋의 실제 상한(열량 4,842kcal·나트륨 8,108mg 등)을 반영해
-  // 초기 상태에서는 어느 브랜드도 영양 조건만으로 제외되지 않게 한다.
-  const [maxCalories, setMaxCalories] = useState(3700);
-  const [maxProtein, setMaxProtein] = useState(120);
-  const [maxFat, setMaxFat] = useState(130);
-  const [maxCarbs, setMaxCarbs] = useState(240);
-  const [maxSodium, setMaxSodium] = useState(5000);
-  const [maxTotalCarbs, setMaxTotalCarbs] = useState(200);
-  const [maxTotalFat, setMaxTotalFat] = useState(100);
-  const [maxTransFat, setMaxTransFat] = useState(2);
-  const [maxCholesterol, setMaxCholesterol] = useState(500);
-  const [maxCaffeine, setMaxCaffeine] = useState(1000);
+  // 각 영양성분의 최소·최대 범위를 함께 관리한다. 초기 범위는 전체 데이터를 포함한다.
+  const [calorieRange, setCalorieRange] = useState<NutritionRange>([0, 3700]);
+  const [proteinRange, setProteinRange] = useState<NutritionRange>([0, 120]);
+  const [fatRange, setFatRange] = useState<NutritionRange>([0, 130]);
+  const [sugarRange, setSugarRange] = useState<NutritionRange>([0, 240]);
+  const [sodiumRange, setSodiumRange] = useState<NutritionRange>([0, 5000]);
+  const [totalCarbsRange, setTotalCarbsRange] = useState<NutritionRange>([0, 200]);
+  const [totalFatRange, setTotalFatRange] = useState<NutritionRange>([0, 100]);
+  const [transFatRange, setTransFatRange] = useState<NutritionRange>([0, 2]);
+  const [cholesterolRange, setCholesterolRange] = useState<NutritionRange>([0, 500]);
+  const [caffeineRange, setCaffeineRange] = useState<NutritionRange>([0, 1000]);
   const [profileOn, setProfileOn] = useState(false);
   const [profile, setProfile] = useState({ sex: "여성", age: 25, height: 165, weight: 60, goal: "감량" });
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
@@ -276,6 +279,20 @@ export default function HanipApp() {
       : 10 * profile.weight + 6.25 * profile.height - 5 * profile.age - 161;
     return Math.round(bmr * 1.35 * mealFactor[profile.goal]);
   }, [profile]);
+  const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
+  // 새 CSV가 들어와도 슬라이더 상한과 기본값이 실제 데이터 범위를 항상 포함하도록 계산한다.
+  const nutritionLimits = useMemo(() => ({
+    calories: roundedLimit(dataMenus.filter((menu) => menu.caloriesKnown).map((menu) => menu.calories), 100, 1200),
+    protein: roundedLimit(dataMenus.filter((menu) => menu.proteinKnown).map((menu) => menu.protein), 5, 60),
+    fat: roundedLimit(dataMenus.filter((menu) => menu.fatKnown).map((menu) => menu.fat), 10, 50),
+    carbs: roundedLimit(dataMenus.filter((menu) => menu.carbsKnown).map((menu) => menu.carbs), 10, 100),
+    sodium: roundedLimit(dataMenus.filter((menu) => menu.sodiumKnown).map((menu) => menu.sodium), 250, 2000),
+    totalCarbs: roundedLimit(dataMenus.filter((menu) => menu.totalCarbsKnown).map((menu) => menu.totalCarbs), 10, 200),
+    totalFat: roundedLimit(dataMenus.filter((menu) => menu.totalFatKnown).map((menu) => menu.totalFat), 10, 100),
+    transFat: roundedLimit(dataMenus.filter((menu) => menu.transFatKnown).map((menu) => menu.transFat), .1, 2),
+    cholesterol: roundedLimit(dataMenus.filter((menu) => menu.cholesterolKnown).map((menu) => menu.cholesterol), 50, 500),
+    caffeine: roundedLimit(dataMenus.filter((menu) => menu.caffeineKnown).map((menu) => menu.caffeine), 50, 600),
+  }), [dataMenus]);
 
   const compareMenus = (a: Menu, b: Menu) => {
     if (sortMode === "protein") return b.protein - a.protein;
@@ -293,20 +310,20 @@ export default function HanipApp() {
     const safetyMatch = safetyMode === "all" || (safetyMode === "danger" ? danger : menu.allergenKnown && !danger);
     const categoryMatch = brandCategory === "전체" || BRAND_CATEGORIES[menu.brand]?.includes(brandCategory);
     const nutritionMatch = menu.catalogOnly || (
-      (!menu.caloriesKnown || menu.calories <= maxCalories)
-      && (!menu.proteinKnown || menu.protein <= maxProtein)
-      && (!menu.fatKnown || menu.fat <= maxFat)
-      && (!menu.carbsKnown || menu.carbs <= maxCarbs)
-      && menu.sodium <= maxSodium
-      && (!menu.totalCarbsKnown || menu.totalCarbs <= maxTotalCarbs)
-      && (!menu.totalFatKnown || menu.totalFat <= maxTotalFat)
-      && (!menu.transFatKnown || menu.transFat <= maxTransFat)
-      && (!menu.cholesterolKnown || menu.cholesterol <= maxCholesterol)
-      && (!menu.caffeineKnown || menu.caffeine <= maxCaffeine)
+      matchesNutritionRange(menu.calories, menu.caloriesKnown, calorieRange, nutritionLimits.calories)
+      && matchesNutritionRange(menu.protein, menu.proteinKnown, proteinRange, nutritionLimits.protein)
+      && matchesNutritionRange(menu.fat, menu.fatKnown, fatRange, nutritionLimits.fat)
+      && matchesNutritionRange(menu.carbs, menu.carbsKnown, sugarRange, nutritionLimits.carbs)
+      && matchesNutritionRange(menu.sodium, menu.sodiumKnown, sodiumRange, nutritionLimits.sodium)
+      && matchesNutritionRange(menu.totalCarbs, menu.totalCarbsKnown, totalCarbsRange, nutritionLimits.totalCarbs)
+      && matchesNutritionRange(menu.totalFat, menu.totalFatKnown, totalFatRange, nutritionLimits.totalFat)
+      && matchesNutritionRange(menu.transFat, menu.transFatKnown, transFatRange, nutritionLimits.transFat)
+      && matchesNutritionRange(menu.cholesterol, menu.cholesterolKnown, cholesterolRange, nutritionLimits.cholesterol)
+      && matchesNutritionRange(menu.caffeine, menu.caffeineKnown, caffeineRange, nutritionLimits.caffeine)
     );
     return brands.includes(menu.brand) && categoryMatch && safetyMatch && nutritionMatch
       && (!query.trim() || menu.brand.toLowerCase().includes(query.trim().toLowerCase()) || menu.menu.toLowerCase().includes(query.trim().toLowerCase()) || menu.menuEn?.toLowerCase().includes(query.trim().toLowerCase()));
-  }).sort(compareMenus), [menus, allergens, brands, brandCategory, safetyMode, maxCalories, maxProtein, maxFat, maxCarbs, maxSodium, maxTotalCarbs, maxTotalFat, maxTransFat, maxCholesterol, maxCaffeine, query, profileOn, targetCalories, sortMode]);
+  }).sort(compareMenus), [menus, allergens, brands, brandCategory, safetyMode, calorieRange, proteinRange, fatRange, sugarRange, sodiumRange, totalCarbsRange, totalFatRange, transFatRange, cholesterolRange, caffeineRange, nutritionLimits, query, profileOn, targetCalories, sortMode]);
 
   const grouped = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -341,32 +358,18 @@ export default function HanipApp() {
     fat: sum.fat + menu.fat * quantity, carbs: sum.carbs + menu.carbs * quantity, sodium: sum.sodium + menu.sodium * quantity
   }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
 
-  const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
-  // 새 CSV가 들어와도 슬라이더 상한과 기본값이 실제 데이터 범위를 항상 포함하도록 계산한다.
-  const nutritionLimits = useMemo(() => ({
-    calories: roundedLimit(dataMenus.filter((menu) => menu.caloriesKnown).map((menu) => menu.calories), 100, 1200),
-    protein: roundedLimit(dataMenus.filter((menu) => menu.proteinKnown).map((menu) => menu.protein), 5, 60),
-    fat: roundedLimit(dataMenus.filter((menu) => menu.fatKnown).map((menu) => menu.fat), 10, 50),
-    carbs: roundedLimit(dataMenus.filter((menu) => menu.carbsKnown).map((menu) => menu.carbs), 10, 100),
-    sodium: roundedLimit(dataMenus.filter((menu) => menu.sodiumKnown).map((menu) => menu.sodium), 250, 2000),
-    totalCarbs: roundedLimit(dataMenus.filter((menu) => menu.totalCarbsKnown).map((menu) => menu.totalCarbs), 10, 200),
-    totalFat: roundedLimit(dataMenus.filter((menu) => menu.totalFatKnown).map((menu) => menu.totalFat), 10, 100),
-    transFat: roundedLimit(dataMenus.filter((menu) => menu.transFatKnown).map((menu) => menu.transFat), .1, 2),
-    cholesterol: roundedLimit(dataMenus.filter((menu) => menu.cholesterolKnown).map((menu) => menu.cholesterol), 50, 500),
-    caffeine: roundedLimit(dataMenus.filter((menu) => menu.caffeineKnown).map((menu) => menu.caffeine), 50, 600),
-  }), [dataMenus]);
   useEffect(() => {
     if (!dataMenus.length) return;
-    setMaxCalories(nutritionLimits.calories);
-    setMaxProtein(nutritionLimits.protein);
-    setMaxFat(nutritionLimits.fat);
-    setMaxCarbs(nutritionLimits.carbs);
-    setMaxSodium(nutritionLimits.sodium);
-    setMaxTotalCarbs(nutritionLimits.totalCarbs);
-    setMaxTotalFat(nutritionLimits.totalFat);
-    setMaxTransFat(nutritionLimits.transFat);
-    setMaxCholesterol(nutritionLimits.cholesterol);
-    setMaxCaffeine(nutritionLimits.caffeine);
+    setCalorieRange([0, nutritionLimits.calories]);
+    setProteinRange([0, nutritionLimits.protein]);
+    setFatRange([0, nutritionLimits.fat]);
+    setSugarRange([0, nutritionLimits.carbs]);
+    setSodiumRange([0, nutritionLimits.sodium]);
+    setTotalCarbsRange([0, nutritionLimits.totalCarbs]);
+    setTotalFatRange([0, nutritionLimits.totalFat]);
+    setTransFatRange([0, nutritionLimits.transFat]);
+    setCholesterolRange([0, nutritionLimits.cholesterol]);
+    setCaffeineRange([0, nutritionLimits.caffeine]);
   }, [dataMenus.length, nutritionLimits]);
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
@@ -410,19 +413,19 @@ export default function HanipApp() {
         <div className="quick-group"><h3>{tr(language, "카테고리", "Category")}</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item} value={item}>{categoryLabel(language, item)}</option>)}</select></div>
         <div className="quick-group quick-ranges">
           <h3>{tr(language, "주요 영양조건", "Main nutrition filters")}</h3>
-          <Range label={tr(language, "칼로리", "Calories")} value={maxCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setMaxCalories} />
-          <Range label={tr(language, "단백질", "Protein")} value={maxProtein} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setMaxProtein} />
-          <Range label={tr(language, "나트륨", "Sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} />
+          <Range label={tr(language, "칼로리", "Calories")} value={calorieRange} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setCalorieRange} />
+          <Range label={tr(language, "단백질", "Protein")} value={proteinRange} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setProteinRange} />
+          <Range label={tr(language, "나트륨", "Sodium")} value={sodiumRange} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setSodiumRange} />
           <details className="nutrition-options quick-nutrition-options">
             <summary>{tr(language, "추가 영양조건", "More nutrition filters")} <small>7</small></summary>
             <div className="nutrition-option-grid">
-              <Range label={tr(language, "포화지방", "Saturated fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} />
-              <Range label={tr(language, "당류", "Sugars")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} />
-              <Range label={tr(language, "총탄수화물", "Total carbs")} value={maxTotalCarbs} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setMaxTotalCarbs} />
-              <Range label={tr(language, "총지방", "Total fat")} value={maxTotalFat} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setMaxTotalFat} />
-              <Range label={tr(language, "트랜스지방", "Trans fat")} value={maxTransFat} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setMaxTransFat} />
-              <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={maxCholesterol} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setMaxCholesterol} />
-              <Range label={tr(language, "카페인", "Caffeine")} value={maxCaffeine} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setMaxCaffeine} />
+              <Range label={tr(language, "포화지방", "Saturated fat")} value={fatRange} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setFatRange} />
+              <Range label={tr(language, "당류", "Sugars")} value={sugarRange} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setSugarRange} />
+              <Range label={tr(language, "총탄수화물", "Total carbs")} value={totalCarbsRange} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setTotalCarbsRange} />
+              <Range label={tr(language, "총지방", "Total fat")} value={totalFatRange} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setTotalFatRange} />
+              <Range label={tr(language, "트랜스지방", "Trans fat")} value={transFatRange} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setTransFatRange} />
+              <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={cholesterolRange} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setCholesterolRange} />
+              <Range label={tr(language, "카페인", "Caffeine")} value={caffeineRange} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setCaffeineRange} />
             </div>
           </details>
         </div>
@@ -465,18 +468,18 @@ export default function HanipApp() {
             <button disabled={!allergens.length} className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>{tr(language, "위험한 것만", "Contains selected")}</button>
           </div></div>
           <div className="filter-block profile-block"><h3>{tr(language, "맞춤 프로필", "Personal profile")}</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> {tr(language, "신체·다이어트 목표 반영", "Use body profile and goal")}</label><div className={`profile-grid profile-preview ${profileOn ? "enabled" : "disabled"}`}><select disabled={!profileOn} value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option value="여성">{tr(language, "여성", "Female")}</option><option value="남성">{tr(language, "남성", "Male")}</option></select><select disabled={!profileOn} value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option value="감량">{tr(language, "감량", "Lose weight")}</option><option value="유지">{tr(language, "유지", "Maintain")}</option><option value="증량">{tr(language, "증량", "Gain weight")}</option></select><NumberField disabled={!profileOn} label={tr(language, "나이", "Age")} value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField disabled={!profileOn} label={tr(language, "키(cm)", "Height (cm)")} value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField disabled={!profileOn} label={tr(language, "체중(kg)", "Weight (kg)")} value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">{tr(language, "하루 참고 목표", "Daily reference")} <b>{formatNumber(language, targetCalories)} kcal</b></div></div>{!profileOn && <button className="profile-enable-hint" onClick={() => setProfileOn(true)}>{tr(language, "체크하고 맞춤 추천 사용하기 →", "Enable personalized recommendations →")}</button>}</div>
-          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><p className="nutrition-main-note">{tr(language, "칼로리·단백질·나트륨을 먼저 설정하고, 필요하면 추가 조건을 펼쳐보세요.", "Start with calories, protein, and sodium, then open more filters if needed.")}</p><div className="nutrition-filter-grid nutrition-primary-grid">
-            <Range label={tr(language, "칼로리", "Calories")} value={maxCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setMaxCalories} />
-            <Range label={tr(language, "단백질", "Protein")} value={maxProtein} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setMaxProtein} />
-            <Range label={tr(language, "나트륨", "Sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} />
+          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><p className="nutrition-main-note">{tr(language, "각 영양성분의 최소값과 최대값을 정하면 해당 범위 안의 메뉴만 보여드려요.", "Set a minimum and maximum for each nutrient to see menus within that range.")}</p><div className="nutrition-filter-grid nutrition-primary-grid">
+            <Range label={tr(language, "칼로리", "Calories")} value={calorieRange} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setCalorieRange} />
+            <Range label={tr(language, "단백질", "Protein")} value={proteinRange} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setProteinRange} />
+            <Range label={tr(language, "나트륨", "Sodium")} value={sodiumRange} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setSodiumRange} />
           </div><details className="nutrition-options"><summary>{tr(language, "추가 영양조건", "More nutrition filters")} <small>{tr(language, "7가지 옵션", "7 options")}</small></summary><div className="nutrition-filter-grid nutrition-option-grid">
-            <Range label={tr(language, "포화지방", "Saturated fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} />
-            <Range label={tr(language, "당류", "Sugars")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} />
-            <Range label={tr(language, "총탄수화물", "Total carbs")} value={maxTotalCarbs} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setMaxTotalCarbs} />
-            <Range label={tr(language, "총지방", "Total fat")} value={maxTotalFat} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setMaxTotalFat} />
-            <Range label={tr(language, "트랜스지방", "Trans fat")} value={maxTransFat} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setMaxTransFat} />
-            <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={maxCholesterol} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setMaxCholesterol} />
-            <Range label={tr(language, "카페인", "Caffeine")} value={maxCaffeine} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setMaxCaffeine} />
+            <Range label={tr(language, "포화지방", "Saturated fat")} value={fatRange} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setFatRange} />
+            <Range label={tr(language, "당류", "Sugars")} value={sugarRange} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setSugarRange} />
+            <Range label={tr(language, "총탄수화물", "Total carbs")} value={totalCarbsRange} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setTotalCarbsRange} />
+            <Range label={tr(language, "총지방", "Total fat")} value={totalFatRange} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setTotalFatRange} />
+            <Range label={tr(language, "트랜스지방", "Trans fat")} value={transFatRange} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setTransFatRange} />
+            <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={cholesterolRange} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setCholesterolRange} />
+            <Range label={tr(language, "카페인", "Caffeine")} value={caffeineRange} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setCaffeineRange} />
           </div></details></div>
         </section></Reveal></div>
 
@@ -514,7 +517,19 @@ export default function HanipApp() {
 function Reveal({ children }: { children: React.ReactNode }) { const ref = useRef<HTMLDivElement>(null); useEffect(() => { const node = ref.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && node.classList.add("visible"), { threshold: .12 }); observer.observe(node); return () => observer.disconnect(); }, []); return <div ref={ref} className="reveal">{children}</div>; }
 function TabButton({ active, onClick, label, icon, mealTarget = false, receiving = false }: { active: boolean; onClick: () => void; label: string; icon?: React.ReactNode; mealTarget?: boolean; receiving?: boolean }) { return <button data-meal-tab={mealTarget ? "true" : undefined} className={`${active ? "active" : ""} ${receiving ? "meal-tab-receiving" : ""}`} onClick={onClick}>{icon}{label}</button>; }
 function NumberField({ label, value, onChange, disabled = false }: { label: string; value: number; onChange: (value: number) => void; disabled?: boolean }) { return <label><span>{label}</span><input disabled={disabled} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
-function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { const update = (next: number) => onChange(Math.max(min, Math.min(max, Number.isFinite(next) ? next : min))); return <label className="range"><span><i>{label}</i><b className="range-value"><input aria-label={`${label} value`} type="number" value={value} min={min} max={max} step={step} onChange={(e) => update(Number(e.target.value))} /><small>{unit}</small></b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => update(Number(e.target.value))} /></label>; }
+function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: NutritionRange; min: number; max: number; step: number; unit: string; onChange: (value: NutritionRange) => void }) {
+  const [minimum, maximum] = value;
+  const clamp = (next: number) => Math.max(min, Math.min(max, Number.isFinite(next) ? next : min));
+  const updateMinimum = (next: number) => onChange([Math.min(clamp(next), maximum), maximum]);
+  const updateMaximum = (next: number) => onChange([minimum, Math.max(clamp(next), minimum)]);
+  const spread = Math.max(max - min, 1);
+  const rangeStyle = {
+    "--range-start": `${((minimum - min) / spread) * 100}%`,
+    "--range-end": `${((maximum - min) / spread) * 100}%`,
+  } as React.CSSProperties;
+
+  return <div className="range"><span><i>{label}</i><b className="range-values"><input aria-label={`${label} minimum`} type="number" value={minimum} min={min} max={maximum} step={step} onChange={(e) => updateMinimum(Number(e.target.value))} /><em>~</em><input aria-label={`${label} maximum`} type="number" value={maximum} min={minimum} max={max} step={step} onChange={(e) => updateMaximum(Number(e.target.value))} /><small>{unit}</small></b></span><div className="range-double-control" style={rangeStyle}><input aria-label={`${label} minimum slider`} type="range" value={minimum} min={min} max={max} step={step} onChange={(e) => updateMinimum(Number(e.target.value))} /><input aria-label={`${label} maximum slider`} type="range" value={maximum} min={min} max={max} step={step} onChange={(e) => updateMaximum(Number(e.target.value))} /></div></div>;
+}
 
 function CartPanel({ items, cart, setCart, totals, targetCalories, allergens, language }: { items: Array<{ menu: Menu; quantity: number }>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number; allergens: string[]; language: Language }) {
   if (!items.length) return <section className="panel empty"><UtensilsCrossed size={36} /><h2>{tr(language, "나의 한 끼가 비어 있어요", "Your meal is empty")}</h2><p>{tr(language, "추천 메뉴에서 원하는 메뉴를 조합해보세요.", "Add items from the menu recommendations to build your meal.")}</p></section>;
