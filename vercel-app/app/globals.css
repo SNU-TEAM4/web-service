@@ -161,7 +161,8 @@ textarea{font:inherit}
 /* Two-value nutrition controls show and filter the selected minimum-to-maximum interval. */
 .range>span{display:grid;align-items:stretch;gap:7px}
 .range-values{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:6px}
-.nutrition-filter-grid .range .range-values input,.quick-ranges .range .range-values input{display:block;width:100%;min-width:0;height:32px;margin:0;padding:3px 7px;text-align:right;border:1px solid #b9cfbd;border-radius:8px;background:#fff;font-size:11px;font-weight:800;outline:none}
+.nutrition-filter-grid .range .range-values input,.quick-ranges .range .range-values input{display:block;width:100%;min-width:64px;height:32px;margin:0;padding:3px 8px;text-align:right;border:1px solid #b9cfbd;border-radius:8px;background:#fff;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;appearance:textfield;outline:none}
+.nutrition-filter-grid .range .range-values input::-webkit-inner-spin-button,.nutrition-filter-grid .range .range-values input::-webkit-outer-spin-button,.quick-ranges .range .range-values input::-webkit-inner-spin-button,.quick-ranges .range .range-values input::-webkit-outer-spin-button{margin:0;appearance:none}
 .range-values input:focus{border-color:var(--green)!important;box-shadow:0 0 0 3px #2876531c}
 .range-values em{color:#849188;font-size:11px;font-style:normal}
 .range-values small{min-width:20px;color:var(--muted);font-size:10px;font-weight:750}
