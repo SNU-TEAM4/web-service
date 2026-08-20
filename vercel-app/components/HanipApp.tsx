@@ -104,16 +104,19 @@ function MenuNutrition({ menu, language }: { menu: Menu; language: Language }) {
   ].filter((fact) => fact.known);
 
   const basis = nutritionBasisLabel(menu, language);
-  const weight = menu.weightText || (menu.weight ? `${formatNumber(language, menu.weight)} g` : "");
-  const metadata = (basis || weight) && <div className="nutrition-metadata">{basis && <span><small>{tr(language, "영양정보 기준", "Nutrition basis")}</small><b>{basis}</b></span>}{weight && <span><small>{tr(language, "총중량·표기중량", "Listed weight")}</small><b>{weight}</b></span>}</div>;
+  const weight = totalWeightLabel(menu, language);
+  const metadata = (basis || weight) && <div className="nutrition-metadata">{basis && <span><small>{tr(language, "영양성분 기준 중량", "Nutrition basis weight")}</small><b>{basis}</b></span>}{weight && <span><small>{tr(language, "메뉴 총중량", "Total menu weight")}</small><b>{weight}</b></span>}</div>;
 
   if (!facts.length) return <>{metadata}<p className="nutrition-unavailable">{tr(language, "확인된 영양성분 정보가 없어요.", "No confirmed nutrition data available.")}</p></>;
   return <>{metadata}<div className="menu-nutrition">{facts.map((fact) => <span key={fact.key}><small>{fact.label}</small><b>{fact.value}</b></span>)}</div></>;
 }
 
 function nutritionBasisLabel(menu: Menu, language: Language) {
-  const basis = menu.nutritionBasis || menu.nutritionServingText || "";
+  const basis = menu.nutritionBasisDisplay || menu.nutritionBasis || menu.nutritionServingText || (menu.nutritionBasisWeight ? `${menu.nutritionBasisWeight}g` : "");
   if (!basis || language === "ko") return basis;
+  if (/미공개|미표기/.test(basis)) return "Nutrition label unavailable";
+  if (/총량 계산 불가/.test(basis)) return "Per 100 g · whole-item total unavailable";
+  if (/구성품별/.test(basis)) return "Sum of official component servings";
   const pieceMatch = basis.match(/판매\s*(\d+)조각\s*기준/);
   if (pieceMatch) return `Per ${pieceMatch[1]} sold pieces`;
   if (/100\s*g/i.test(basis)) return "Per 100 g";
@@ -122,6 +125,13 @@ function nutritionBasisLabel(menu: Menu, language: Language) {
   if (/세트/.test(basis)) return "Whole set";
   if (/총량|전체/.test(basis)) return "Whole item";
   return "As published";
+}
+
+function totalWeightLabel(menu: Menu, language: Language) {
+  if (language === "ko" && menu.totalWeightDisplay) return menu.totalWeightDisplay;
+  if (menu.totalWeightMin && menu.totalWeightMax) return `${formatNumber(language, menu.totalWeightMin)}–${formatNumber(language, menu.totalWeightMax)} g`;
+  if (menu.totalWeight) return `${formatNumber(language, menu.totalWeight)} g`;
+  return menu.totalWeightDisplay || menu.weightText || (menu.weight ? `${formatNumber(language, menu.weight)} g` : "");
 }
 
 function servingLabel(menu: Menu, language: Language) {
@@ -236,6 +246,12 @@ export default function HanipApp() {
           nutritionMatch: row._nutrition_match || "",
           nutritionBasis: row.nutrition_basis || "", nutritionServingText: row.nutrition_serving_text || "",
           weight: row.weight_g ? parseNumber(row.weight_g) : undefined, weightText: row.weight_text || "",
+          totalWeight: row.menu_total_weight_g ? parseNumber(row.menu_total_weight_g) : undefined,
+          totalWeightMin: row.menu_total_weight_min_g ? parseNumber(row.menu_total_weight_min_g) : undefined,
+          totalWeightMax: row.menu_total_weight_max_g ? parseNumber(row.menu_total_weight_max_g) : undefined,
+          totalWeightDisplay: row.menu_total_weight_display || "", totalWeightBasisType: row.menu_total_weight_basis_type || "",
+          nutritionBasisWeight: row.nutrition_label_basis_weight_g ? parseNumber(row.nutrition_label_basis_weight_g) : undefined,
+          nutritionBasisDisplay: row.nutrition_label_basis_display || "",
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
           allergenKnown: explicitAllergenKnown
             ? explicitAllergenKnown === "true"

@@ -31,6 +31,13 @@ export type Menu = {
   nutritionServingText?: string;
   weight?: number;
   weightText?: string;
+  totalWeight?: number;
+  totalWeightMin?: number;
+  totalWeightMax?: number;
+  totalWeightDisplay?: string;
+  totalWeightBasisType?: string;
+  nutritionBasisWeight?: number;
+  nutritionBasisDisplay?: string;
   allergens: string[];
   allergenKnown: boolean;
   verified?: boolean;

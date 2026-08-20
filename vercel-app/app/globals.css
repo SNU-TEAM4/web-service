@@ -176,3 +176,15 @@ textarea{font:inherit}
 .nutrition-metadata small{color:#668073;font-size:9px;font-weight:800}
 .nutrition-metadata b{overflow-wrap:anywhere;color:#315e47;font-size:10px;line-height:1.4}
 @media(max-width:620px){.nutrition-metadata{grid-template-columns:1fr}}
+
+/* Compact the four data-summary cards and give the allergen-focused copy more room. */
+.data-trust{grid-template-columns:minmax(0,1fr) minmax(500px,570px);padding:clamp(32px,4vw,56px);gap:40px}
+.trust-copy h2{font-size:clamp(35px,3.1vw,46px);line-height:1.08}
+.trust-dashboard{width:100%;max-width:570px;margin-left:auto;gap:11px}
+.trust-highlights{gap:10px}
+.trust-highlights>div{min-height:132px;padding:17px 18px;gap:17px;border-radius:16px}
+.trust-highlights strong{font-size:clamp(38px,3.2vw,52px)}
+.trust-highlights span{font-size:12px}
+.trust-dashboard-note{font-size:11px!important}
+@media(max-width:1120px){.data-trust{grid-template-columns:1fr}.trust-dashboard{max-width:none;margin-left:0}}
+@media(max-width:700px){.data-trust{padding:28px 17px}.trust-highlights>div{min-height:104px;padding:14px;gap:12px}.trust-highlights strong{font-size:36px}.trust-highlights span{font-size:11px}}
