@@ -43,3 +43,4 @@ NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY=카카오_JavaScript_키
 5. 배포 후 생성된 도메인을 카카오 JavaScript SDK 도메인에도 추가합니다.
 
 카카오 REST 키는 서버 API에서만 사용하고, JavaScript 키만 브라우저에 공개됩니다. `.env.local`은 Git에서 제외됩니다.
+test

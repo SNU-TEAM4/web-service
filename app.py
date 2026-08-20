@@ -586,7 +586,8 @@ with st.sidebar:
         key="brand_selector_v2",
         label_visibility="collapsed",
     )
-    st.caption(f"공식 데이터 {len(data):,}개 · {len(brand_options)}개 브랜드 · 2026-08-07 갱신")
+    updated_at = data["source_date"].dropna().astype(str).max() if "source_date" in data else "기준일 미표기"
+    st.caption(f"공식 데이터 {len(data):,}개 · {len(brand_options)}개 브랜드 · {updated_at} 갱신")
     st.markdown("#### 3. 맞춤 프로필")
     profile_enabled = st.toggle("신체·다이어트 목표 반영", value=False)
     profile = None

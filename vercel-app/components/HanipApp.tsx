@@ -11,6 +11,7 @@ import { inferMenuSection, menuSectionRank as catalogSectionRank } from "@/lib/m
 import { allergenLabel, categoryLabel, formatNumber, formatPrice, menuSectionLabel, tr, type Language } from "@/lib/i18n";
 import type { Menu, Place, PriceRecord, Store } from "@/lib/types";
 import KakaoMap from "./KakaoMap";
+import { FloatingFoodHero, type FloatingFoodImage } from "./ui/floating-food-hero";
 
 type Tab = "menus" | "cart" | "map" | "compare" | "about";
 type Cart = Record<number, number>;
@@ -33,6 +34,7 @@ function normalizeCart(value: unknown): Cart {
 }
 type SafetyMode = "all" | "danger" | "safe";
 type SortMode = "recommended" | "protein" | "calories" | "sodium";
+type NutritionRange = [number, number];
 const parseNumber = (value: unknown) => Number(value || 0);
 const hasNumericValue = (value: unknown) => {
   if (value === null || value === undefined) return false;
@@ -48,7 +50,19 @@ const BRAND_ALIASES: Record<string, string> = {
 const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?.trim();
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
-const CATALOG_BRANDS = Object.keys(BRAND_CATEGORIES).filter((brand) => !EXCLUDED_BRANDS.has(brand));
+const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
+const matchesNutritionRange = (value: number, known: boolean, [minimum, maximum]: NutritionRange, limit: number) => known
+  ? value >= minimum && value <= maximum
+  : minimum === 0 && maximum === limit;
+const HERO_IMAGES: FloatingFoodImage[] = [
+  { src: "/images/wellness-salad-hero.png", alt: "", position: "salad" },
+  { src: "/images/wellness-yogurt-hero.png", alt: "", position: "yogurt" },
+  { src: "/images/wellness-toast-hero.png", alt: "", position: "toast" },
+  { src: "/images/floating-chicken-hero-v2.png", alt: "", position: "hero-chicken" },
+  { src: "/images/floating-burger-hero-v2.png", alt: "", position: "hero-burger" },
+  { src: "/images/floating-pizza-hero-v2.png", alt: "", position: "hero-pizza" },
+];
+const NUTRIENT_FILTER_COUNT = 10;
 
 const menuSection = inferMenuSection;
 function menuSectionRank(_brand: string, section: string) { return catalogSectionRank(section); }
@@ -59,17 +73,65 @@ function compareBrandDisplayOrder(category: string, a: string, b: string) {
   return (aRank < 0 ? Number.MAX_SAFE_INTEGER : aRank) - (bRank < 0 ? Number.MAX_SAFE_INTEGER : bRank)
     || a.localeCompare(b, "ko");
 }
-function menuDescription(menu: Menu) {
-  if (menu.description) return menu.description.length > 72 ? `${menu.description.slice(0, 72).trim()}…` : menu.description;
+function menuName(menu: Menu, language: Language) { return language === "en" ? menu.menuEn || menu.menu : menu.menu; }
+function menuDescription(menu: Menu, language: Language) {
+  const description = language === "en" ? menu.descriptionEn || menu.description : menu.description;
+  if (description) return description.length > 72 ? `${description.slice(0, 72).trim()}…` : description;
   return "";
 }
 
 function MenuDescription({ menu, language }: { menu: Menu; language: Language }) {
   const [expanded, setExpanded] = useState(false);
-  if (!menu.description) return null;
-  const isLong = menu.description.length > 72;
-  const text = expanded || !isLong ? menu.description : menuDescription(menu);
-  return <div className="menu-description" title={menu.description}>{text}{isLong && <button className="description-more" onClick={() => setExpanded((current) => !current)}>{expanded ? tr(language, "접기", "Less") : tr(language, "더보기", "More")}</button>}</div>;
+  const description = language === "en" ? menu.descriptionEn || menu.description : menu.description;
+  if (!description) return null;
+  const isLong = description.length > 72;
+  const text = expanded || !isLong ? description : menuDescription(menu, language);
+  return <div className="menu-description" title={description}>{text}{isLong && <button className="description-more" onClick={() => setExpanded((current) => !current)}>{expanded ? tr(language, "접기", "Less") : tr(language, "더보기", "More")}</button>}</div>;
+}
+
+function MenuNutrition({ menu, language }: { menu: Menu; language: Language }) {
+  const facts = [
+    { key: "calories", known: menu.caloriesKnown, label: tr(language, "열량", "Calories"), value: `${menu.calories.toFixed(0)} kcal` },
+    { key: "protein", known: menu.proteinKnown, label: tr(language, "단백질", "Protein"), value: `${menu.protein.toFixed(1)} g` },
+    { key: "sat-fat", known: menu.fatKnown, label: tr(language, "포화지방", "Saturated fat"), value: `${menu.fat.toFixed(1)} g` },
+    { key: "sugars", known: menu.carbsKnown, label: tr(language, "당류", "Sugars"), value: `${menu.carbs.toFixed(1)} g` },
+    { key: "sodium", known: menu.sodiumKnown, label: tr(language, "나트륨", "Sodium"), value: `${menu.sodium.toFixed(0)} mg` },
+    { key: "total-carbs", known: menu.totalCarbsKnown, label: tr(language, "총탄수화물", "Total carbs"), value: `${menu.totalCarbs.toFixed(1)} g` },
+    { key: "total-fat", known: menu.totalFatKnown, label: tr(language, "총지방", "Total fat"), value: `${menu.totalFat.toFixed(1)} g` },
+    { key: "trans-fat", known: menu.transFatKnown, label: tr(language, "트랜스지방", "Trans fat"), value: `${menu.transFat.toFixed(1)} g` },
+    { key: "cholesterol", known: menu.cholesterolKnown, label: tr(language, "콜레스테롤", "Cholesterol"), value: `${menu.cholesterol.toFixed(1)} mg` },
+    { key: "caffeine", known: menu.caffeineKnown, label: tr(language, "카페인", "Caffeine"), value: `${menu.caffeine.toFixed(1)} mg` },
+  ].filter((fact) => fact.known);
+
+  const basis = nutritionBasisLabel(menu, language);
+  const weight = totalWeightLabel(menu, language);
+  const metadata = (basis || weight) && <div className="nutrition-metadata">{basis && <span><small>{tr(language, "영양성분 기준 중량", "Nutrition basis weight")}</small><b>{basis}</b></span>}{weight && <span><small>{tr(language, "메뉴 총중량", "Total menu weight")}</small><b>{weight}</b></span>}</div>;
+
+  if (!facts.length) return <>{metadata}<p className="nutrition-unavailable">{tr(language, "확인된 영양성분 정보가 없어요.", "No confirmed nutrition data available.")}</p></>;
+  return <>{metadata}<div className="menu-nutrition">{facts.map((fact) => <span key={fact.key}><small>{fact.label}</small><b>{fact.value}</b></span>)}</div></>;
+}
+
+function nutritionBasisLabel(menu: Menu, language: Language) {
+  const basis = menu.nutritionBasisDisplay || menu.nutritionBasis || menu.nutritionServingText || (menu.nutritionBasisWeight ? `${menu.nutritionBasisWeight}g` : "");
+  if (!basis || language === "ko") return basis;
+  if (/미공개|미표기/.test(basis)) return "Nutrition label unavailable";
+  if (/총량 계산 불가/.test(basis)) return "Per 100 g · whole-item total unavailable";
+  if (/구성품별/.test(basis)) return "Sum of official component servings";
+  const pieceMatch = basis.match(/판매\s*(\d+)조각\s*기준/);
+  if (pieceMatch) return `Per ${pieceMatch[1]} sold pieces`;
+  if (/100\s*g/i.test(basis)) return "Per 100 g";
+  if (/1\s*조각|한\s*조각/.test(basis)) return "Per piece";
+  if (/제공량/.test(basis)) return "Per serving";
+  if (/세트/.test(basis)) return "Whole set";
+  if (/총량|전체/.test(basis)) return "Whole item";
+  return "As published";
+}
+
+function totalWeightLabel(menu: Menu, language: Language) {
+  if (language === "ko" && menu.totalWeightDisplay) return menu.totalWeightDisplay;
+  if (menu.totalWeightMin && menu.totalWeightMax) return `${formatNumber(language, menu.totalWeightMin)}–${formatNumber(language, menu.totalWeightMax)} g`;
+  if (menu.totalWeight) return `${formatNumber(language, menu.totalWeight)} g`;
+  return menu.totalWeightDisplay || menu.weightText || (menu.weight ? `${formatNumber(language, menu.weight)} g` : "");
 }
 
 function servingLabel(menu: Menu, language: Language) {
@@ -123,9 +185,17 @@ export default function HanipApp() {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [menuSectionFilter, setMenuSectionFilter] = useState("전체");
-  const [maxCalories, setMaxCalories] = useState(600);
-  const [minProtein, setMinProtein] = useState(0);
-  const [maxSodium, setMaxSodium] = useState(1500);
+  // 각 영양성분의 최소·최대 범위를 함께 관리한다. 초기 범위는 전체 데이터를 포함한다.
+  const [calorieRange, setCalorieRange] = useState<NutritionRange>([0, 3700]);
+  const [proteinRange, setProteinRange] = useState<NutritionRange>([0, 120]);
+  const [fatRange, setFatRange] = useState<NutritionRange>([0, 130]);
+  const [sugarRange, setSugarRange] = useState<NutritionRange>([0, 240]);
+  const [sodiumRange, setSodiumRange] = useState<NutritionRange>([0, 5000]);
+  const [totalCarbsRange, setTotalCarbsRange] = useState<NutritionRange>([0, 200]);
+  const [totalFatRange, setTotalFatRange] = useState<NutritionRange>([0, 100]);
+  const [transFatRange, setTransFatRange] = useState<NutritionRange>([0, 2]);
+  const [cholesterolRange, setCholesterolRange] = useState<NutritionRange>([0, 500]);
+  const [caffeineRange, setCaffeineRange] = useState<NutritionRange>([0, 1000]);
   const [profileOn, setProfileOn] = useState(false);
   const [profile, setProfile] = useState({ sex: "여성", age: 25, height: 165, weight: 60, goal: "감량" });
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
@@ -163,18 +233,32 @@ export default function HanipApp() {
         const explicitAllergenKnown = row.allergen_known?.trim().toLowerCase();
 
         return {
-          id, brand: normalizeBrand(row.brand), menu: row.menu, category: row.category,
+          id, brand: normalizeBrand(row.brand), brandEn: row.brand_en || "", menu: row.menu, menuEn: row.menu_en || "", category: row.category,
           yogiyoCategory: row.yogiyo_category || "",
           calories: parseNumber(row.calories), caloriesKnown: hasNumericValue(row.calories),
-          protein: parseNumber(row.protein), proteinKnown: hasNumericValue(row.protein), fat: parseNumber(row.fat),
-          carbs: parseNumber(row.carbs), sodium: parseNumber(row.sodium), sodiumKnown: hasNumericValue(row.sodium),
+          protein: parseNumber(row.protein), proteinKnown: hasNumericValue(row.protein), fat: parseNumber(row.fat), fatKnown: hasNumericValue(row.fat),
+          carbs: parseNumber(row.carbs), carbsKnown: hasNumericValue(row.carbs), sodium: parseNumber(row.sodium), sodiumKnown: hasNumericValue(row.sodium),
+          totalCarbs: parseNumber(row.total_carbs_g), totalCarbsKnown: hasNumericValue(row.total_carbs_g),
+          totalFat: parseNumber(row.total_fat_g), totalFatKnown: hasNumericValue(row.total_fat_g),
+          transFat: parseNumber(row.trans_fat_g), transFatKnown: hasNumericValue(row.trans_fat_g),
+          cholesterol: parseNumber(row.cholesterol_mg), cholesterolKnown: hasNumericValue(row.cholesterol_mg),
+          caffeine: parseNumber(row.caffeine_mg), caffeineKnown: hasNumericValue(row.caffeine_mg),
+          nutritionMatch: row._nutrition_match || "",
+          nutritionBasis: row.nutrition_basis || "", nutritionServingText: row.nutrition_serving_text || "",
+          weight: row.weight_g ? parseNumber(row.weight_g) : undefined, weightText: row.weight_text || "",
+          totalWeight: row.menu_total_weight_g ? parseNumber(row.menu_total_weight_g) : undefined,
+          totalWeightMin: row.menu_total_weight_min_g ? parseNumber(row.menu_total_weight_min_g) : undefined,
+          totalWeightMax: row.menu_total_weight_max_g ? parseNumber(row.menu_total_weight_max_g) : undefined,
+          totalWeightDisplay: row.menu_total_weight_display || "", totalWeightBasisType: row.menu_total_weight_basis_type || "",
+          nutritionBasisWeight: row.nutrition_label_basis_weight_g ? parseNumber(row.nutrition_label_basis_weight_g) : undefined,
+          nutritionBasisDisplay: row.nutrition_label_basis_display || "",
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
           allergenKnown: explicitAllergenKnown
             ? explicitAllergenKnown === "true"
             : flagColumnsPresent,
           verified: row.verified?.trim().toLowerCase() === "true",
           sourceUrl: row.source_url,
-          imageUrl: row.image_url || "", description: row.description || "",
+          imageUrl: row.image_url || "", description: row.description || "", descriptionEn: row.description_en || "",
           price: row.price ? parseNumber(row.price) : undefined, priceNote: row.price_note || "매장별 확인",
           priceSourceUrl: row.price_source_url || "", priceCheckedAt: row.price_checked_at || "",
           mediaSourceUrl: row.media_source_url || "", mediaCheckedAt: row.media_checked_at || ""
@@ -182,7 +266,7 @@ export default function HanipApp() {
       });
       const merged = mergeAdminPrices(data, managedPrices).filter((menu) => !EXCLUDED_BRANDS.has(menu.brand));
       setMenus(merged);
-      setBrands(Array.from(new Set([...CATALOG_BRANDS, ...merged.map((menu) => menu.brand)])));
+      setBrands(Array.from(new Set(data.map((menu) => menu.brand).filter((brand) => !EXCLUDED_BRANDS.has(brand)))));
     });
     const saved = localStorage.getItem("hanip-cart");
     if (saved) {
@@ -217,7 +301,10 @@ export default function HanipApp() {
     return () => window.removeEventListener("scroll", update);
   }, []);
 
-  const brandOptions = useMemo(() => Array.from(new Set([...CATALOG_BRANDS, ...menus.map((menu) => menu.brand)])), [menus]);
+  // 실제 최종 데이터셋에 메뉴가 있는 브랜드만 노출한다. 관리자 가격만 있는 임시 항목은 목록을 늘리지 않는다.
+  const brandOptions = useMemo(() => Array.from(new Set(menus.filter((menu) => !menu.catalogOnly).map((menu) => menu.brand))), [menus]);
+  const brandEnglishNames = useMemo(() => Object.fromEntries(menus.flatMap((menu) => menu.brandEn ? [[menu.brand, menu.brandEn]] : [])), [menus]);
+  const displayBrand = (brand: string) => language === "en" ? brandEnglishNames[brand] || brand : brand;
   const displayedBrandOptions = useMemo(() => brandOptions
     .filter((brand) => brandCategory === "전체" || BRAND_CATEGORIES[brand]?.includes(brandCategory))
     .sort((a, b) => compareBrandDisplayOrder(brandCategory, a, b)), [brandOptions, brandCategory]);
@@ -227,6 +314,20 @@ export default function HanipApp() {
       : 10 * profile.weight + 6.25 * profile.height - 5 * profile.age - 161;
     return Math.round(bmr * 1.35 * mealFactor[profile.goal]);
   }, [profile]);
+  const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
+  // 새 CSV가 들어와도 슬라이더 상한과 기본값이 실제 데이터 범위를 항상 포함하도록 계산한다.
+  const nutritionLimits = useMemo(() => ({
+    calories: roundedLimit(dataMenus.filter((menu) => menu.caloriesKnown).map((menu) => menu.calories), 100, 1200),
+    protein: roundedLimit(dataMenus.filter((menu) => menu.proteinKnown).map((menu) => menu.protein), 5, 60),
+    fat: roundedLimit(dataMenus.filter((menu) => menu.fatKnown).map((menu) => menu.fat), 10, 50),
+    carbs: roundedLimit(dataMenus.filter((menu) => menu.carbsKnown).map((menu) => menu.carbs), 10, 100),
+    sodium: roundedLimit(dataMenus.filter((menu) => menu.sodiumKnown).map((menu) => menu.sodium), 250, 2000),
+    totalCarbs: roundedLimit(dataMenus.filter((menu) => menu.totalCarbsKnown).map((menu) => menu.totalCarbs), 10, 200),
+    totalFat: roundedLimit(dataMenus.filter((menu) => menu.totalFatKnown).map((menu) => menu.totalFat), 10, 100),
+    transFat: roundedLimit(dataMenus.filter((menu) => menu.transFatKnown).map((menu) => menu.transFat), .1, 2),
+    cholesterol: roundedLimit(dataMenus.filter((menu) => menu.cholesterolKnown).map((menu) => menu.cholesterol), 50, 500),
+    caffeine: roundedLimit(dataMenus.filter((menu) => menu.caffeineKnown).map((menu) => menu.caffeine), 50, 600),
+  }), [dataMenus]);
 
   const compareMenus = (a: Menu, b: Menu) => {
     if (sortMode === "protein") return b.protein - a.protein;
@@ -243,10 +344,21 @@ export default function HanipApp() {
     const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item));
     const safetyMatch = safetyMode === "all" || (safetyMode === "danger" ? danger : menu.allergenKnown && !danger);
     const categoryMatch = brandCategory === "전체" || BRAND_CATEGORIES[menu.brand]?.includes(brandCategory);
-    const nutritionMatch = menu.catalogOnly || ((!menu.caloriesKnown || menu.calories <= maxCalories) && menu.protein >= minProtein && menu.sodium <= maxSodium);
+    const nutritionMatch = menu.catalogOnly || (
+      matchesNutritionRange(menu.calories, menu.caloriesKnown, calorieRange, nutritionLimits.calories)
+      && matchesNutritionRange(menu.protein, menu.proteinKnown, proteinRange, nutritionLimits.protein)
+      && matchesNutritionRange(menu.fat, menu.fatKnown, fatRange, nutritionLimits.fat)
+      && matchesNutritionRange(menu.carbs, menu.carbsKnown, sugarRange, nutritionLimits.carbs)
+      && matchesNutritionRange(menu.sodium, menu.sodiumKnown, sodiumRange, nutritionLimits.sodium)
+      && matchesNutritionRange(menu.totalCarbs, menu.totalCarbsKnown, totalCarbsRange, nutritionLimits.totalCarbs)
+      && matchesNutritionRange(menu.totalFat, menu.totalFatKnown, totalFatRange, nutritionLimits.totalFat)
+      && matchesNutritionRange(menu.transFat, menu.transFatKnown, transFatRange, nutritionLimits.transFat)
+      && matchesNutritionRange(menu.cholesterol, menu.cholesterolKnown, cholesterolRange, nutritionLimits.cholesterol)
+      && matchesNutritionRange(menu.caffeine, menu.caffeineKnown, caffeineRange, nutritionLimits.caffeine)
+    );
     return brands.includes(menu.brand) && categoryMatch && safetyMatch && nutritionMatch
-      && (!query.trim() || menu.brand.toLowerCase().includes(query.trim().toLowerCase()) || menu.menu.toLowerCase().includes(query.trim().toLowerCase()));
-  }).sort(compareMenus), [menus, allergens, brands, brandCategory, safetyMode, maxCalories, minProtein, maxSodium, query, profileOn, targetCalories, sortMode]);
+      && (!query.trim() || menu.brand.toLowerCase().includes(query.trim().toLowerCase()) || menu.menu.toLowerCase().includes(query.trim().toLowerCase()) || menu.menuEn?.toLowerCase().includes(query.trim().toLowerCase()));
+  }).sort(compareMenus), [menus, allergens, brands, brandCategory, safetyMode, calorieRange, proteinRange, fatRange, sugarRange, sodiumRange, totalCarbsRange, totalFatRange, transFatRange, cholesterolRange, caffeineRange, nutritionLimits, query, profileOn, targetCalories, sortMode]);
 
   const grouped = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -281,11 +393,19 @@ export default function HanipApp() {
     fat: sum.fat + menu.fat * quantity, carbs: sum.carbs + menu.carbs * quantity, sodium: sum.sodium + menu.sodium * quantity
   }), { calories: 0, protein: 0, fat: 0, carbs: 0, sodium: 0 });
 
-  const dataMenus = useMemo(() => menus.filter((menu) => !menu.catalogOnly), [menus]);
-  const allergenKnownCount = dataMenus.filter((menu) => menu.allergenKnown).length;
-  const sourceNamedCount = dataMenus.filter((menu) => menu.sourceUrl?.trim()).length;
-  const pricedCount = dataMenus.filter((menu) => menu.price).length;
-  const coverage = (count: number) => dataMenus.length ? Math.round(count / dataMenus.length * 100) : 0;
+  useEffect(() => {
+    if (!dataMenus.length) return;
+    setCalorieRange([0, nutritionLimits.calories]);
+    setProteinRange([0, nutritionLimits.protein]);
+    setFatRange([0, nutritionLimits.fat]);
+    setSugarRange([0, nutritionLimits.carbs]);
+    setSodiumRange([0, nutritionLimits.sodium]);
+    setTotalCarbsRange([0, nutritionLimits.totalCarbs]);
+    setTotalFatRange([0, nutritionLimits.totalFat]);
+    setTransFatRange([0, nutritionLimits.transFat]);
+    setCholesterolRange([0, nutritionLimits.cholesterol]);
+    setCaffeineRange([0, nutritionLimits.caffeine]);
+  }, [dataMenus.length, nutritionLimits]);
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setAdded({ id, nonce: Date.now() });
@@ -326,28 +446,49 @@ export default function HanipApp() {
         <div className="quick-group"><h3>{tr(language, "알레르기", "Allergens")}</h3><div className="chips"><button className={allergens.length === 0 ? "chip active no-allergy" : "chip no-allergy"} onClick={() => setAllergens([])}>{tr(language, "알레르기 없음", "No allergens")}</button>{ALLERGENS.map((item) => <button key={item} className={allergens.includes(item) ? "chip active" : "chip"} onClick={() => setAllergens((current) => current.includes(item) ? current.filter((x) => x !== item) : [...current, item])}>{allergenLabel(language, item)}</button>)}</div></div>
         <div className="quick-group"><h3>{tr(language, "안전 상태", "Allergen status")}</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>{tr(language, "모두", "All")}</button><button disabled={!allergens.length} className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>{tr(language, "안전", "No match")}</button><button disabled={!allergens.length} className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>{tr(language, "위험", "Contains")}</button></div></div>
         <div className="quick-group"><h3>{tr(language, "카테고리", "Category")}</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item} value={item}>{categoryLabel(language, item)}</option>)}</select></div>
-        <div className="quick-group quick-ranges"><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
+        <div className="quick-group quick-ranges">
+          <h3>{tr(language, "주요 영양조건", "Main nutrition filters")}</h3>
+          <Range label={tr(language, "칼로리", "Calories")} value={calorieRange} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setCalorieRange} />
+          <Range label={tr(language, "단백질", "Protein")} value={proteinRange} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setProteinRange} />
+          <Range label={tr(language, "나트륨", "Sodium")} value={sodiumRange} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setSodiumRange} />
+          <details className="nutrition-options quick-nutrition-options">
+            <summary>{tr(language, "추가 영양조건", "More nutrition filters")} <small>7</small></summary>
+            <div className="nutrition-option-grid">
+              <Range label={tr(language, "포화지방", "Saturated fat")} value={fatRange} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setFatRange} />
+              <Range label={tr(language, "당류", "Sugars")} value={sugarRange} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setSugarRange} />
+              <Range label={tr(language, "총탄수화물", "Total carbs")} value={totalCarbsRange} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setTotalCarbsRange} />
+              <Range label={tr(language, "총지방", "Total fat")} value={totalFatRange} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setTotalFatRange} />
+              <Range label={tr(language, "트랜스지방", "Trans fat")} value={transFatRange} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setTransFatRange} />
+              <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={cholesterolRange} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setCholesterolRange} />
+              <Range label={tr(language, "카페인", "Caffeine")} value={caffeineRange} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setCaffeineRange} />
+            </div>
+          </details>
+        </div>
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label={tr(language, "닫기", "Close")} onClick={() => setQuickFiltersOpen(false)} />}
       {mealFlight && <div key={mealFlight.nonce} className="meal-flight" style={{ left: mealFlight.x, top: mealFlight.y, "--flight-x": `${mealFlight.dx}px`, "--flight-y": `${mealFlight.dy}px` } as React.CSSProperties}><UtensilsCrossed size={16} /><span>+1</span></div>}
-      <header className="landing">
+      <FloatingFoodHero images={HERO_IMAGES}>
         <div className="landing-orb orb-one" /><div className="landing-orb orb-two" />
         <div className="landing-copy"><div className="eyebrow">FRANCHISE FOOD GUIDE</div><p className="landing-brand">🍽️ {tr(language, "한입안심", "Hanip Ansim")}</p><h1>{tr(language, "오늘의 한 끼,", "Choose your meal,")}<br />{tr(language, "안심하고 고르세요.", "with confidence.")}</h1><p>{tr(language, "알레르기와 영양 목표를 한 번 설정하면", "Set your allergens and nutrition goals once,")}<br />{tr(language, "여러 프랜차이즈 메뉴를 한곳에서 찾아드려요.", "then explore franchise menus all in one place.")}</p><a href="#explorer">{tr(language, "내 메뉴 찾아보기", "Find my menu")} <ArrowDown size={18} /></a></div>
         <div className="landing-note"><span>ALLERGY</span><span>NUTRITION</span><span>NEARBY</span></div>
-      </header>
+      </FloatingFoodHero>
 
       <section className="trust-shell">
         <Reveal><section className="data-trust" id="trust" aria-labelledby="trust-title">
           <div className="trust-copy">
-            <span>{tr(language, "한입안심의 데이터 원칙", "OUR DATA PRINCIPLES")}</span>
-            <h2 id="trust-title">{tr(language, "확인된 만큼만,", "Only what we've verified,")}<br />{tr(language, "정확하게 보여드려요.", "shown clearly and accurately.")}</h2>
-            <p>{tr(language, "공식 자료로 확인된 정보와 아직 확인 중인 정보를 구분해 표시합니다. 가격은 실시간 매장가가 아닌 기준일의 요기요 가격이며, 확보율은 현재 등록된 메뉴를 기준으로 자동 계산됩니다.", "Information verified from official sources is shown separately from information still under review. Prices are dated Yogiyo reference prices, not live in-store prices, and coverage is calculated automatically from currently registered menus.")}</p>
-            <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 확인하기", "View data standards")} <ChevronRight size={16} /></button>
+            <span>{tr(language, "숫자로 증명하는 한입안심", "HANIP ANSIM, BY THE NUMBERS")}</span>
+            <h2 id="trust-title">{tr(language, "알레르기 정보를 한눈에,", "Allergen information at a glance,")}<br />{tr(language, "더 안심되는 메뉴 선택.", "for more confident menu choices.")}</h2>
+            <p>{tr(language, "흩어진 프랜차이즈 메뉴 정보를 한곳에서 비교하고, 알레르기·영양·가격 조건에 맞춰 바로 걸러볼 수 있어요.", "Compare franchise menus in one place, then narrow them down by allergen, nutrition, and price information.")}</p>
+            <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 자세히 보기", "Explore our data standards")} <ChevronRight size={16} /></button>
           </div>
-          <div className="trust-metrics">
-            <CoverageMetric label={tr(language, "공식 출처 표기율", "Official source coverage")} value={coverage(sourceNamedCount)} detail={`${formatNumber(language, sourceNamedCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "알레르기 정보 확인율", "Allergen information coverage")} value={coverage(allergenKnownCount)} detail={`${formatNumber(language, allergenKnownCount)} / ${formatNumber(language, dataMenus.length)}${tr(language, "개", " menus")}`} />
-            <CoverageMetric label={tr(language, "기준 가격 확보율", "Reference price coverage")} value={coverage(pricedCount)} detail={`${tr(language, "요기요 기준", "Yogiyo reference")} · ${formatNumber(language, pricedCount)}${tr(language, "개", " menus")}`} />
+          <div className="trust-dashboard">
+            <div className="trust-highlights">
+              <div><strong>{formatNumber(language, brandOptions.length)}<b>{tr(language, "개", "")}</b></strong><span>{tr(language, "프랜차이즈 브랜드", "franchise brands")}</span></div>
+              <div><strong>{formatNumber(language, dataMenus.length)}<b>{tr(language, "개", "")}</b></strong><span>{tr(language, "메뉴 비교", "menus to compare")}</span></div>
+              <div><strong>{ALLERGENS.length}<b>{tr(language, "종", "")}</b></strong><span>{tr(language, "알레르기 정보", "allergen categories")}</span></div>
+              <div><strong>{NUTRIENT_FILTER_COUNT}<b>{tr(language, "가지", "")}</b></strong><span>{tr(language, "영양성분", "nutrition nutrients")}</span></div>
+            </div>
+            <p className="trust-dashboard-note">{tr(language, "하나의 화면에서 메뉴를 비교하고, 내 조건에 맞는 선택지만 빠르게 확인하세요.", "Compare menus on one screen and quickly focus on the options that fit your needs.")}</p>
           </div>
         </section></Reveal>
       </section>
@@ -362,10 +503,22 @@ export default function HanipApp() {
             <button disabled={!allergens.length} className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>{tr(language, "위험한 것만", "Contains selected")}</button>
           </div></div>
           <div className="filter-block profile-block"><h3>{tr(language, "맞춤 프로필", "Personal profile")}</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> {tr(language, "신체·다이어트 목표 반영", "Use body profile and goal")}</label><div className={`profile-grid profile-preview ${profileOn ? "enabled" : "disabled"}`}><select disabled={!profileOn} value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option value="여성">{tr(language, "여성", "Female")}</option><option value="남성">{tr(language, "남성", "Male")}</option></select><select disabled={!profileOn} value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option value="감량">{tr(language, "감량", "Lose weight")}</option><option value="유지">{tr(language, "유지", "Maintain")}</option><option value="증량">{tr(language, "증량", "Gain weight")}</option></select><NumberField disabled={!profileOn} label={tr(language, "나이", "Age")} value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField disabled={!profileOn} label={tr(language, "키(cm)", "Height (cm)")} value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField disabled={!profileOn} label={tr(language, "체중(kg)", "Weight (kg)")} value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">{tr(language, "하루 참고 목표", "Daily reference")} <b>{formatNumber(language, targetCalories)} kcal</b></div></div>{!profileOn && <button className="profile-enable-hint" onClick={() => setProfileOn(true)}>{tr(language, "체크하고 맞춤 추천 사용하기 →", "Enable personalized recommendations →")}</button>}</div>
-          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><Range label={tr(language, "최대 칼로리", "Max calories")} value={maxCalories} min={100} max={1200} step={50} unit="kcal" onChange={setMaxCalories} /><Range label={tr(language, "최소 단백질", "Min protein")} value={minProtein} min={0} max={60} step={5} unit="g" onChange={setMinProtein} /><Range label={tr(language, "최대 나트륨", "Max sodium")} value={maxSodium} min={100} max={3000} step={100} unit="mg" onChange={setMaxSodium} /></div>
+          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><p className="nutrition-main-note">{tr(language, "각 영양성분의 최소값과 최대값을 정하면 해당 범위 안의 메뉴만 보여드려요.", "Set a minimum and maximum for each nutrient to see menus within that range.")}</p><div className="nutrition-filter-grid nutrition-primary-grid">
+            <Range label={tr(language, "칼로리", "Calories")} value={calorieRange} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setCalorieRange} />
+            <Range label={tr(language, "단백질", "Protein")} value={proteinRange} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setProteinRange} />
+            <Range label={tr(language, "나트륨", "Sodium")} value={sodiumRange} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setSodiumRange} />
+          </div><details className="nutrition-options"><summary>{tr(language, "추가 영양조건", "More nutrition filters")} <small>{tr(language, "7가지 옵션", "7 options")}</small></summary><div className="nutrition-filter-grid nutrition-option-grid">
+            <Range label={tr(language, "포화지방", "Saturated fat")} value={fatRange} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setFatRange} />
+            <Range label={tr(language, "당류", "Sugars")} value={sugarRange} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setSugarRange} />
+            <Range label={tr(language, "총탄수화물", "Total carbs")} value={totalCarbsRange} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setTotalCarbsRange} />
+            <Range label={tr(language, "총지방", "Total fat")} value={totalFatRange} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setTotalFatRange} />
+            <Range label={tr(language, "트랜스지방", "Trans fat")} value={transFatRange} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setTransFatRange} />
+            <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={cholesterolRange} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setCholesterolRange} />
+            <Range label={tr(language, "카페인", "Caffeine")} value={caffeineRange} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setCaffeineRange} />
+          </div></details></div>
         </section></Reveal></div>
 
-        <Reveal><section className="category-section"><div className="section-intro compact"><span>{tr(language, "02 · 카테고리", "02 · CATEGORY")}</span><h2>{tr(language, "어떤 종류를 찾고 있나요?", "What are you looking for?")}</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{categoryLabel(language, category)}</b><small>{category === "전체" ? tr(language, "모든 브랜드", "All brands") : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length} ${tr(language, "개 브랜드", "brands")}`}</small></button>)}</div><div className="brand-picker">{displayedBrandOptions.map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} language={language} /><span>{brand}</span></button>)}</div></section></Reveal>
+        <Reveal><section className="category-section"><div className="section-intro compact"><span>{tr(language, "02 · 카테고리", "02 · CATEGORY")}</span><h2>{tr(language, "어떤 종류를 찾고 있나요?", "What are you looking for?")}</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{categoryLabel(language, category)}</b><small>{category === "전체" ? tr(language, "모든 브랜드", "All brands") : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length} ${tr(language, "개 브랜드", "brands")}`}</small></button>)}</div><div className="brand-picker">{displayedBrandOptions.map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} language={language} /><span>{displayBrand(brand)}</span></button>)}</div></section></Reveal>
 
         <nav className="tabs">
           <TabButton active={tab === "menus"} onClick={() => changeTab("menus")} icon={<MenuIcon size={17} />} label={tr(language, "추천 메뉴", "Menus")} />
@@ -379,10 +532,10 @@ export default function HanipApp() {
         {tab === "menus" && <Reveal><section className="panel">
           <div className="panel-head"><div><h2>{tr(language, "조건에 맞는 메뉴", "Menus that match")}</h2><p>{tr(language, "브랜드와 메뉴 종류를 고르면 오늘의 한 끼를 빠르게 찾을 수 있어요.", "Choose brands and menu types to find your meal faster.")}</p></div><div className="menu-tools"><label className="sort-select"><span>{tr(language, "정렬", "Sort")}</span><select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}><option value="recommended">{tr(language, "맞춤 추천순", "Recommended")}</option><option value="protein">{tr(language, "단백질 높은 순", "Highest protein")}</option><option value="calories">{tr(language, "열량 낮은 순", "Lowest calories")}</option><option value="sodium">{tr(language, "나트륨 낮은 순", "Lowest sodium")}</option></select></label><label className="search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr(language, "브랜드 또는 메뉴 검색", "Search brands or menus")} /></label></div></div>
           <div className="brand-browser"><div className="brand-folders">{grouped.map(([brand, items]) => { const safeCount = items.filter((menu) => !menu.catalogOnly && menu.allergenKnown && allergens.every((item) => !menu.allergens.includes(item))).length; const dangerCount = allergens.length ? items.filter((menu) => menu.allergenKnown && allergens.some((item) => menu.allergens.includes(item))).length : 0; return <button className={`brand-tile ${activeBrand === brand ? "selected" : ""} ${items.length ? "" : "data-pending"}`} key={brand} onClick={() => { setOpenBrands(activeBrand === brand ? {} : { [brand]: true }); setMenuSectionFilter("전체"); }}>
-            <BrandLogo brand={brand} size={78} language={language} /><span><b>{brand}</b>{items.length > 0 && <small><em className="safe-count">{tr(language, `안전 ${safeCount}개`, `${safeCount} no match`)}</em>{dangerCount > 0 && <em className="danger-count">{tr(language, `위험 ${dangerCount}개`, `${dangerCount} contain selected`)}</em>}</small>}</span>{activeBrand === brand ? <Check /> : <ChevronRight />}
+            <BrandLogo brand={brand} size={78} language={language} /><span><b>{displayBrand(brand)}</b>{items.length > 0 && <small><em className="safe-count">{tr(language, `안전 ${safeCount}개`, `${safeCount} no match`)}</em>{dangerCount > 0 && <em className="danger-count">{tr(language, `위험 ${dangerCount}개`, `${dangerCount} contain selected`)}</em>}</small>}</span>{activeBrand === brand ? <Check /> : <ChevronRight />}
           </button>; })}</div>
-          {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{activeBrand} {tr(language, "메뉴", "menus")}</h3><p>{activeItems.length ? tr(language, `조건에 맞는 ${activeItems.length}개 메뉴를 종류별로 확인하세요.`, `Browse ${activeItems.length} matching menus by type.`) : tr(language, "메뉴·영양·알레르기 데이터를 준비하고 있어요.", "Menu, nutrition, and allergen data are being prepared.")}</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> {tr(language, "닫기", "Close")}</button></div>{activeItems.length > 0 ? <><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{menuSectionLabel(language, section)}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); const pending = menu.catalogOnly || !menu.allergenKnown; return <article className={`menu-card ${pending ? "unknown-card" : danger ? "risk-card" : "safe-card"}`} key={menu.id}>
-            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || brandFallbackImage(menu.brand)} alt={menu.imageUrl ? `${menu.menu} ${tr(language, "공식 메뉴 이미지", "official menu image")}` : `${menu.brand} ${tr(language, "로고", "logo")}`} loading="lazy" onError={(event) => { event.currentTarget.src = brandFallbackImage(menu.brand); event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>{tr(language, "공식 이미지", "Official image")}</span>}</div><span className="category">{menuSectionLabel(language, menuSection(menu))}{menu.category !== menuSection(menu) ? ` · ${categoryLabel(language, menu.category)}` : ""}</span><h3>{menu.menu}</h3>{servingLabel(menu, language) && <span className="serving-label">{servingLabel(menu, language)}</span>}<MenuDescription menu={menu} language={language} /><div className="menu-price"><b>{menu.price ? formatPrice(language, menu.price) : tr(language, "가격은 매장별 확인", "Check price by store")}</b><small>{menu.price ? tr(language, menu.priceNote || "기준 가격", "Reference price") : tr(language, "매장·주문 채널에 따라 달라질 수 있어요", "May vary by store and order channel")}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} ${tr(language, "확인", "checked")}` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} ${tr(language, "확인", "checked")}` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">{tr(language, "가격 출처 보기", "View price source")}</a>}</div>{menu.catalogOnly ? <p className="pending-copy">{tr(language, "영양·알레르기 정보 확인 중", "Nutrition and allergen data pending")}</p> : <p>{calorieLabel(menu, language)} · {tr(language, "단백질", "Protein")} {menu.protein.toFixed(0)}g · {tr(language, "나트륨", "Sodium")} {menu.sodium.toFixed(0)}mg</p>}<div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{allergenLabel(language, item)}</span>) : <span className="safe">{tr(language, "표시 알레르기 없음", "No listed allergens")}</span>) : <span>{tr(language, "알레르기 정보 미표기", "Allergen data not listed")}</span>}</div>{menu.catalogOnly ? <button className="add-button" disabled>{tr(language, "정보 확인 후 담기 가능", "Available after data review")}</button> : <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> {tr(language, "담았어요!", "Added!")}</> : <><UtensilsCrossed size={18} /> {tr(language, "한 끼에 담기", "Add to my meal")}</>}</button>}
+          {activeBrand ? <div ref={brandMenuRef} className="brand-menu-panel" key={activeBrand}><div className="brand-menu-head"><div><span>SELECTED BRAND</span><h3>{displayBrand(activeBrand)} {tr(language, "메뉴", "menus")}</h3><p>{activeItems.length ? tr(language, `조건에 맞는 ${activeItems.length}개 메뉴를 종류별로 확인하세요.`, `Browse ${activeItems.length} matching menus by type.`) : tr(language, "메뉴·영양·알레르기 데이터를 준비하고 있어요.", "Menu, nutrition, and allergen data are being prepared.")}</p></div><button onClick={() => setOpenBrands({})}><X size={18} /> {tr(language, "닫기", "Close")}</button></div>{activeItems.length > 0 ? <><div className="menu-section-tabs">{menuSections.map((section) => <button key={section} className={menuSectionFilter === section ? "active" : ""} onClick={() => changeMenuSection(section)}><b>{menuSectionLabel(language, section)}</b><small>{section === "전체" ? activeItems.length : activeItems.filter((menu) => menuSection(menu) === section).length}</small></button>)}</div><div ref={menuGridRef} className="menu-grid">{visibleActiveItems.map((menu) => { const danger = allergens.length > 0 && allergens.some((item) => menu.allergens.includes(item)); const pending = menu.catalogOnly || !menu.allergenKnown; return <article className={`menu-card ${pending ? "unknown-card" : danger ? "risk-card" : "safe-card"}`} key={menu.id}>
+            <div className={`menu-image ${menu.imageUrl ? "official" : "fallback"}`}><img src={menu.imageUrl || brandFallbackImage(menu.brand)} alt={menu.imageUrl ? `${menuName(menu, language)} ${tr(language, "공식 메뉴 이미지", "official menu image")}` : `${menu.brand} ${tr(language, "로고", "logo")}`} loading="lazy" onError={(event) => { event.currentTarget.src = brandFallbackImage(menu.brand); event.currentTarget.closest(".menu-image")?.classList.add("fallback"); }} />{menu.imageUrl && <span>{tr(language, "공식 이미지", "Official image")}</span>}</div><span className="category">{menuSectionLabel(language, menuSection(menu))}{menu.category !== menuSection(menu) ? ` · ${categoryLabel(language, menu.category)}` : ""}</span><h3>{menuName(menu, language)}</h3>{servingLabel(menu, language) && <span className="serving-label">{servingLabel(menu, language)}</span>}<MenuDescription menu={menu} language={language} /><div className="menu-price"><b>{menu.price ? formatPrice(language, menu.price) : tr(language, "가격은 매장별 확인", "Check price by store")}</b><small>{menu.price ? tr(language, menu.priceNote || "기준 가격", "Reference price") : tr(language, "매장·주문 채널에 따라 달라질 수 있어요", "May vary by store and order channel")}{menu.priceCheckedAt ? ` · ${menu.priceCheckedAt} ${tr(language, "확인", "checked")}` : menu.mediaCheckedAt ? ` · ${menu.mediaCheckedAt} ${tr(language, "확인", "checked")}` : ""}</small>{menu.priceSourceUrl && <a href={menu.priceSourceUrl} target="_blank" rel="noreferrer">{tr(language, "가격 출처 보기", "View price source")}</a>}</div>{menu.catalogOnly ? <p className="pending-copy">{tr(language, "영양·알레르기 정보 확인 중", "Nutrition and allergen data pending")}</p> : <MenuNutrition menu={menu} language={language} />}<div className="allergen-row">{menu.allergenKnown ? (menu.allergens.length ? menu.allergens.map((item) => <span key={item}>{allergenLabel(language, item)}</span>) : <span className="safe">{tr(language, "표시 알레르기 없음", "No listed allergens")}</span>) : <span>{tr(language, "알레르기 정보 미표기", "Allergen data not listed")}</span>}</div>{menu.catalogOnly ? <button className="add-button" disabled>{tr(language, "정보 확인 후 담기 가능", "Available after data review")}</button> : <button key={added?.id === menu.id ? added.nonce : menu.id} className={added?.id === menu.id ? "add-button confirmed" : "add-button"} onClick={(event) => addToCart(menu.id, event)}>{added?.id === menu.id ? <><Check size={18} /> {tr(language, "담았어요!", "Added!")}</> : <><UtensilsCrossed size={18} /> {tr(language, "한 끼에 담기", "Add to my meal")}</>}</button>}
           </article>; })}</div></> : <div className="brand-menu-placeholder"><MenuIcon size={34} /><h3>{tr(language, "메뉴 데이터 준비 중", "Menu data pending")}</h3><p>{tr(language, "브랜드는 추가됐지만 메뉴·영양·알레르기 정보는 아직 등록되지 않았어요.", "This brand is listed, but its menu, nutrition, and allergen data have not been added yet.")}</p></div>}</div> : <div className="brand-menu-placeholder"><MenuIcon size={34} /><h3>{tr(language, "브랜드를 선택해 주세요", "Select a brand")}</h3><p>{tr(language, "왼쪽 카드를 누르면 이곳에서 메뉴를 바로 비교할 수 있어요.", "Choose a card on the left to compare its menus here.")}</p></div>}</div>
           {!filtered.length && grouped.every(([, items]) => items.length === 0) && <div className="empty">{tr(language, "현재 조건에 맞는 등록 메뉴가 없어요. 데이터 준비 중인 브랜드는 위 목록에서 확인할 수 있어요.", "No registered menus match the current filters. Brands with pending data remain visible above.")}</div>}
         </section></Reveal>}
@@ -397,10 +550,21 @@ export default function HanipApp() {
 }
 
 function Reveal({ children }: { children: React.ReactNode }) { const ref = useRef<HTMLDivElement>(null); useEffect(() => { const node = ref.current; if (!node) return; const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && node.classList.add("visible"), { threshold: .12 }); observer.observe(node); return () => observer.disconnect(); }, []); return <div ref={ref} className="reveal">{children}</div>; }
-function CoverageMetric({ label, value, detail }: { label: string; value: number; detail: string }) { return <div className="coverage-metric"><span><b>{label}</b><strong>{value}%</strong></span><div><i style={{ width: `${value}%` }} /></div><small>{detail}</small></div>; }
 function TabButton({ active, onClick, label, icon, mealTarget = false, receiving = false }: { active: boolean; onClick: () => void; label: string; icon?: React.ReactNode; mealTarget?: boolean; receiving?: boolean }) { return <button data-meal-tab={mealTarget ? "true" : undefined} className={`${active ? "active" : ""} ${receiving ? "meal-tab-receiving" : ""}`} onClick={onClick}>{icon}{label}</button>; }
 function NumberField({ label, value, onChange, disabled = false }: { label: string; value: number; onChange: (value: number) => void; disabled?: boolean }) { return <label><span>{label}</span><input disabled={disabled} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
-function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) { return <label className="range"><span>{label}<b>{value} {unit}</b></span><input type="range" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
+function Range({ label, value, min, max, step, unit, onChange }: { label: string; value: NutritionRange; min: number; max: number; step: number; unit: string; onChange: (value: NutritionRange) => void }) {
+  const [minimum, maximum] = value;
+  const clamp = (next: number) => Math.max(min, Math.min(max, Number.isFinite(next) ? next : min));
+  const updateMinimum = (next: number) => onChange([Math.min(clamp(next), maximum), maximum]);
+  const updateMaximum = (next: number) => onChange([minimum, Math.max(clamp(next), minimum)]);
+  const spread = Math.max(max - min, 1);
+  const rangeStyle = {
+    "--range-start": `${((minimum - min) / spread) * 100}%`,
+    "--range-end": `${((maximum - min) / spread) * 100}%`,
+  } as React.CSSProperties;
+
+  return <div className="range"><span><i>{label} <small className="range-unit">({unit})</small></i><b className="range-values"><input aria-label={`${label} minimum`} type="number" value={minimum} min={min} max={maximum} step={step} onChange={(e) => updateMinimum(Number(e.target.value))} /><em>~</em><input aria-label={`${label} maximum`} type="number" value={maximum} min={minimum} max={max} step={step} onChange={(e) => updateMaximum(Number(e.target.value))} /></b></span><div className="range-double-control" style={rangeStyle}><input aria-label={`${label} minimum slider`} type="range" value={minimum} min={min} max={max} step={step} onChange={(e) => updateMinimum(Number(e.target.value))} /><input aria-label={`${label} maximum slider`} type="range" value={maximum} min={min} max={max} step={step} onChange={(e) => updateMaximum(Number(e.target.value))} /></div></div>;
+}
 
 function CartPanel({ items, cart, setCart, totals, targetCalories, allergens, language }: { items: Array<{ menu: Menu; quantity: number }>; cart: Cart; setCart: React.Dispatch<React.SetStateAction<Cart>>; totals: Record<string, number>; targetCalories: number; allergens: string[]; language: Language }) {
   if (!items.length) return <section className="panel empty"><UtensilsCrossed size={36} /><h2>{tr(language, "나의 한 끼가 비어 있어요", "Your meal is empty")}</h2><p>{tr(language, "추천 메뉴에서 원하는 메뉴를 조합해보세요.", "Add items from the menu recommendations to build your meal.")}</p></section>;

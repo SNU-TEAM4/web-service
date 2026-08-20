@@ -1,6 +1,8 @@
 export type Language = "ko" | "en";
 
 export function tr(language: Language, korean: string, english: string) {
+  // The dataset's `carbs` compatibility field contains sugar_g, so expose its true meaning.
+  if (korean === "탄수화물" && english === "Carbs") return language === "en" ? "Sugars" : "당류";
   return language === "en" ? english : korean;
 }
 
