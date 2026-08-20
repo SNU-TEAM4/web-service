@@ -103,8 +103,25 @@ function MenuNutrition({ menu, language }: { menu: Menu; language: Language }) {
     { key: "caffeine", known: menu.caffeineKnown, label: tr(language, "카페인", "Caffeine"), value: `${menu.caffeine.toFixed(1)} mg` },
   ].filter((fact) => fact.known);
 
-  if (!facts.length) return <p className="nutrition-unavailable">{tr(language, "확인된 영양성분 정보가 없어요.", "No confirmed nutrition data available.")}</p>;
-  return <div className="menu-nutrition">{facts.map((fact) => <span key={fact.key}><small>{fact.label}</small><b>{fact.value}</b></span>)}</div>;
+  const basis = nutritionBasisLabel(menu, language);
+  const weight = menu.weightText || (menu.weight ? `${formatNumber(language, menu.weight)} g` : "");
+  const metadata = (basis || weight) && <div className="nutrition-metadata">{basis && <span><small>{tr(language, "영양정보 기준", "Nutrition basis")}</small><b>{basis}</b></span>}{weight && <span><small>{tr(language, "총중량·표기중량", "Listed weight")}</small><b>{weight}</b></span>}</div>;
+
+  if (!facts.length) return <>{metadata}<p className="nutrition-unavailable">{tr(language, "확인된 영양성분 정보가 없어요.", "No confirmed nutrition data available.")}</p></>;
+  return <>{metadata}<div className="menu-nutrition">{facts.map((fact) => <span key={fact.key}><small>{fact.label}</small><b>{fact.value}</b></span>)}</div></>;
+}
+
+function nutritionBasisLabel(menu: Menu, language: Language) {
+  const basis = menu.nutritionBasis || menu.nutritionServingText || "";
+  if (!basis || language === "ko") return basis;
+  const pieceMatch = basis.match(/판매\s*(\d+)조각\s*기준/);
+  if (pieceMatch) return `Per ${pieceMatch[1]} sold pieces`;
+  if (/100\s*g/i.test(basis)) return "Per 100 g";
+  if (/1\s*조각|한\s*조각/.test(basis)) return "Per piece";
+  if (/제공량/.test(basis)) return "Per serving";
+  if (/세트/.test(basis)) return "Whole set";
+  if (/총량|전체/.test(basis)) return "Whole item";
+  return "As published";
 }
 
 function servingLabel(menu: Menu, language: Language) {
@@ -217,6 +234,8 @@ export default function HanipApp() {
           cholesterol: parseNumber(row.cholesterol_mg), cholesterolKnown: hasNumericValue(row.cholesterol_mg),
           caffeine: parseNumber(row.caffeine_mg), caffeineKnown: hasNumericValue(row.caffeine_mg),
           nutritionMatch: row._nutrition_match || "",
+          nutritionBasis: row.nutrition_basis || "", nutritionServingText: row.nutrition_serving_text || "",
+          weight: row.weight_g ? parseNumber(row.weight_g) : undefined, weightText: row.weight_text || "",
           allergens: flagColumnsPresent ? flaggedAllergens : listedAllergens,
           allergenKnown: explicitAllergenKnown
             ? explicitAllergenKnown === "true"

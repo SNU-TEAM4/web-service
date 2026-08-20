@@ -36,7 +36,7 @@ HEADER = [
     "allergens", "source_url", "source_date", "verified", "allergen_known", "image_url", "description",
     "media_source_url", "media_checked_at", "allergy_source_url", "price", "price_note", "price_source_url",
     "price_checked_at", "allergy_notice", "allergy_confidence", "nutrition_basis", "nutrition_serving_text",
-    "weight_g", "kcal_min", "kcal_max", "nutrition_source_name", "nutrition_source_url",
+    "weight_g", "weight_text", "kcal_min", "kcal_max", "nutrition_source_name", "nutrition_source_url",
     "per_100g_kcal", "per_100g_sugar_g", "per_100g_protein_g", "per_100g_sat_fat_g", "per_100g_sodium_mg",
     "total_carbs_g", "total_fat_g", "trans_fat_g", "cholesterol_mg", "cholesterol_g", "caffeine_mg", "dietary_fiber_g",
     "per_100g_carbs_g", "per_100g_fat_g", "per_100g_trans_fat_g", "per_100g_cholesterol_mg",
@@ -53,6 +53,14 @@ HEADER = [
 
 def text(value: object) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def first_meaningful_text(*values: object) -> str:
+    for value in values:
+        normalized = text(value)
+        if normalized not in {"", "-", "N/A", "n/a"}:
+            return normalized
+    return ""
 
 
 def number(value: object) -> str:
@@ -150,6 +158,7 @@ def normalized_csv_rows(source_rows: list[dict[str, str]]) -> list[dict[str, str
             "영양_기준": text(item.get("nutrition_basis")),
             "영양_제공량": text(item.get("nutrition_serving_text")) or text(item.get("nutrition_serving_info")) or text(item.get("serving_info")),
             "중량_g": text(item.get("weight_g")) or text(item.get("serving_weight_g")),
+            "중량_표기": first_meaningful_text(item.get("source_weight_text"), item.get("source_reference_weight_text")),
             "열량_최소": text(item.get("kcal_min")),
             "열량_최대": text(item.get("kcal_max")),
             "100g_열량": text(item.get("per_100g_kcal")),
@@ -221,6 +230,7 @@ def to_row(source: dict[str, str], imported_at: str) -> dict[str, str]:
         "nutrition_basis": text(source.get("영양_기준")),
         "nutrition_serving_text": text(source.get("영양_제공량")),
         "weight_g": number(source.get("중량_g")),
+        "weight_text": first_meaningful_text(source.get("중량_표기")),
         "kcal_min": number(source.get("열량_최소")),
         "kcal_max": number(source.get("열량_최대")),
         "per_100g_kcal": number(source.get("100g_열량")),

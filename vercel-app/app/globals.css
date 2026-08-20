@@ -159,13 +159,20 @@ textarea{font:inherit}
 }
 
 /* Two-value nutrition controls show and filter the selected minimum-to-maximum interval. */
-.range>span{align-items:center;gap:10px}
-.range-values{display:flex;align-items:center;gap:5px;flex:0 0 auto}
-.nutrition-filter-grid .range .range-values input,.quick-ranges .range .range-values input{display:block;width:62px;height:30px;margin:0;padding:3px 6px;text-align:right;border:1px solid #b9cfbd;border-radius:8px;background:#fff;font-size:11px;font-weight:800;outline:none}
+.range>span{display:grid;align-items:stretch;gap:7px}
+.range-values{display:grid;width:100%;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:6px}
+.nutrition-filter-grid .range .range-values input,.quick-ranges .range .range-values input{display:block;width:100%;min-width:0;height:32px;margin:0;padding:3px 7px;text-align:right;border:1px solid #b9cfbd;border-radius:8px;background:#fff;font-size:11px;font-weight:800;outline:none}
 .range-values input:focus{border-color:var(--green)!important;box-shadow:0 0 0 3px #2876531c}
 .range-values em{color:#849188;font-size:11px;font-style:normal}
 .range-values small{min-width:20px;color:var(--muted);font-size:10px;font-weight:750}
 .nutrition-filter-grid .range .range-double-control input,.quick-ranges .range .range-double-control input{position:absolute;inset:0;width:100%;height:22px;margin:0;appearance:none;background:transparent;pointer-events:none}
 .nutrition-filter-grid .range .range-double-control input::-webkit-slider-runnable-track,.quick-ranges .range .range-double-control input::-webkit-slider-runnable-track{height:4px;background:transparent}
 .nutrition-filter-grid .range .range-double-control input::-webkit-slider-thumb,.quick-ranges .range .range-double-control input::-webkit-slider-thumb{pointer-events:auto}
-@media(max-width:620px){.nutrition-filter-grid .range .range-values input{width:68px}}
+@media(max-width:620px){.nutrition-filter-grid .range .range-values input{width:100%}}
+
+/* Show the source unit separately from the nutrient values so per-100g chicken data is not mistaken for whole-item totals. */
+.nutrition-metadata{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:11px 0 3px}
+.nutrition-metadata span{display:flex;min-width:0;padding:8px 9px;flex-direction:column;gap:3px;border:1px solid #d9e6db;border-radius:9px;background:#eef6ef}
+.nutrition-metadata small{color:#668073;font-size:9px;font-weight:800}
+.nutrition-metadata b{overflow-wrap:anywhere;color:#315e47;font-size:10px;line-height:1.4}
+@media(max-width:620px){.nutrition-metadata{grid-template-columns:1fr}}

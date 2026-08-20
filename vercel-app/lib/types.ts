@@ -27,6 +27,10 @@ export type Menu = {
   caffeine: number;
   caffeineKnown: boolean;
   nutritionMatch?: string;
+  nutritionBasis?: string;
+  nutritionServingText?: string;
+  weight?: number;
+  weightText?: string;
   allergens: string[];
   allergenKnown: boolean;
   verified?: boolean;
