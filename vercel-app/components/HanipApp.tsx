@@ -50,6 +50,10 @@ const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
 const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
+const middleValue = (max: number, step: number) => {
+  const value = Math.round((max / 2) / step) * step;
+  return Number(value.toFixed(step < 1 ? 1 : 0));
+};
 const HERO_IMAGES: FloatingFoodImage[] = [];
 const NUTRIENT_FILTER_COUNT = 10;
 
@@ -149,16 +153,16 @@ export default function HanipApp() {
   const [menuSectionFilter, setMenuSectionFilter] = useState("전체");
   // 현재 최종 데이터셋의 실제 상한(열량 4,842kcal·나트륨 8,108mg 등)을 반영해
   // 초기 상태에서는 어느 브랜드도 영양 조건만으로 제외되지 않게 한다.
-  const [maxCalories, setMaxCalories] = useState(5000);
-  const [minProtein, setMinProtein] = useState(0);
-  const [maxFat, setMaxFat] = useState(200);
-  const [maxCarbs, setMaxCarbs] = useState(500);
-  const [maxSodium, setMaxSodium] = useState(8500);
-  const [maxTotalCarbs, setMaxTotalCarbs] = useState(200);
-  const [maxTotalFat, setMaxTotalFat] = useState(100);
-  const [maxTransFat, setMaxTransFat] = useState(2);
-  const [maxCholesterol, setMaxCholesterol] = useState(500);
-  const [maxCaffeine, setMaxCaffeine] = useState(600);
+  const [maxCalories, setMaxCalories] = useState(1900);
+  const [minProtein, setMinProtein] = useState(60);
+  const [maxFat, setMaxFat] = useState(70);
+  const [maxCarbs, setMaxCarbs] = useState(120);
+  const [maxSodium, setMaxSodium] = useState(2500);
+  const [maxTotalCarbs, setMaxTotalCarbs] = useState(100);
+  const [maxTotalFat, setMaxTotalFat] = useState(50);
+  const [maxTransFat, setMaxTransFat] = useState(1);
+  const [maxCholesterol, setMaxCholesterol] = useState(250);
+  const [maxCaffeine, setMaxCaffeine] = useState(500);
   const [profileOn, setProfileOn] = useState(false);
   const [profile, setProfile] = useState({ sex: "여성", age: 25, height: 165, weight: 60, goal: "감량" });
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
@@ -350,15 +354,16 @@ export default function HanipApp() {
   }), [dataMenus]);
   useEffect(() => {
     if (!dataMenus.length) return;
-    setMaxCalories(nutritionLimits.calories);
-    setMaxFat(nutritionLimits.fat);
-    setMaxCarbs(nutritionLimits.carbs);
-    setMaxSodium(nutritionLimits.sodium);
-    setMaxTotalCarbs(nutritionLimits.totalCarbs);
-    setMaxTotalFat(nutritionLimits.totalFat);
-    setMaxTransFat(nutritionLimits.transFat);
-    setMaxCholesterol(nutritionLimits.cholesterol);
-    setMaxCaffeine(nutritionLimits.caffeine);
+    setMaxCalories(middleValue(nutritionLimits.calories, 100));
+    setMinProtein(middleValue(nutritionLimits.protein, 5));
+    setMaxFat(middleValue(nutritionLimits.fat, 10));
+    setMaxCarbs(middleValue(nutritionLimits.carbs, 10));
+    setMaxSodium(middleValue(nutritionLimits.sodium, 250));
+    setMaxTotalCarbs(middleValue(nutritionLimits.totalCarbs, 10));
+    setMaxTotalFat(middleValue(nutritionLimits.totalFat, 10));
+    setMaxTransFat(middleValue(nutritionLimits.transFat, .1));
+    setMaxCholesterol(middleValue(nutritionLimits.cholesterol, 50));
+    setMaxCaffeine(middleValue(nutritionLimits.caffeine, 50));
   }, [dataMenus.length, nutritionLimits]);
   const addToCart = (id: number, event: React.MouseEvent<HTMLButtonElement>) => {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
