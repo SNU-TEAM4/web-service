@@ -114,3 +114,4 @@ textarea{font:inherit}
 .trust-dashboard-note{margin:2px 2px 0!important;color:#d5eadb!important;font-size:13px!important;line-height:1.55}
 
 .range>span>i{font-style:normal}.range-value{display:flex;align-items:center;gap:5px}.range-value input{width:82px;height:30px;padding:3px 7px;text-align:right;border:1px solid #b9cfbd;border-radius:8px;background:#fff;font-weight:800;outline:none}.range-value input:focus{border-color:var(--green);box-shadow:0 0 0 3px #2876531c}.range-value small{min-width:22px;color:var(--muted);font-size:11px;font-weight:750}
+.nutrition-unavailable{margin:12px 0;padding:11px 12px;color:#728178!important;border:1px dashed #cad8cc;border-radius:9px;background:#f7faf7;font-size:12px!important}
