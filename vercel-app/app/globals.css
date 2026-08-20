@@ -115,3 +115,45 @@ textarea{font:inherit}
 
 .range>span>i{font-style:normal}.range-value{display:flex;align-items:center;gap:5px}.range-value input{width:82px;height:30px;padding:3px 7px;text-align:right;border:1px solid #b9cfbd;border-radius:8px;background:#fff;font-weight:800;outline:none}.range-value input:focus{border-color:var(--green);box-shadow:0 0 0 3px #2876531c}.range-value small{min-width:22px;color:var(--muted);font-size:11px;font-weight:750}
 .nutrition-unavailable{margin:12px 0;padding:11px 12px;color:#728178!important;border:1px dashed #cad8cc;border-radius:9px;background:#f7faf7;font-size:12px!important}
+
+/* Keep the three most-used nutrition controls visible and place the rest in an optional drawer. */
+.nutrition-main-note{grid-column:1/-1;margin:0!important;color:var(--muted)!important;font-size:12px!important}
+.nutrition-options{grid-column:1/-1;margin-top:7px;border-top:1px solid #dce7dc}
+.nutrition-options summary{display:flex;padding:13px 2px 5px;align-items:center;gap:9px;color:#315e47;cursor:pointer;font-size:13px;font-weight:850;list-style:none}
+.nutrition-options summary::-webkit-details-marker{display:none}
+.nutrition-options summary small{margin-left:auto;padding:3px 8px;color:#627268;border-radius:999px;background:#edf4ed;font-size:10px;font-weight:800}
+.nutrition-options summary::after{content:"+";display:grid;width:24px;height:24px;place-items:center;flex:0 0 auto;border-radius:50%;background:#e3efe5;font-size:17px;line-height:1}
+.nutrition-options[open] summary::after{content:"−"}
+.nutrition-options .nutrition-option-grid{margin-top:6px}
+.quick-nutrition-options{margin-top:8px}
+.quick-nutrition-options summary{padding-top:11px;font-size:12px}
+.quick-nutrition-options .nutrition-option-grid{display:block;margin-top:5px}
+@media(max-width:620px){.nutrition-primary-grid,.nutrition-options .nutrition-option-grid{grid-template-columns:1fr}}
+
+/* Keep each dashboard label visually connected to its number. */
+.trust-highlights>div{justify-content:flex-start;gap:32px}
+@media(max-width:700px){.trust-highlights>div{gap:20px}}
+
+/* Return the hero to a floating-food composition with smaller wellness-focused imagery. */
+.landing{justify-content:center;text-align:center;background:linear-gradient(135deg,#f8fbf6 0%,#edf6ed 52%,#dfefe2 100%)}
+.landing::before{background:radial-gradient(circle at 12% 18%,rgba(155,211,170,.3),transparent 26%),radial-gradient(circle at 88% 72%,rgba(116,185,139,.24),transparent 29%);filter:none}
+.landing::after{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(225,241,229,.12))}
+.landing-copy{z-index:3;width:100%;max-width:min(860px,72vw);margin:0 auto;text-align:center}
+.landing-copy>p:last-of-type{margin-right:auto;margin-left:auto}
+.landing a{justify-content:center}
+.floating-food{opacity:.9;filter:drop-shadow(0 14px 16px rgba(34,65,45,.16));animation-duration:7s}
+.floating-salad{top:7%;left:5%;width:clamp(105px,11vw,170px)}
+.floating-yogurt{top:8%;right:6%;width:clamp(100px,10vw,158px);animation-delay:-1.8s}
+.floating-toast{left:29%;bottom:3%;width:clamp(90px,9vw,138px);animation-delay:-3.3s}
+.floating-hero-chicken{left:2%;top:43%;width:clamp(78px,8vw,124px);animation-delay:-4.4s}
+.floating-hero-burger{right:2%;top:42%;width:clamp(84px,8.5vw,132px);animation-delay:-5.2s}
+.floating-hero-pizza{right:22%;bottom:2%;width:clamp(98px,10vw,150px);animation-delay:-6.1s}
+@media(max-width:900px){
+  .landing-copy{max-width:100%}
+  .floating-salad{top:7%;left:-3%;width:96px}
+  .floating-yogurt{top:10%;right:-3%;width:90px}
+  .floating-toast{left:23%;bottom:5%;width:78px}
+  .floating-hero-chicken{left:-4%;top:53%;width:72px}
+  .floating-hero-burger{right:-4%;top:50%;width:78px}
+  .floating-hero-pizza{right:17%;bottom:3%;width:88px}
+}

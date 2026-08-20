@@ -50,7 +50,14 @@ const normalizeBrand = (brand: string) => BRAND_ALIASES[brand?.trim()] || brand?
 const mealFactor: Record<string, number> = { "감량": .8, "유지": 1, "증량": 1.12 };
 const EXCLUDED_BRANDS = new Set(["스타벅스"]);
 const roundedLimit = (values: number[], step: number, fallback: number) => Math.max(fallback, Math.ceil(Math.max(...values, 0) / step) * step);
-const HERO_IMAGES: FloatingFoodImage[] = [];
+const HERO_IMAGES: FloatingFoodImage[] = [
+  { src: "/images/wellness-salad-hero.png", alt: "", position: "salad" },
+  { src: "/images/wellness-yogurt-hero.png", alt: "", position: "yogurt" },
+  { src: "/images/wellness-toast-hero.png", alt: "", position: "toast" },
+  { src: "/images/floating-chicken-hero-v2.png", alt: "", position: "hero-chicken" },
+  { src: "/images/floating-burger-hero-v2.png", alt: "", position: "hero-burger" },
+  { src: "/images/floating-pizza-hero-v2.png", alt: "", position: "hero-pizza" },
+];
 const NUTRIENT_FILTER_COUNT = 10;
 
 const menuSection = inferMenuSection;
@@ -402,16 +409,22 @@ export default function HanipApp() {
         <div className="quick-group"><h3>{tr(language, "안전 상태", "Allergen status")}</h3><div className="quick-safety"><button className={safetyMode === "all" ? "active" : ""} onClick={() => setSafetyMode("all")}>{tr(language, "모두", "All")}</button><button disabled={!allergens.length} className={safetyMode === "safe" ? "active safe" : ""} onClick={() => setSafetyMode("safe")}>{tr(language, "안전", "No match")}</button><button disabled={!allergens.length} className={safetyMode === "danger" ? "active danger" : ""} onClick={() => setSafetyMode("danger")}>{tr(language, "위험", "Contains")}</button></div></div>
         <div className="quick-group"><h3>{tr(language, "카테고리", "Category")}</h3><select value={brandCategory} onChange={(e) => setBrandCategory(e.target.value)}>{BRAND_CATEGORY_ORDER.map((item) => <option key={item} value={item}>{categoryLabel(language, item)}</option>)}</select></div>
         <div className="quick-group quick-ranges">
+          <h3>{tr(language, "주요 영양조건", "Main nutrition filters")}</h3>
           <Range label={tr(language, "칼로리", "Calories")} value={maxCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setMaxCalories} />
           <Range label={tr(language, "단백질", "Protein")} value={maxProtein} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setMaxProtein} />
-          <Range label={tr(language, "포화지방", "Saturated fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} />
-          <Range label={tr(language, "당류", "Sugars")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} />
           <Range label={tr(language, "나트륨", "Sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} />
-          <Range label={tr(language, "총탄수화물", "Total carbs")} value={maxTotalCarbs} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setMaxTotalCarbs} />
-          <Range label={tr(language, "총지방", "Total fat")} value={maxTotalFat} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setMaxTotalFat} />
-          <Range label={tr(language, "트랜스지방", "Trans fat")} value={maxTransFat} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setMaxTransFat} />
-          <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={maxCholesterol} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setMaxCholesterol} />
-          <Range label={tr(language, "카페인", "Caffeine")} value={maxCaffeine} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setMaxCaffeine} />
+          <details className="nutrition-options quick-nutrition-options">
+            <summary>{tr(language, "추가 영양조건", "More nutrition filters")} <small>7</small></summary>
+            <div className="nutrition-option-grid">
+              <Range label={tr(language, "포화지방", "Saturated fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} />
+              <Range label={tr(language, "당류", "Sugars")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} />
+              <Range label={tr(language, "총탄수화물", "Total carbs")} value={maxTotalCarbs} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setMaxTotalCarbs} />
+              <Range label={tr(language, "총지방", "Total fat")} value={maxTotalFat} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setMaxTotalFat} />
+              <Range label={tr(language, "트랜스지방", "Trans fat")} value={maxTransFat} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setMaxTransFat} />
+              <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={maxCholesterol} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setMaxCholesterol} />
+              <Range label={tr(language, "카페인", "Caffeine")} value={maxCaffeine} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setMaxCaffeine} />
+            </div>
+          </details>
         </div>
       </aside>
       {showQuickFilters && quickFiltersOpen && <button className="quick-filter-backdrop" aria-label={tr(language, "닫기", "Close")} onClick={() => setQuickFiltersOpen(false)} />}
@@ -426,7 +439,7 @@ export default function HanipApp() {
         <Reveal><section className="data-trust" id="trust" aria-labelledby="trust-title">
           <div className="trust-copy">
             <span>{tr(language, "숫자로 증명하는 한입안심", "HANIP ANSIM, BY THE NUMBERS")}</span>
-            <h2 id="trust-title">{tr(language, "메뉴를 고르는 기준,", "A clearer way to choose")}<br />{tr(language, "한곳에 모았어요.", "your next meal.")}</h2>
+            <h2 id="trust-title">{tr(language, "알레르기 정보를 한눈에,", "Allergen information at a glance,")}<br />{tr(language, "더 안심되는 메뉴 선택.", "for more confident menu choices.")}</h2>
             <p>{tr(language, "흩어진 프랜차이즈 메뉴 정보를 한곳에서 비교하고, 알레르기·영양·가격 조건에 맞춰 바로 걸러볼 수 있어요.", "Compare franchise menus in one place, then narrow them down by allergen, nutrition, and price information.")}</p>
             <button onClick={() => changeTab("about")}>{tr(language, "데이터 기준 자세히 보기", "Explore our data standards")} <ChevronRight size={16} /></button>
           </div>
@@ -452,18 +465,19 @@ export default function HanipApp() {
             <button disabled={!allergens.length} className={`danger-option ${safetyMode === "danger" ? "active" : ""}`} onClick={() => setSafetyMode("danger")}>{tr(language, "위험한 것만", "Contains selected")}</button>
           </div></div>
           <div className="filter-block profile-block"><h3>{tr(language, "맞춤 프로필", "Personal profile")}</h3><label className="toggle-row"><input type="checkbox" checked={profileOn} onChange={(event) => setProfileOn(event.target.checked)} /> {tr(language, "신체·다이어트 목표 반영", "Use body profile and goal")}</label><div className={`profile-grid profile-preview ${profileOn ? "enabled" : "disabled"}`}><select disabled={!profileOn} value={profile.sex} onChange={(e) => setProfile({ ...profile, sex: e.target.value })}><option value="여성">{tr(language, "여성", "Female")}</option><option value="남성">{tr(language, "남성", "Male")}</option></select><select disabled={!profileOn} value={profile.goal} onChange={(e) => setProfile({ ...profile, goal: e.target.value })}><option value="감량">{tr(language, "감량", "Lose weight")}</option><option value="유지">{tr(language, "유지", "Maintain")}</option><option value="증량">{tr(language, "증량", "Gain weight")}</option></select><NumberField disabled={!profileOn} label={tr(language, "나이", "Age")} value={profile.age} onChange={(age) => setProfile({ ...profile, age })} /><NumberField disabled={!profileOn} label={tr(language, "키(cm)", "Height (cm)")} value={profile.height} onChange={(height) => setProfile({ ...profile, height })} /><NumberField disabled={!profileOn} label={tr(language, "체중(kg)", "Weight (kg)")} value={profile.weight} onChange={(weight) => setProfile({ ...profile, weight })} /><div className="target-calorie">{tr(language, "하루 참고 목표", "Daily reference")} <b>{formatNumber(language, targetCalories)} kcal</b></div></div>{!profileOn && <button className="profile-enable-hint" onClick={() => setProfileOn(true)}>{tr(language, "체크하고 맞춤 추천 사용하기 →", "Enable personalized recommendations →")}</button>}</div>
-          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><div className="nutrition-filter-grid">
+          <div className="filter-block nutrition-block"><h3>{tr(language, "영양 조건", "Nutrition filters")}</h3><p className="nutrition-main-note">{tr(language, "칼로리·단백질·나트륨을 먼저 설정하고, 필요하면 추가 조건을 펼쳐보세요.", "Start with calories, protein, and sodium, then open more filters if needed.")}</p><div className="nutrition-filter-grid nutrition-primary-grid">
             <Range label={tr(language, "칼로리", "Calories")} value={maxCalories} min={0} max={nutritionLimits.calories} step={100} unit="kcal" onChange={setMaxCalories} />
             <Range label={tr(language, "단백질", "Protein")} value={maxProtein} min={0} max={nutritionLimits.protein} step={5} unit="g" onChange={setMaxProtein} />
+            <Range label={tr(language, "나트륨", "Sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} />
+          </div><details className="nutrition-options"><summary>{tr(language, "추가 영양조건", "More nutrition filters")} <small>{tr(language, "7가지 옵션", "7 options")}</small></summary><div className="nutrition-filter-grid nutrition-option-grid">
             <Range label={tr(language, "포화지방", "Saturated fat")} value={maxFat} min={0} max={nutritionLimits.fat} step={10} unit="g" onChange={setMaxFat} />
             <Range label={tr(language, "당류", "Sugars")} value={maxCarbs} min={0} max={nutritionLimits.carbs} step={10} unit="g" onChange={setMaxCarbs} />
-            <Range label={tr(language, "나트륨", "Sodium")} value={maxSodium} min={0} max={nutritionLimits.sodium} step={250} unit="mg" onChange={setMaxSodium} />
             <Range label={tr(language, "총탄수화물", "Total carbs")} value={maxTotalCarbs} min={0} max={nutritionLimits.totalCarbs} step={10} unit="g" onChange={setMaxTotalCarbs} />
             <Range label={tr(language, "총지방", "Total fat")} value={maxTotalFat} min={0} max={nutritionLimits.totalFat} step={10} unit="g" onChange={setMaxTotalFat} />
             <Range label={tr(language, "트랜스지방", "Trans fat")} value={maxTransFat} min={0} max={nutritionLimits.transFat} step={.1} unit="g" onChange={setMaxTransFat} />
             <Range label={tr(language, "콜레스테롤", "Cholesterol")} value={maxCholesterol} min={0} max={nutritionLimits.cholesterol} step={50} unit="mg" onChange={setMaxCholesterol} />
             <Range label={tr(language, "카페인", "Caffeine")} value={maxCaffeine} min={0} max={nutritionLimits.caffeine} step={50} unit="mg" onChange={setMaxCaffeine} />
-          </div></div>
+          </div></details></div>
         </section></Reveal></div>
 
         <Reveal><section className="category-section"><div className="section-intro compact"><span>{tr(language, "02 · 카테고리", "02 · CATEGORY")}</span><h2>{tr(language, "어떤 종류를 찾고 있나요?", "What are you looking for?")}</h2></div><div className="category-grid">{BRAND_CATEGORY_ORDER.map((category) => <button className={brandCategory === category ? "active" : ""} key={category} onClick={() => setBrandCategory(category)}><b>{categoryLabel(language, category)}</b><small>{category === "전체" ? tr(language, "모든 브랜드", "All brands") : `${brandOptions.filter((brand) => BRAND_CATEGORIES[brand]?.includes(category)).length} ${tr(language, "개 브랜드", "brands")}`}</small></button>)}</div><div className="brand-picker">{displayedBrandOptions.map((brand) => <button key={brand} className={brands.includes(brand) ? "active" : ""} onClick={() => setBrands((current) => current.includes(brand) ? current.filter((x) => x !== brand) : [...current, brand])}><BrandLogo brand={brand} language={language} /><span>{displayBrand(brand)}</span></button>)}</div></section></Reveal>
