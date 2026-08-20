@@ -142,20 +142,20 @@ textarea{font:inherit}
 .landing-copy>p:last-of-type{margin-right:auto;margin-left:auto}
 .landing a{justify-content:center}
 .floating-food{opacity:.9;filter:drop-shadow(0 14px 16px rgba(34,65,45,.16));animation-duration:7s}
-.floating-salad{top:7%;left:5%;width:clamp(105px,11vw,170px)}
-.floating-yogurt{top:8%;right:6%;width:clamp(100px,10vw,158px);animation-delay:-1.8s}
-.floating-toast{left:29%;bottom:3%;width:clamp(90px,9vw,138px);animation-delay:-3.3s}
-.floating-hero-chicken{left:2%;top:43%;width:clamp(78px,8vw,124px);animation-delay:-4.4s}
-.floating-hero-burger{right:2%;top:42%;width:clamp(84px,8.5vw,132px);animation-delay:-5.2s}
-.floating-hero-pizza{right:22%;bottom:2%;width:clamp(98px,10vw,150px);animation-delay:-6.1s}
+.floating-salad{top:4%;left:7%;width:clamp(108px,10vw,158px);animation-duration:7.8s;animation-delay:-.7s}
+.floating-yogurt{top:13%;right:18%;width:clamp(88px,8.5vw,134px);animation-duration:6.4s;animation-delay:-2.1s}
+.floating-toast{left:24%;bottom:2%;width:clamp(82px,8vw,126px);animation-duration:8.6s;animation-delay:-4.7s}
+.floating-hero-chicken{left:1%;top:39%;width:clamp(72px,7.5vw,116px);animation-duration:6.9s;animation-delay:-3.5s}
+.floating-hero-burger{right:2%;top:29%;width:clamp(86px,8.7vw,136px);animation-duration:8.1s;animation-delay:-5.8s}
+.floating-hero-pizza{right:9%;bottom:-2%;width:clamp(102px,10.5vw,158px);animation-duration:7.2s;animation-delay:-1.4s}
 @media(max-width:900px){
   .landing-copy{max-width:100%}
-  .floating-salad{top:7%;left:-3%;width:96px}
-  .floating-yogurt{top:10%;right:-3%;width:90px}
-  .floating-toast{left:23%;bottom:5%;width:78px}
-  .floating-hero-chicken{left:-4%;top:53%;width:72px}
-  .floating-hero-burger{right:-4%;top:50%;width:78px}
-  .floating-hero-pizza{right:17%;bottom:3%;width:88px}
+  .floating-salad{top:5%;left:-5%;width:91px}
+  .floating-yogurt{top:13%;right:8%;width:76px}
+  .floating-toast{left:14%;bottom:3%;width:72px}
+  .floating-hero-chicken{left:-5%;top:58%;width:65px}
+  .floating-hero-burger{right:-6%;top:43%;width:76px}
+  .floating-hero-pizza{right:9%;bottom:-2%;width:84px}
 }
 
 /* Two-value nutrition controls show and filter the selected minimum-to-maximum interval. */
